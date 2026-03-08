@@ -25,7 +25,6 @@ export class ChapterSummarizer {
     const prompt = this.promptTemplate.replace('{{chapterText}}', chapterText);
 
     const summary = await getLLM().complete(prompt, {
-      model: 'gpt-4o-mini',
       temperature: 0.3,
       maxTokens: 200,
     });

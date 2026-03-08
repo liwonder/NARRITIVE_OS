@@ -38,7 +38,6 @@ export class CompletenessChecker {
     const prompt = this.promptTemplate.replace('{{chapterText}}', chapterText);
 
     const response = await getLLM().complete(prompt, {
-      model: 'gpt-4o-mini',
       temperature: 0.1,
       maxTokens: 10,
     });

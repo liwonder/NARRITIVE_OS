@@ -16,8 +16,10 @@ class OpenAIProvider implements LLMProvider {
   }
 
   async complete(prompt: string, config?: Partial<LLMConfig>): Promise<string> {
+    const model = config?.model || 'gpt-4o-mini';
+    console.log(`[LLM] Using model: ${model}`);
     const response = await this.client.chat.completions.create({
-      model: config?.model || 'gpt-4o-mini',
+      model,
       messages: [{ role: 'user', content: prompt }],
       temperature: config?.temperature ?? 0.7,
       max_tokens: config?.maxTokens ?? 4000,
@@ -55,7 +57,7 @@ export class LLMClient {
         return {
           provider: 'deepseek',
           apiKey: process.env.DEEPSEEK_API_KEY || '',
-          baseURL: 'https://api.deepseek.com/v1',
+          baseURL: 'https://api.deepseek.com',
           model: process.env.LLM_MODEL || 'deepseek-chat',
         };
       default:

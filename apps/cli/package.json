@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@inquirer/prompts": "^8.3.0",
-    "@narrative-os/engine": "*",
+    "@narrative-os/engine": "workspace:*",
     "commander": "^12.0.0"
   },
   "devDependencies": {

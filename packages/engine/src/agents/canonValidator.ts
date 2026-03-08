@@ -42,7 +42,6 @@ export class CanonValidator {
       .replace('{{chapterText}}', chapterText.substring(0, 3000));
 
     const response = await getLLM().complete(prompt, {
-      model: 'gpt-4o-mini',
       temperature: 0.1,
       maxTokens: 500,
     });

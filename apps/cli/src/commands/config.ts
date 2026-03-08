@@ -16,6 +16,11 @@ const PROVIDERS = [
   { name: 'DeepSeek', value: 'deepseek', models: ['deepseek-chat', 'deepseek-reasoner'] },
 ];
 
+const DEEPSEEK_MODEL_MAP: Record<string, string> = {
+  'deepseek-chat': 'deepseek-chat',
+  'deepseek-reasoner': 'deepseek-reasoner',
+};
+
 function loadConfig(): Config | null {
   if (!existsSync(CONFIG_FILE)) return null;
   try {

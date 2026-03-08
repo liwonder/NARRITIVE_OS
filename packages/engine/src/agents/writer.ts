@@ -83,7 +83,6 @@ export class ChapterWriter {
       .replace('{{canon}}', canonSection);
 
     const content = await getLLM().complete(prompt, {
-      model: 'gpt-4o-mini',
       temperature: 0.8,
       maxTokens: 4000,
     });
@@ -110,7 +109,6 @@ ${existingContent}
 Continue naturally from the last sentence:`;
 
     const continuation = await getLLM().complete(prompt, {
-      model: 'gpt-4o-mini',
       temperature: 0.8,
       maxTokens: 2000,
     });

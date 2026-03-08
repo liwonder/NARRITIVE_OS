@@ -19,6 +19,7 @@
 - [x] `apps/cli` with commands: init, generate, status, continue
 - [x] Interactive LLM provider configuration (`nos config`)
 - [x] Story persistence to `~/.narrative-os/stories/`
+- [x] Integration test with DeepSeek API (`simple.test.ts`)
 
 ### Files Created
 - `packages/engine/src/types/index.ts`
@@ -36,6 +37,7 @@
 - `apps/cli/src/commands/continue.ts`
 - `apps/cli/src/commands/config.ts`
 - `apps/cli/src/config/store.ts`
+- `packages/engine/src/test/simple.test.ts` (Integration test)
 
 ---
 
@@ -107,6 +109,19 @@
 ## Phase 10 — Memory + Graph Updates ⏳ PENDING
 
 ---
+
+## Testing
+
+```bash
+# Run integration test
+npx tsx packages/engine/src/test/simple.test.ts
+```
+
+Test validates:
+- Config loading from `~/.narrative-os/config.json`
+- DeepSeek API connectivity
+- Chapter generation pipeline (Writer → Validator → Summarizer)
+- Chinese content generation
 
 ## Usage
 
