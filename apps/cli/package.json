@@ -1,0 +1,21 @@
+{
+  "name": "@narrative-os/cli",
+  "version": "0.1.0",
+  "bin": {
+    "nos": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^8.3.0",
+    "@narrative-os/engine": "*",
+    "commander": "^12.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0"
+  }
+}

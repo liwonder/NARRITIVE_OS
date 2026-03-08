@@ -1,0 +1,20 @@
+{
+  "name": "narrative-os",
+  "private": true,
+  "packageManager": "npm@10.2.4",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "cli": "turbo run dev --filter=cli"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.4.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}
