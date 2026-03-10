@@ -31,6 +31,52 @@ export {
   type DirectorOutput,
   type DirectorContext,
 } from './agents/storyDirector.js';
+export {
+  ChapterPlanner,
+  chapterPlanner,
+  type Scene,
+  type ChapterOutline,
+  type PlannerContext,
+} from './agents/chapterPlanner.js';
+
+// World Simulation
+export {
+  CharacterAgentSystem,
+  characterAgentSystem,
+  type CharacterAgent,
+  type AgendaItem,
+  type CharacterDecision,
+  type CharacterAgentContext,
+} from './world/characterAgent.js';
+export {
+  EventResolver,
+  eventResolver,
+  type WorldEvent,
+  type EventResolution,
+  type ConflictResolution,
+} from './world/eventResolver.js';
+export {
+  WorldStateManager,
+  createWorldStateManager,
+  type Location,
+  type WorldState,
+} from './world/worldState.js';
+
+// Constraints
+export {
+  ConstraintGraph,
+  createConstraintGraph,
+  type ConstraintNode,
+  type ConstraintEdge,
+  type ConstraintViolation,
+  type NodeType,
+} from './constraints/constraintGraph.js';
+export {
+  Validator,
+  validator,
+  type ValidationResult,
+  type ChapterValidationContext,
+} from './constraints/validator.js';
 
 // Pipeline
 export { generateChapter, type GenerateChapterResult, type GenerateChapterOptions } from './pipeline/generateChapter.js';

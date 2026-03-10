@@ -1,6 +1,6 @@
 # Narrative OS Implementation Progress
 
-## Current Phase: Phase 6 (Complete)
+## Current Phase: Phase 9 (Complete)
 
 ---
 
@@ -190,15 +190,94 @@
 
 ---
 
-## Phase 7 — Chapter Planner Agent ⏳ PENDING
+## Phase 7 — Chapter Planner Agent ✅ COMPLETE
+
+**Date:** 2026-03-10
+
+### Implemented
+- [x] ChapterPlanner agent that converts objectives into scene structures
+- [x] Scene outline generation with tension progression (low → high)
+- [x] Integration with StoryDirector objectives
+- [x] Scene details: goal, description, tension, characters, setting, word count
+- [x] Fallback outline generation (no LLM required)
+- [x] Outline validation against objectives
+- [x] Formatted outline for writer prompt injection
+- [x] Support for different chapter lengths (1500-4000 words)
+
+### Files Created/Modified
+- `packages/engine/src/agents/chapterPlanner.ts` (NEW)
+- `packages/engine/src/test/chapter-planner.test.ts` (NEW - Phase 7 test)
+- `packages/engine/src/index.ts` (MODIFIED - exports)
+
+### Key Features
+- Converts director objectives into 3-6 scenes per chapter
+- Progressive tension building (20% → 50% → 80% → 90%)
+- Each scene includes: goal, setting, characters, description, word estimate
+- Validates outline coverage against objectives
+- Adapts scene count to target word count
+- Full integration with Phase 6 (Story Director)
 
 ---
 
-## Phase 8 — World Simulation Layer ⏳ PENDING
+## Phase 8 — World Simulation Layer ✅ COMPLETE
+
+**Date:** 2026-03-10
+
+### Implemented
+- [x] Character agent model (goals, knowledge, location, agenda, personality)
+- [x] Character decision making (LLM and simple fallback)
+- [x] Event resolver (conflict, discovery, interaction, movement types)
+- [x] World state manager (locations, character positions, history)
+- [x] Character movement between locations
+- [x] Turn-based simulation system
+- [x] World state serialization
+
+### Files Created/Modified
+- `packages/engine/src/world/characterAgent.ts` (NEW)
+- `packages/engine/src/world/eventResolver.ts` (NEW)
+- `packages/engine/src/world/worldState.ts` (NEW)
+- `packages/engine/src/test/world-simulation.test.ts` (NEW - Phase 8 test)
+- `packages/engine/src/index.ts` (MODIFIED - exports)
+
+### Key Features
+- Characters have agendas with priorities and deadlines
+- Knowledge tracking per character (what they know)
+- Relationship tracking between characters
+- Location-based world with connections
+- Event resolution with consequences
+- Turn simulation for autonomous character behavior
+- Full world state persistence
 
 ---
 
-## Phase 9 — Narrative Constraints Graph ⏳ PENDING
+## Phase 9 — Narrative Constraints Graph ✅ COMPLETE
+
+**Date:** 2026-03-10
+
+### Implemented
+- [x] Constraint graph data structure (nodes, edges, adjacency list)
+- [x] Character knowledge tracking (what each character knows)
+- [x] Location tracking with movement history
+- [x] Event tracking with participants
+- [x] Constraint checks: canon, location, knowledge, timeline, logic
+- [x] Validator agent with LLM and graph-based validation
+- [x] Knowledge leak detection (character knows fact before it's established)
+- [x] Canon violation detection (contradictions with established facts)
+- [x] Graph serialization for persistence
+
+### Files Created/Modified
+- `packages/engine/src/constraints/constraintGraph.ts` (NEW)
+- `packages/engine/src/constraints/validator.ts` (NEW)
+- `packages/engine/src/test/constraints.test.ts` (NEW - Phase 9 test)
+- `packages/engine/src/index.ts` (MODIFIED - exports)
+
+### Key Features
+- Graph-based representation of story world (characters, locations, facts, events)
+- Automatic detection of impossible knowledge
+- Location consistency checks (no teleporting)
+- Timeline validation (events in correct order)
+- Dual validation: fast graph-based + comprehensive LLM-based
+- Canon fact contradiction detection
 
 ---
 
