@@ -1,6 +1,6 @@
 # Narrative OS Implementation Progress
 
-## Current Phase: Phase 9 (Complete)
+## Current Phase: Phase 10 (Complete)
 
 ---
 
@@ -281,7 +281,33 @@
 
 ---
 
-## Phase 10 — Memory + Graph Updates ⏳ PENDING
+## Phase 10 — Memory + Graph Updates ✅ COMPLETE
+
+**Date:** 2026-03-10
+
+### Implemented
+- [x] StateUpdaterPipeline class for post-chapter updates
+- [x] Complete feedback loop: extract → update vector → update state → update graph
+- [x] Character state updates (emotion, location, knowledge, relationships, goals)
+- [x] Plot thread updates (status, tension, summary)
+- [x] Canon fact extraction and tracking
+- [x] Memory extraction and vector store updates
+- [x] Constraint graph updates (events, character locations)
+- [x] Recent events tracking
+- [x] Quick update mode (no LLM) for testing
+- [x] Full LLM-powered update with state extraction
+
+### Files Created/Modified
+- `packages/engine/src/memory/stateUpdater.ts` (NEW)
+- `packages/engine/src/test/state-updater.test.ts` (NEW - Phase 10 test)
+- `packages/engine/src/index.ts` (MODIFIED - exports)
+
+### Key Features
+- Pipeline: `extract narrative memory → update vector store → update character states → update plot threads → update constraint graph`
+- Automatic state extraction using LLM
+- Multi-chapter simulation support
+- Memory search integration
+- Complete state persistence across chapters
 
 ---
 

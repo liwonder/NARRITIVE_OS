@@ -149,3 +149,47 @@ export function initializeStructuredState(storyId: string, bible: StoryBible): S
   
   return state;
 }
+
+// Constraint graph persistence
+export function saveConstraintGraph(storyId: string, data: string): void {
+  ensureDirs();
+  const storyDir = join(STORIES_DIR, storyId);
+  if (!existsSync(storyDir)) mkdirSync(storyDir, { recursive: true });
+  
+  writeFileSync(join(storyDir, 'constraint-graph.json'), data);
+}
+
+export function loadConstraintGraph(storyId: string): string | null {
+  const storyDir = join(STORIES_DIR, storyId);
+  const graphPath = join(storyDir, 'constraint-graph.json');
+  
+  if (!existsSync(graphPath)) return null;
+  
+  try {
+    return readFileSync(graphPath, 'utf-8');
+  } catch {
+    return null;
+  }
+}
+
+// World state persistence
+export function saveWorldState(storyId: string, data: string): void {
+  ensureDirs();
+  const storyDir = join(STORIES_DIR, storyId);
+  if (!existsSync(storyDir)) mkdirSync(storyDir, { recursive: true });
+  
+  writeFileSync(join(storyDir, 'world-state.json'), data);
+}
+
+export function loadWorldState(storyId: string): string | null {
+  const storyDir = join(STORIES_DIR, storyId);
+  const worldPath = join(storyDir, 'world-state.json');
+  
+  if (!existsSync(worldPath)) return null;
+  
+  try {
+    return readFileSync(worldPath, 'utf-8');
+  } catch {
+    return null;
+  }
+}

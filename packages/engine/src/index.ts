@@ -78,6 +78,15 @@ export {
   type ChapterValidationContext,
 } from './constraints/validator.js';
 
+// State Update Pipeline
+export {
+  StateUpdaterPipeline,
+  stateUpdaterPipeline,
+  type StateUpdateResult,
+  type StateChange,
+  type UpdateContext,
+} from './memory/stateUpdater.js';
+
 // Pipeline
 export { generateChapter, type GenerateChapterResult, type GenerateChapterOptions } from './pipeline/generateChapter.js';
 
