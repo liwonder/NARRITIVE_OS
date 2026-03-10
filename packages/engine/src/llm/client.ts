@@ -24,7 +24,14 @@ class OpenAIProvider implements LLMProvider {
       temperature: config?.temperature ?? 0.7,
       max_tokens: config?.maxTokens ?? 4000,
     });
-    return response.choices[0]?.message?.content || '';
+    
+    // Handle DeepSeek reasoning models which may have reasoning_content
+    const message = response.choices[0]?.message;
+    if (!message) return '';
+    
+    // For DeepSeek reasoning models, content may be in reasoning_content field
+    const content = (message as any).reasoning_content || message.content || '';
+    return content;
   }
 }
 
@@ -81,16 +88,23 @@ export class LLMClient {
   }
 
   async completeJSON<T>(prompt: string, config?: Partial<LLMConfig>): Promise<T> {
-    const jsonPrompt = `${prompt}\n\nYou must respond with valid JSON only. No markdown, no explanations.`;
+    const jsonPrompt = `${prompt}\n\nYou must respond with valid JSON only. No markdown, no explanations. Wrap your JSON response in triple backticks if needed.`;
     const response = await this.complete(jsonPrompt, {
       ...config,
       temperature: config?.temperature ?? 0.3,
     });
     
+    // Try to extract JSON from markdown code blocks if present
+    let jsonText = response.trim();
+    const codeBlockMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (codeBlockMatch) {
+      jsonText = codeBlockMatch[1].trim();
+    }
+    
     try {
-      return JSON.parse(response) as T;
+      return JSON.parse(jsonText) as T;
     } catch (error) {
-      throw new Error(`Failed to parse JSON response: ${response.substring(0, 200)}`);
+      throw new Error(`Failed to parse JSON response: ${jsonText.substring(0, 200)}`);
     }
   }
 }

@@ -1,6 +1,6 @@
 # Narrative OS Implementation Progress
 
-## Current Phase: Phase 3 (Complete)
+## Current Phase: Phase 6 (Complete)
 
 ---
 
@@ -107,19 +107,86 @@
 
 ---
 
-## Phase 4 — Structured Story State ⏳ PENDING
+## Phase 4 — Structured Story State ✅ COMPLETE
+
+**Date:** 2026-03-10
+
+### Implemented
+- [x] Character state tracking (emotion, location, relationships, goals, knowledge)
+- [x] Plot thread manager with status (dormant/active/escalating/resolved) and tension
+- [x] Story tension calculator using parabolic curve: `targetTension = 4 * progress * (1 - progress)`
+- [x] Unresolved questions tracking
+- [x] Recent events log (last 10 events)
+- [x] State updater agent (`stateUpdater.ts`) - extracts changes from chapters using LLM
+- [x] State persistence to `structured-state.json`
+- [x] State formatting for writer prompt injection
+
+### Files Created/Modified
+- `packages/engine/src/story/structuredState.ts` (NEW)
+- `packages/engine/src/agents/stateUpdater.ts` (NEW)
+- `packages/engine/src/test/structured-state.test.ts` (NEW - Phase 4 test)
+- `packages/engine/src/index.ts` (MODIFIED - exports)
+- `apps/cli/src/config/store.ts` (MODIFIED - structured state persistence)
+
+### Key Features
+- Characters track: emotional state, location, relationships, goals, knowledge, development
+- Plot threads track: status, tension level, last active chapter, involved characters
+- Tension follows dramatic arc: low → high → resolution
+- State updates extracted automatically by LLM after each chapter
+- Formatted state injected into writer prompts for context
 
 ---
 
-## Phase 4 — Structured Story State ⏳ PENDING
+## Phase 5 — Narrative Tension Controller ✅ COMPLETE
+
+**Date:** 2026-03-10
+
+### Implemented
+- [x] Tension calculator with parabolic curve: `targetTension = 4 * progress * (1 - progress)`
+- [x] Tension analysis (escalate / maintain / resolve / climax)
+- [x] Tension guidance generation (scene types, pacing notes)
+- [x] Tension estimation from chapter content (heuristic analysis)
+- [x] TensionController class with full API
+- [x] Formatted tension guidance for writer prompts
+
+### Files Created/Modified
+- `packages/engine/src/agents/tensionController.ts` (NEW)
+- `packages/engine/src/test/tension-controller.test.ts` (NEW - Phase 5 test)
+- `packages/engine/src/index.ts` (MODIFIED - exports)
+
+### Key Features
+- Natural dramatic arc: low tension at start → peak in middle → resolution at end
+- Four tension actions: escalate, maintain, climax, resolve
+- Content-based tension estimation using keyword analysis
+- Guidance includes scene types and pacing recommendations
+- Perfect parabolic curve for 10-chapter stories (0% → 99% → 0%)
 
 ---
 
-## Phase 5 — Narrative Tension Controller ⏳ PENDING
+## Phase 6 — Story Director Agent ✅ COMPLETE
 
----
+**Date:** 2026-03-10
 
-## Phase 6 — Story Director Agent ⏳ PENDING
+### Implemented
+- [x] StoryDirector agent that reads story state, plot threads, tension target
+- [x] Chapter objective generation with priorities (critical/high/medium/low)
+- [x] Objective types: plot, character, world, tension, resolution
+- [x] Integration with structured state and tension guidance
+- [x] Fallback objectives generation (no LLM required)
+- [x] Formatted director output for writer prompt injection
+- [x] Support for focus characters and suggested scenes
+
+### Files Created/Modified
+- `packages/engine/src/agents/storyDirector.ts` (NEW)
+- `packages/engine/src/test/story-director.test.ts` (NEW - Phase 6 test)
+- `packages/engine/src/index.ts` (MODIFIED - exports)
+
+### Key Features
+- Director analyzes: plot threads, character states, unresolved questions, tension
+- Outputs structured chapter objectives with priorities and types
+- Generates scene suggestions and tone guidance
+- Fallback mode works without LLM for testing
+- Full integration with Phase 4 (structured state) and Phase 5 (tension)
 
 ---
 

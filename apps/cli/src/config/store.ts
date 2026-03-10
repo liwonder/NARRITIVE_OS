@@ -1,8 +1,8 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
-import type { StoryBible, StoryState, Chapter, CanonStore } from '@narrative-os/engine';
-import { extractCanonFromBible } from '@narrative-os/engine';
+import type { StoryBible, StoryState, Chapter, CanonStore, StoryStructuredState } from '@narrative-os/engine';
+import { extractCanonFromBible, createStructuredState, initializeCharactersFromBible, initializePlotThreadsFromBible } from '@narrative-os/engine';
 
 const DATA_DIR = join(homedir(), '.narrative-os');
 const STORIES_DIR = join(DATA_DIR, 'stories');
@@ -12,7 +12,13 @@ function ensureDirs() {
   if (!existsSync(STORIES_DIR)) mkdirSync(STORIES_DIR, { recursive: true });
 }
 
-export function saveStory(bible: StoryBible, state: StoryState, chapters: Chapter[], canon?: CanonStore) {
+export function saveStory(
+  bible: StoryBible,
+  state: StoryState,
+  chapters: Chapter[],
+  canon?: CanonStore,
+  structuredState?: StoryStructuredState
+) {
   ensureDirs();
   const storyDir = join(STORIES_DIR, bible.id);
   if (!existsSync(storyDir)) mkdirSync(storyDir, { recursive: true });
@@ -23,9 +29,14 @@ export function saveStory(bible: StoryBible, state: StoryState, chapters: Chapte
   
   const canonToSave = canon || extractCanonFromBible(bible);
   writeFileSync(join(storyDir, 'canon.json'), JSON.stringify(canonToSave, null, 2));
+  
+  // Save structured state if provided
+  if (structuredState) {
+    writeFileSync(join(storyDir, 'structured-state.json'), JSON.stringify(structuredState, null, 2));
+  }
 }
 
-export function loadStory(storyId: string): { bible: StoryBible; state: StoryState; chapters: Chapter[]; canon: CanonStore } | null {
+export function loadStory(storyId: string): { bible: StoryBible; state: StoryState; chapters: Chapter[]; canon: CanonStore; structuredState: StoryStructuredState | null } | null {
   const storyDir = join(STORIES_DIR, storyId);
   if (!existsSync(storyDir)) return null;
 
@@ -42,7 +53,14 @@ export function loadStory(storyId: string): { bible: StoryBible; state: StorySta
       canon = extractCanonFromBible(bible);
     }
     
-    return { bible, state, chapters, canon };
+    // Load structured state
+    let structuredState: StoryStructuredState | null = null;
+    const structuredPath = join(storyDir, 'structured-state.json');
+    if (existsSync(structuredPath)) {
+      structuredState = JSON.parse(readFileSync(structuredPath, 'utf-8'));
+    }
+    
+    return { bible, state, chapters, canon, structuredState };
   } catch {
     return null;
   }
@@ -96,4 +114,38 @@ export function loadVectorStore(storyId: string): string | null {
   }
 }
 
+// Structured state persistence
+export function saveStructuredState(storyId: string, state: StoryStructuredState): void {
+  ensureDirs();
+  const storyDir = join(STORIES_DIR, storyId);
+  if (!existsSync(storyDir)) mkdirSync(storyDir, { recursive: true });
+  
+  writeFileSync(join(storyDir, 'structured-state.json'), JSON.stringify(state, null, 2));
+}
 
+export function loadStructuredState(storyId: string): StoryStructuredState | null {
+  const storyDir = join(STORIES_DIR, storyId);
+  const statePath = join(storyDir, 'structured-state.json');
+  
+  if (!existsSync(statePath)) return null;
+  
+  try {
+    return JSON.parse(readFileSync(statePath, 'utf-8'));
+  } catch {
+    return null;
+  }
+}
+
+// Initialize structured state from bible if it doesn't exist
+export function initializeStructuredState(storyId: string, bible: StoryBible): StoryStructuredState {
+  let state = loadStructuredState(storyId);
+  
+  if (!state) {
+    state = createStructuredState(storyId);
+    state = initializeCharactersFromBible(state, bible);
+    state = initializePlotThreadsFromBible(state, bible);
+    saveStructuredState(storyId, state);
+  }
+  
+  return state;
+}

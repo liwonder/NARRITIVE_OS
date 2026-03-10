@@ -11,6 +11,26 @@ export { CompletenessChecker, completenessChecker } from './agents/completeness.
 export { ChapterSummarizer, summarizer } from './agents/summarizer.js';
 export { CanonValidator, canonValidator } from './agents/canonValidator.js';
 export { MemoryExtractor, memoryExtractor } from './agents/memoryExtractor.js';
+export { StateUpdater, stateUpdater } from './agents/stateUpdater.js';
+export {
+  TensionController,
+  tensionController,
+  calculateTargetTension,
+  calculateNextChapterTension,
+  analyzeTension,
+  generateTensionGuidance,
+  formatTensionForPrompt,
+  estimateTensionFromChapter,
+  type TensionAnalysis,
+  type TensionGuidance,
+} from './agents/tensionController.js';
+export {
+  StoryDirector,
+  storyDirector,
+  type ChapterObjective,
+  type DirectorOutput,
+  type DirectorContext,
+} from './agents/storyDirector.js';
 
 // Pipeline
 export { generateChapter, type GenerateChapterResult, type GenerateChapterOptions } from './pipeline/generateChapter.js';
@@ -18,6 +38,21 @@ export { generateChapter, type GenerateChapterResult, type GenerateChapterOption
 // Story
 export { createStoryBible, addCharacter, addPlotThread } from './story/bible.js';
 export { createStoryState, updateStoryState } from './story/state.js';
+export {
+  createStructuredState,
+  initializeCharactersFromBible,
+  initializePlotThreadsFromBible,
+  updateCharacterState,
+  updatePlotThread,
+  addUnresolvedQuestion,
+  resolveQuestion,
+  addRecentEvent,
+  updateStoryTension,
+  formatStructuredStateForPrompt,
+  type StoryStructuredState,
+  type CharacterState,
+  type PlotThreadState,
+} from './story/structuredState.js';
 
 // Memory
 export { createCanonStore, extractCanonFromBible, addFact, formatCanonForPrompt, type CanonStore, type CanonFact } from './memory/canonStore.js';
