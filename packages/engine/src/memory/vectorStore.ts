@@ -27,16 +27,51 @@ export class VectorStore {
     this.storyId = storyId;
   }
 
-  async initialize(): Promise<void> {
+  async initialize(maxElements: number = 10000): Promise<void> {
     this.index = new HierarchicalNSW('cosine', this.dimension);
-    this.index.initIndex(10000, 16, 200);
+    this.index.initIndex(maxElements, 16, 200);
     this.nextId = 0;
     this.memories.clear();
+  }
+
+  /**
+   * Resize the index to accommodate more memories
+   */
+  resizeIndex(newMaxElements: number): void {
+    if (!this.index) {
+      throw new Error('VectorStore not initialized. Call initialize() first.');
+    }
+    
+    if (newMaxElements <= this.memories.size) {
+      return; // No need to resize
+    }
+    
+    this.index.resizeIndex(newMaxElements);
+  }
+
+  /**
+   * Ensure capacity for upcoming memories
+   */
+  ensureCapacity(additionalMemories: number): void {
+    const requiredCapacity = this.memories.size + additionalMemories;
+    const currentCapacity = this.index?.getMaxElements() || 0;
+    
+    if (requiredCapacity > currentCapacity) {
+      // Add 50% more capacity or use required, whichever is larger
+      const newCapacity = Math.max(Math.floor(currentCapacity * 1.5), requiredCapacity);
+      this.resizeIndex(newCapacity);
+    }
   }
 
   async addMemory(memory: Omit<NarrativeMemory, 'id' | 'embedding'>): Promise<NarrativeMemory> {
     if (!this.index) {
       throw new Error('VectorStore not initialized. Call initialize() first.');
+    }
+
+    // Auto-resize if we're near capacity (add 50% more)
+    const currentCapacity = this.index.getMaxElements();
+    if (this.memories.size >= currentCapacity - 1) {
+      this.resizeIndex(Math.floor(currentCapacity * 1.5));
     }
 
     const id = this.nextId++;
