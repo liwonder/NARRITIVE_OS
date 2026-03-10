@@ -74,4 +74,26 @@ export function listStories(): { id: string; title: string; currentChapter: numb
   return stories;
 }
 
+// Vector store persistence
+export function saveVectorStore(storyId: string, data: string): void {
+  ensureDirs();
+  const storyDir = join(STORIES_DIR, storyId);
+  if (!existsSync(storyDir)) mkdirSync(storyDir, { recursive: true });
+  
+  writeFileSync(join(storyDir, 'vector-store.json'), data);
+}
+
+export function loadVectorStore(storyId: string): string | null {
+  const storyDir = join(STORIES_DIR, storyId);
+  const vectorPath = join(storyDir, 'vector-store.json');
+  
+  if (!existsSync(vectorPath)) return null;
+  
+  try {
+    return readFileSync(vectorPath, 'utf-8');
+  } catch {
+    return null;
+  }
+}
+
 

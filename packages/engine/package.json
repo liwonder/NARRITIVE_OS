@@ -9,7 +9,9 @@
     "lint": "eslint src/**/*.ts"
   },
   "dependencies": {
+    "hnswlib-node": "^3.0.0",
     "openai": "^4.52.0",
+    "vector-cosine-similarity": "^1.8.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {

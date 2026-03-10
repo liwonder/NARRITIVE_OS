@@ -1,6 +1,6 @@
 # Narrative OS Implementation Progress
 
-## Current Phase: Phase 2 (Complete)
+## Current Phase: Phase 3 (Complete)
 
 ---
 
@@ -72,13 +72,42 @@
 
 ---
 
-## Phase 3 — Vector Narrative Memory ⏳ PENDING
+## Phase 3 — Vector Narrative Memory ✅ COMPLETE
 
-**Planned:**
-- [ ] Vector store interface (HNSW/Pinecone/pgvector)
-- [ ] Memory extraction agent
-- [ ] Memory retriever with semantic search
-- [ ] Integration into generation context
+**Date:** 2026-03-09
+
+### Implemented
+- [x] Vector store interface using HNSW (hnswlib-node with native bindings)
+- [x] OpenAI text-embedding-3-small integration for embeddings with mock fallback
+- [x] Memory extraction agent (`memoryExtractor.ts`)
+- [x] Memory retriever with semantic search (`memoryRetriever.ts`)
+- [x] Memory injection into Writer prompts
+- [x] Vector store persistence to `vector-store.json`
+- [x] CLI updated to load/save vector store
+- [x] Pipeline extracts and stores memories after each chapter
+
+### Files Created/Modified
+- `packages/engine/src/memory/vectorStore.ts` (NEW)
+- `packages/engine/src/memory/memoryRetriever.ts` (NEW)
+- `packages/engine/src/agents/memoryExtractor.ts` (NEW)
+- `packages/engine/src/agents/writer.ts` (MODIFIED - memory injection)
+- `packages/engine/src/pipeline/generateChapter.ts` (MODIFIED - memory extraction)
+- `packages/engine/src/index.ts` (MODIFIED - exports)
+- `packages/engine/src/test/vector-memory.test.ts` (NEW - Phase 3 test)
+- `apps/cli/src/config/store.ts` (MODIFIED - vector store persistence)
+- `apps/cli/src/commands/generate.ts` (MODIFIED - vector store integration)
+- `apps/cli/src/commands/continue.ts` (MODIFIED - vector store integration)
+
+### Key Features
+- Memories categorized as: event, character, world, plot
+- Semantic search retrieves relevant past events based on meaning
+- Writer receives formatted memories section in prompt
+- Memories extracted automatically after each chapter generation
+- Vector store persists to disk for story continuity
+
+---
+
+## Phase 4 — Structured Story State ⏳ PENDING
 
 ---
 

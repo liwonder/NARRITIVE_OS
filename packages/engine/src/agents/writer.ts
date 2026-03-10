@@ -2,6 +2,7 @@ import { getLLM } from '../llm/client.js';
 import type { GenerationContext, WriterOutput } from '../types/index.js';
 import type { CanonStore } from '../memory/canonStore.js';
 import { formatCanonForPrompt } from '../memory/canonStore.js';
+import type { MemoryRetriever } from '../memory/memoryRetriever.js';
 
 const WRITER_PROMPT = `You are a professional novelist writing immersive narrative prose.
 
@@ -26,6 +27,10 @@ Write Chapter {{chapterNumber}} of the novel.
 
 {{canon}}
 
+## Relevant Memories
+
+{{memories}}
+
 ## Recent Chapter Summaries
 
 {{recentSummaries}}
@@ -41,6 +46,7 @@ Write Chapter {{chapterNumber}} of the novel.
 - Maintain consistent character voices
 - Build toward the chapter goal naturally
 - End at a natural stopping point (not mid-scene)
+- Reference relevant past memories naturally when appropriate
 - Target length: {{targetWordCount}} words
 
 Write the full chapter now.`;
@@ -52,10 +58,21 @@ export class ChapterWriter {
     this.promptTemplate = WRITER_PROMPT;
   }
 
-  async write(context: GenerationContext, canon?: CanonStore): Promise<WriterOutput> {
+  async write(context: GenerationContext, canon?: CanonStore, memoryRetriever?: MemoryRetriever): Promise<WriterOutput> {
     const { bible, state, chapterNumber, targetWordCount = 2000 } = context;
     
     const canonSection = canon ? formatCanonForPrompt(canon) : '';
+
+    // Retrieve relevant memories
+    let memoriesSection = 'No relevant memories yet.';
+    if (memoryRetriever && chapterNumber > 1) {
+      const memories = await memoryRetriever.retrieveForChapter({
+        bible,
+        state,
+        currentChapter: chapterNumber,
+      });
+      memoriesSection = memoryRetriever.formatMemoriesForPrompt(memories) || 'No highly relevant memories for this chapter.';
+    }
 
     const recentSummaries = state.chapterSummaries
       .slice(-3)
@@ -77,6 +94,7 @@ export class ChapterWriter {
       .replace('{{tone}}', bible.tone)
       .replace('{{premise}}', bible.premise)
       .replace('{{characters}}', characters)
+      .replace('{{memories}}', memoriesSection)
       .replace('{{recentSummaries}}', recentSummaries)
       .replace('{{chapterGoal}}', chapterGoal)
       .replace('{{targetWordCount}}', targetWordCount.toString())

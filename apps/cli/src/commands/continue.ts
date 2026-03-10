@@ -1,5 +1,5 @@
-import { generateChapter, updateStoryState, type GenerationContext } from '@narrative-os/engine';
-import { loadStory, saveStory } from '../config/store.js';
+import { generateChapter, updateStoryState, type GenerationContext, getVectorStore } from '@narrative-os/engine';
+import { loadStory, saveStory, saveVectorStore, loadVectorStore } from '../config/store.js';
 
 export async function continueCommand(storyId: string) {
   const story = loadStory(storyId);
@@ -16,6 +16,15 @@ export async function continueCommand(storyId: string) {
     return;
   }
 
+  // Load or initialize vector store for memory
+  const vectorStore = getVectorStore(storyId);
+  const existingData = loadVectorStore(storyId);
+  if (existingData) {
+    await vectorStore.load(existingData);
+  } else {
+    await vectorStore.initialize();
+  }
+
   console.log(`Continuing story: ${bible.title}`);
   console.log(`Generating chapters ${state.currentChapter + 1} to ${state.totalChapters}...\n`);
 
@@ -30,15 +39,17 @@ export async function continueCommand(storyId: string) {
     };
 
     try {
-      const result = await generateChapter(context, { canon });
+      const result = await generateChapter(context, { canon, vectorStore });
       
       chapters = [...chapters, result.chapter];
       state = updateStoryState(state, result.summary);
       
       saveStory(bible, state, chapters, canon);
+      saveVectorStore(storyId, vectorStore.serialize());
 
       const violationWarn = result.violations.length > 0 ? ` [${result.violations.length} violations]` : '';
-      console.log(`✓ Chapter ${result.chapter.number}: ${result.chapter.title} (${result.chapter.wordCount} words)${violationWarn}`);
+      const memoryInfo = result.memoriesExtracted > 0 ? ` [${result.memoriesExtracted} memories]` : '';
+      console.log(`✓ Chapter ${result.chapter.number}: ${result.chapter.title} (${result.chapter.wordCount} words)${violationWarn}${memoryInfo}`);
     } catch (error) {
       console.error(`\nFailed at Chapter ${nextChapterNumber}:`, error);
       process.exit(1);

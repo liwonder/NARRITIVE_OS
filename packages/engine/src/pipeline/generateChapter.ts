@@ -2,19 +2,25 @@ import { writer } from '../agents/writer.js';
 import { completenessChecker } from '../agents/completeness.js';
 import { summarizer } from '../agents/summarizer.js';
 import { canonValidator } from '../agents/canonValidator.js';
+import { memoryExtractor } from '../agents/memoryExtractor.js';
 import type { GenerationContext, Chapter, ChapterSummary } from '../types/index.js';
 import type { CanonStore } from '../memory/canonStore.js';
+import type { VectorStore } from '../memory/vectorStore.js';
+import { createMemoryRetriever, MemoryRetriever } from '../memory/memoryRetriever.js';
 
 export interface GenerateChapterResult {
   chapter: Chapter;
   summary: ChapterSummary;
   violations: string[];
+  memoriesExtracted: number;
 }
 
 export interface GenerateChapterOptions {
   canon?: CanonStore;
+  vectorStore?: VectorStore;
   validateCanon?: boolean;
   maxContinuationAttempts?: number;
+  retrieveMemories?: boolean;
 }
 
 export async function generateChapter(
@@ -22,11 +28,18 @@ export async function generateChapter(
   options: GenerateChapterOptions = {}
 ): Promise<GenerateChapterResult> {
   const { bible, state, chapterNumber } = context;
-  const { canon, validateCanon = true, maxContinuationAttempts = 3 } = options;
+  const { canon, vectorStore, validateCanon = true, maxContinuationAttempts = 3, retrieveMemories = true } = options;
 
   console.log(`Generating Chapter ${chapterNumber}...`);
 
-  let output = await writer.write(context, canon);
+  // Initialize memory retriever if vector store provided
+  let memoryRetriever: MemoryRetriever | undefined;
+  if (vectorStore && retrieveMemories) {
+    await vectorStore.initialize();
+    memoryRetriever = createMemoryRetriever(vectorStore);
+  }
+
+  let output = await writer.write(context, canon, memoryRetriever);
   let attempts = 0;
 
   while (attempts < maxContinuationAttempts) {
@@ -65,9 +78,28 @@ export async function generateChapter(
     generatedAt: new Date(),
   };
 
+  // Extract and store memories
+  let memoriesExtracted = 0;
+  if (vectorStore) {
+    console.log('  Extracting memories...');
+    const extracted = await memoryExtractor.extract(chapter, bible);
+    
+    for (const memory of extracted) {
+      await vectorStore.addMemory({
+        storyId: bible.id,
+        chapterNumber,
+        content: memory.content,
+        category: memory.category,
+        timestamp: new Date(),
+      });
+      memoriesExtracted++;
+    }
+    console.log(`  Stored ${memoriesExtracted} memories`);
+  }
+
   console.log(`  Generated: ${output.wordCount} words`);
 
-  return { chapter, summary, violations };
+  return { chapter, summary, violations, memoriesExtracted };
 }
 
 function generateId(): string {
