@@ -1,3 +1,22 @@
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
+import { homedir } from 'os';
+
+// Load config BEFORE importing engine (to initialize LLM correctly)
+const configPath = join(homedir(), '.narrative-os', 'config.json');
+if (existsSync(configPath)) {
+  const config = JSON.parse(readFileSync(configPath, 'utf-8'));
+  process.env.LLM_PROVIDER = config.provider;
+  // Use deepseek-chat (reasoner may not be available for all API keys)
+  process.env.LLM_MODEL = 'deepseek-chat';
+  if (config.provider === 'openai') {
+    process.env.OPENAI_API_KEY = config.apiKey;
+  } else if (config.provider === 'deepseek') {
+    process.env.DEEPSEEK_API_KEY = config.apiKey;
+  }
+  console.log(`Loaded config: ${config.provider} / ${config.model}`);
+}
+
 import {
   createConstraintGraph,
   Validator,
