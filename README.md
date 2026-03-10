@@ -46,19 +46,85 @@ Most AI writing tools suffer from "goldfish memory" — they forget what happene
 
 ## Installation
 
+### Option 1: Global Install with npm (Recommended)
+
+**Prerequisites:** Node.js 20+
+
 ```bash
 # Clone the repository
 git clone https://github.com/yourusername/narrative_os.git
 cd narrative_os
 
-# Install dependencies (requires pnpm)
-pnpm install
+# Install dependencies (npm works too!)
+npm install
 
 # Build the project
+npm run build
+
+# Install CLI globally
+npm install -g ./apps/cli
+
+# Now you can use 'nos' from anywhere!
+nos --help
+```
+
+### Option 1b: Global Install with pnpm (Alternative)
+
+If you prefer pnpm:
+
+```bash
+# Setup pnpm (if not already done)
+pnpm setup
+
+# Clone and install
+git clone https://github.com/yourusername/narrative_os.git
+cd narrative_os
+pnpm install
 pnpm build
 
-# Configure LLM provider
+# Install CLI globally
+pnpm add -g ./apps/cli
+
+# Use it!
+nos --help
+```
+
+**Note:** After `pnpm setup`, you may need to restart your terminal for the PATH changes to take effect.
+
+### Option 2: Local Development
+
+```bash
+# Clone and setup
+git clone https://github.com/yourusername/narrative_os.git
+cd narrative_os
+pnpm install
+pnpm build
+
+# Use via pnpm
+pnpm --filter @narrative-os/cli start
+
+# Or run directly
+node apps/cli/dist/index.js
+```
+
+### Option 3: Quick Setup Script
+
+```bash
+# Windows PowerShell
+iwr -useb https://raw.githubusercontent.com/yourusername/narrative_os/main/install.ps1 | iex
+
+# macOS/Linux
+curl -fsSL https://raw.githubusercontent.com/yourusername/narrative_os/main/install.sh | bash
+```
+
+### First Time Setup
+
+```bash
+# Configure your LLM provider (DeepSeek recommended)
 nos config
+
+# Test the installation
+nos
 ```
 
 **Requirements:**

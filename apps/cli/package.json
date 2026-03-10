@@ -1,17 +1,45 @@
 {
   "name": "@narrative-os/cli",
   "version": "0.1.0",
+  "description": "AI-native narrative engine for long-form story generation",
+  "main": "dist/index.js",
   "bin": {
-    "nos": "./dist/index.js"
+    "nos": "dist/index.js"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "ai",
+    "story",
+    "narrative",
+    "writing",
+    "novel",
+    "llm",
+    "cli"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/narrative_os.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/narrative_os/issues"
+  },
+  "homepage": "https://github.com/yourusername/narrative_os#readme",
+  "engines": {
+    "node": ">=20.0.0"
   },
   "dependencies": {
     "@inquirer/prompts": "^8.3.0",
-    "@narrative-os/engine": "workspace:*",
+    "@narrative-os/engine": "0.1.0",
     "commander": "^12.0.0"
   },
   "devDependencies": {

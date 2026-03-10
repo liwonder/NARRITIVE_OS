@@ -42,8 +42,11 @@ export async function initCommand(options: {
 
   saveStory(bible, state, []);
 
-  console.log(`Story created: ${title}`);
-  console.log(`ID: ${bible.id}`);
-  console.log(`Target chapters: ${targetChapters}`);
-  console.log(`\nNext: Run "nos generate ${bible.id}" to write Chapter 1`);
+  console.log(`\n✅ Story created: ${title}`);
+  console.log(`   ID: ${bible.id}`);
+  console.log(`   Target chapters: ${targetChapters}`);
+  console.log(`\n💡 Next steps:`);
+  console.log(`   • Generate Chapter 1:  nos generate ${bible.id}`);
+  console.log(`   • View story bible:    nos bible ${bible.id}`);
+  console.log(`   • Check status:        nos status ${bible.id}`);
 }

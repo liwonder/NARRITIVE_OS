@@ -1,17 +1,39 @@
 {
   "name": "@narrative-os/engine",
   "version": "0.1.0",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "description": "Core narrative engine for AI-powered story generation",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "lint": "eslint src/**/*.ts"
+    "lint": "eslint src/**/*.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "ai",
+    "story",
+    "narrative",
+    "writing",
+    "llm",
+    "memory",
+    "hnsw"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/narrative_os.git"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   },
   "dependencies": {
     "hnswlib-node": "^3.0.0",
     "openai": "^4.52.0",
-    "vector-cosine-similarity": "^1.8.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {

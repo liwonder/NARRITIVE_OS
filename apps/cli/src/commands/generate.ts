@@ -5,7 +5,11 @@ export async function generateCommand(storyId: string) {
   const story = loadStory(storyId);
   
   if (!story) {
-    console.error(`Story not found: ${storyId}`);
+    console.error(`❌ Story not found: ${storyId}\n`);
+    console.log('💡 Try one of these:');
+    console.log('   • List all stories:    nos list');
+    console.log('   • Create new story:    nos init --title "My Story"');
+    console.log('   • Check story status:  nos status');
     process.exit(1);
   }
 
@@ -45,22 +49,29 @@ export async function generateCommand(storyId: string) {
     // Save vector store
     saveVectorStore(storyId, vectorStore.serialize());
 
-    console.log(`\nChapter ${result.chapter.number} generated!`);
-    console.log(`Title: ${result.chapter.title}`);
-    console.log(`Words: ${result.chapter.wordCount}`);
+    console.log(`\n✅ Chapter ${result.chapter.number} generated!`);
+    console.log(`   Title: ${result.chapter.title}`);
+    console.log(`   Words: ${result.chapter.wordCount}`);
     if (result.violations.length > 0) {
-      console.log(`⚠️  Canon violations: ${result.violations.length}`);
+      console.log(`   ⚠️  Canon violations: ${result.violations.length}`);
     }
     if (result.memoriesExtracted > 0) {
-      console.log(`🧠 Memories extracted: ${result.memoriesExtracted}`);
+      console.log(`   🧠 Memories extracted: ${result.memoriesExtracted}`);
     }
-    console.log(`Summary: ${result.summary.summary}`);
-    console.log(`\nProgress: ${newState.currentChapter}/${state.totalChapters}`);
+    console.log(`   Summary: ${result.summary.summary}`);
     
+    const progress = Math.round((newState.currentChapter / state.totalChapters) * 100);
+    console.log(`\n📊 Progress: ${newState.currentChapter}/${state.totalChapters} (${progress}%)`);
+    
+    console.log(`\n💡 Next steps:`);
     if (newState.currentChapter < state.totalChapters) {
-      console.log(`\nNext: Run "nos generate ${storyId}" for Chapter ${nextChapterNumber + 1}`);
+      console.log(`   • Generate next chapter:  nos generate ${storyId}`);
+      console.log(`   • Read this chapter:      nos read ${storyId} ${result.chapter.number}`);
+      console.log(`   • Auto-generate rest:     nos continue ${storyId}`);
     } else {
-      console.log('\nStory complete!');
+      console.log(`   🎉 Story complete!`);
+      console.log(`   • Export to file:         nos export ${storyId}`);
+      console.log(`   • Read full story:        nos read ${storyId}`);
     }
   } catch (error) {
     console.error('Generation failed:', error);

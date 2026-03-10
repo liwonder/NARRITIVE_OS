@@ -5,6 +5,14 @@ import { initCommand } from './commands/init.js';
 import { generateCommand } from './commands/generate.js';
 import { statusCommand } from './commands/status.js';
 import { configCommand, applyConfig } from './commands/config.js';
+import { listCommand } from './commands/list.js';
+import { deleteCommand } from './commands/delete.js';
+import { cloneCommand } from './commands/clone.js';
+import { exportCommand } from './commands/export.js';
+import { readCommand } from './commands/read.js';
+import { bibleCommand } from './commands/bible.js';
+import { stateCommand } from './commands/state.js';
+import { showHint, showWelcome } from './commands/hint.js';
 
 applyConfig();
 
@@ -15,11 +23,19 @@ program
   .description('Narrative OS - AI-powered story generation')
   .version('0.1.0');
 
+// Show welcome when no args provided
+if (process.argv.length <= 2) {
+  showWelcome();
+  process.exit(0);
+}
+
+// Configuration
 program
   .command('config')
   .description('Configure LLM provider and API key')
   .action(configCommand);
 
+// Story Management
 program
   .command('init')
   .description('Create a new story')
@@ -33,9 +49,10 @@ program
   .action(initCommand);
 
 program
-  .command('generate <story-id>')
-  .description('Generate the next chapter')
-  .action(generateCommand);
+  .command('list')
+  .alias('ls')
+  .description('List all stories')
+  .action(listCommand);
 
 program
   .command('status [story-id]')
@@ -43,11 +60,91 @@ program
   .action(statusCommand);
 
 program
+  .command('delete <story-id>')
+  .description('Delete a story')
+  .option('-f, --force', 'Skip confirmation')
+  .action((storyId: string, options: { force?: boolean }) => {
+    deleteCommand(storyId, options.force);
+  });
+
+program
+  .command('clone <story-id> <new-title>')
+  .description('Clone a story as a template')
+  .action(cloneCommand);
+
+// Generation
+program
+  .command('generate <story-id>')
+  .alias('gen')
+  .description('Generate the next chapter')
+  .action(generateCommand);
+
+program
   .command('continue <story-id>')
   .description('Generate all remaining chapters')
   .action(async (storyId: string) => {
     const { continueCommand } = await import('./commands/continue.js');
     await continueCommand(storyId);
+  });
+
+program
+  .command('regenerate <story-id> <chapter-number>')
+  .alias('regen')
+  .description('Regenerate a specific chapter')
+  .action(async (storyId: string, chapterNum: string) => {
+    const { regenerateCommand } = await import('./commands/regenerate.js');
+    await regenerateCommand(storyId, parseInt(chapterNum));
+  });
+
+// Reading & Export
+program
+  .command('read <story-id> [chapter-number]')
+  .description('Read chapter content (or list chapters)')
+  .action((storyId: string, chapterNum?: string) => {
+    readCommand(storyId, chapterNum ? parseInt(chapterNum) : undefined);
+  });
+
+program
+  .command('export <story-id>')
+  .description('Export story to file')
+  .option('-f, --format <format>', 'Export format (markdown|txt)', 'markdown')
+  .option('-o, --output <file>', 'Output filename')
+  .action((storyId: string, options: { format?: string; output?: string }) => {
+    exportCommand(storyId, options.format, options.output);
+  });
+
+// Bible & State
+program
+  .command('bible <story-id>')
+  .description('View story bible (characters, setting, etc.)')
+  .action(bibleCommand);
+
+program
+  .command('state <story-id>')
+  .description('View structured story state')
+  .action(stateCommand);
+
+program
+  .command('memories <story-id> [query]')
+  .description('Search narrative memories')
+  .action(async (storyId: string, query?: string) => {
+    const { memoriesCommand } = await import('./commands/memories.js');
+    await memoriesCommand(storyId, query);
+  });
+
+program
+  .command('validate <story-id>')
+  .description('Validate story consistency')
+  .action(async (storyId: string) => {
+    const { validateCommand } = await import('./commands/validate.js');
+    await validateCommand(storyId);
+  });
+
+program
+  .command('hint [story-id]')
+  .description('Show helpful hints and suggestions')
+  .action((storyId?: string) => {
+    showHint({ storyId });
   });
 
 program.parse();

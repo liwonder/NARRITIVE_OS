@@ -5,7 +5,10 @@ export function statusCommand(storyId?: string) {
     const stories = listStories();
     
     if (stories.length === 0) {
-      console.log('No stories found. Run "nos init" to create one.');
+      console.log('No stories found.\n');
+      console.log('💡 Get started:');
+      console.log('   • Create a new story:  nos init --title "My Story"');
+      console.log('   • Or with options:     nos init --help');
       return;
     }
 
