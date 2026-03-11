@@ -28,12 +28,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/narrative_os.git"
+    "url": "https://github.com/liwonder/NARRITIVE_OS.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/narrative_os/issues"
+    "url": "https://github.com/liwonder/NARRITIVE_OS/issues"
   },
-  "homepage": "https://github.com/yourusername/narrative_os#readme",
+  "homepage": "https://github.com/liwonder/NARRITIVE_OS#readme",
   "engines": {
     "node": ">=20.0.0"
   },
