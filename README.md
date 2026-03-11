@@ -52,7 +52,7 @@ Most AI writing tools suffer from "goldfish memory" — they forget what happene
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/narrative_os.git
+git clone https://github.com/liwonder/NARRITIVE_OS.git
 cd narrative_os
 
 # Install dependencies (npm works too!)
@@ -77,7 +77,7 @@ If you prefer pnpm:
 pnpm setup
 
 # Clone and install
-git clone https://github.com/yourusername/narrative_os.git
+git clone https://github.com/liwonder/NARRITIVE_OS.git
 cd narrative_os
 pnpm install
 pnpm build
@@ -95,7 +95,7 @@ nos --help
 
 ```bash
 # Clone and setup
-git clone https://github.com/yourusername/narrative_os.git
+git clone https://github.com/liwonder/NARRITIVE_OS.git
 cd narrative_os
 pnpm install
 pnpm build

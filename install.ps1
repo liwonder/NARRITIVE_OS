@@ -66,13 +66,13 @@ if (Test-Path $installDir) {
 # Clone repository
 Write-Host ""
 Write-Host "📥 Downloading Narrative OS..." -ForegroundColor Cyan
-git clone https://github.com/yourusername/narrative_os.git $installDir 2>$null
+git clone https://github.com/liwonder/NARRITIVE_OS.git $installDir 2>$null
 
 if (-not $?) {
     Write-Host "⚠️  Git clone failed. Using fallback download..." -ForegroundColor Yellow
     # Fallback: create directory and download zip
     New-Item -ItemType Directory -Force -Path $installDir | Out-Null
-    $zipUrl = "https://github.com/yourusername/narrative_os/archive/refs/heads/main.zip"
+    $zipUrl = "https://github.com/liwonder/NARRITIVE_OS/archive/refs/heads/main.zip"
     $zipPath = "$env:TEMP\narrative-os.zip"
     Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath
     Expand-Archive -Path $zipPath -DestinationPath $env:TEMP -Force
@@ -119,7 +119,7 @@ Write-Host "   nos config          # Configure LLM provider"
 Write-Host "   nos init            # Create your first story"
 Write-Host "   nos --help          # See all commands"
 Write-Host ""
-Write-Host "📚 Documentation: https://github.com/yourusername/narrative_os"
+Write-Host "📚 Documentation: https://github.com/liwonder/NARRITIVE_OS"
 Write-Host ""
 
 # Configure if requested
