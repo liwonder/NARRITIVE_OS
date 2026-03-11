@@ -1,0 +1,886 @@
+# Engine Architecture
+
+<cite>
+**Referenced Files in This Document**
+- [packages/engine/src/index.ts](file://packages/engine/src/index.ts)
+- [packages/engine/src/types/index.ts](file://packages/engine/src/types/index.ts)
+- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts)
+- [packages/engine/src/memory/canonStore.ts](file://packages/engine/src/memory/canonStore.ts)
+- [packages/engine/src/memory/vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts)
+- [packages/engine/src/memory/memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts)
+- [packages/engine/src/memory/stateUpdater.ts](file://packages/engine/src/memory/stateUpdater.ts)
+- [packages/engine/src/pipeline/generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts)
+- [packages/engine/src/story/bible.ts](file://packages/engine/src/story/bible.ts)
+- [packages/engine/src/story/structuredState.ts](file://packages/engine/src/story/structuredState.ts)
+- [packages/engine/src/agents/writer.ts](file://packages/engine/src/agents/writer.ts)
+- [packages/engine/src/agents/completeness.ts](file://packages/engine/src/agents/completeness.ts)
+- [packages/engine/src/agents/summarizer.ts](file://packages/engine/src/agents/summarizer.ts)
+- [packages/engine/src/agents/canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts)
+- [packages/engine/src/agents/memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts)
+- [packages/engine/src/agents/stateUpdater.ts](file://packages/engine/src/agents/stateUpdater.ts)
+- [packages/engine/src/agents/chapterPlanner.ts](file://packages/engine/src/agents/chapterPlanner.ts)
+- [packages/engine/src/world/worldState.ts](file://packages/engine/src/world/worldState.ts)
+- [packages/engine/src/world/characterAgent.ts](file://packages/engine/src/world/characterAgent.ts)
+- [packages/engine/src/world/eventResolver.ts](file://packages/engine/src/world/eventResolver.ts)
+- [packages/engine/src/constraints/constraintGraph.ts](file://packages/engine/src/constraints/constraintGraph.ts)
+- [packages/engine/src/constraints/validator.ts](file://packages/engine/src/constraints/validator.ts)
+- [apps/cli/src/index.ts](file://apps/cli/src/index.ts)
+- [apps/cli/src/commands/generate.ts](file://apps/cli/src/commands/generate.ts)
+- [apps/cli/src/commands/validate.ts](file://apps/cli/src/commands/validate.ts)
+- [apps/cli/src/commands/state.ts](file://apps/cli/src/commands/state.ts)
+- [apps/cli/src/commands/memories.ts](file://apps/cli/src/commands/memories.ts)
+- [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts)
+- [turbo.json](file://turbo.json)
+- [pnpm-workspace.yaml](file://pnpm-workspace.yaml)
+</cite>
+
+## Update Summary
+**Changes Made**
+- Added comprehensive vector memory system with HNSW-based semantic search
+- Integrated structured state management with character and plot thread tracking
+- Enhanced constraint validation with dual-mode validation (fast graph + LLM-based)
+- Added new CLI commands for validation, state inspection, and memory querying
+- Implemented state updater pipeline for autonomous post-chapter updates
+- Enhanced memory retrieval system with contextual querying and categorization
+- Added constraint graph integration for narrative consistency enforcement
+
+## Table of Contents
+1. [Introduction](#introduction)
+2. [Project Structure](#project-structure)
+3. [Core Components](#core-components)
+4. [Architecture Overview](#architecture-overview)
+5. [Detailed Component Analysis](#detailed-component-analysis)
+6. [Dependency Analysis](#dependency-analysis)
+7. [Performance Considerations](#performance-considerations)
+8. [Troubleshooting Guide](#troubleshooting-guide)
+9. [Conclusion](#conclusion)
+10. [Appendices](#appendices)
+
+## Introduction
+This document describes the architecture of the Narrative Operating System engine package, focusing on the AI-powered story generation system. The engine follows an agent-based architecture with a clear separation of concerns: agents encapsulate specialized tasks (writing, completeness checking, summarization, and canon validation), a centralized LLM integration layer abstracts provider details, a canonical memory system maintains story facts, a vector memory system provides semantic search capabilities, and a generation pipeline orchestrates the workflow. The system now incorporates a World Simulation Layer with autonomous character agents, a Chapter Planner Agent for structured scene planning, a Constraint Graph for narrative consistency enforcement, and a comprehensive state management system with structured state tracking.
+
+## Project Structure
+The repository is organized as a monorepo using pnpm workspaces and Turborepo orchestration:
+- packages/engine: Core engine library exporting types, LLM client, agents, memory, pipeline, story utilities, world simulation, and constraint systems.
+- apps/cli: CLI application that consumes the engine to initialize stories, generate chapters, validate consistency, inspect state, and manage persisted state.
+- Root configuration files define workspace layout and Turborepo task caching.
+
+```mermaid
+graph TB
+subgraph "Monorepo"
+subgraph "packages/engine"
+E_Index["index.ts"]
+E_Types["types/index.ts"]
+E_LLM["llm/client.ts"]
+E_Memory["memory/*"]
+E_Pipeline["pipeline/generateChapter.ts"]
+E_Story["story/*"]
+E_Agents["agents/*"]
+E_World["world/*"]
+E_Constraints["constraints/*"]
+end
+subgraph "apps/cli"
+C_Index["src/index.ts"]
+C_Gen["src/commands/generate.ts"]
+C_Validate["src/commands/validate.ts"]
+C_State["src/commands/state.ts"]
+C_Memories["src/commands/memories.ts"]
+C_Store["src/config/store.ts"]
+end
+end
+C_Index --> C_Gen
+C_Index --> C_Validate
+C_Index --> C_State
+C_Index --> C_Memories
+C_Gen --> E_Index
+C_Validate --> E_Index
+C_State --> E_Index
+C_Memories --> E_Index
+E_Index --> E_Types
+E_Index --> E_LLM
+E_Index --> E_Memory
+E_Index --> E_Pipeline
+E_Index --> E_Story
+E_Index --> E_Agents
+E_Index --> E_World
+E_Index --> E_Constraints
+```
+
+**Diagram sources**
+- [packages/engine/src/index.ts](file://packages/engine/src/index.ts#L1-L116)
+- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L121-L150)
+- [apps/cli/src/commands/generate.ts](file://apps/cli/src/commands/generate.ts#L1-L55)
+- [apps/cli/src/commands/validate.ts](file://apps/cli/src/commands/validate.ts#L1-L107)
+- [apps/cli/src/commands/state.ts](file://apps/cli/src/commands/state.ts#L1-L83)
+- [apps/cli/src/commands/memories.ts](file://apps/cli/src/commands/memories.ts#L1-L66)
+- [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts#L1-L195)
+
+**Section sources**
+- [pnpm-workspace.yaml](file://pnpm-workspace.yaml#L1-L4)
+- [turbo.json](file://turbo.json#L1-L19)
+
+## Core Components
+- Export surface: The engine's public API is exported via a single barrel file, exposing types, LLM client, agents, pipeline, story utilities, memory APIs, world simulation components, and constraint systems.
+- Types: Define the canonical data models for StoryBible, StoryState, Chapter, ChapterSummary, GenerationContext, and LLM configuration interfaces.
+- LLM client: Provides a provider-agnostic abstraction with a singleton accessor and support for multiple providers (OpenAI, DeepSeek) via environment-driven configuration.
+- Agents: Specialized modules implementing writing, completeness checks, summarization, canon validation, memory extraction, and state updates.
+- World Simulation Layer: Character agents with goals, knowledge, and autonomy, event resolvers for conflict and interaction resolution, and world state management.
+- Constraint Graph: Narrative consistency system enforcing logical rules for canon, location, knowledge, timeline, and logical constraints.
+- Vector Memory System: HNSW-based semantic search with automatic embedding generation, supporting contextual queries and category filtering.
+- Memory Retriever: Contextual memory retrieval with ranking and categorization for LLM prompts.
+- State Updater Pipeline: Autonomous post-chapter state management with structured state tracking and constraint graph updates.
+- Structured State Management: Comprehensive character and plot thread state tracking with tension calculation and recent event management.
+- Canonical memory: A structured store for facts categorized by character/world/plot/timeline, with helpers to extract and format facts for prompts.
+- Pipeline: Orchestrates the chapter generation loop, integrating agents and optional validation.
+- Story utilities: Builders for StoryBible and mutation helpers for characters and plot threads.
+- CLI integration: Loads persisted stories, constructs GenerationContext, invokes the pipeline, updates state, and persists results.
+
+**Section sources**
+- [packages/engine/src/index.ts](file://packages/engine/src/index.ts#L1-L116)
+- [packages/engine/src/types/index.ts](file://packages/engine/src/types/index.ts#L1-L90)
+- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L1-L106)
+- [packages/engine/src/memory/canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L1-L134)
+- [packages/engine/src/memory/vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L1-L208)
+- [packages/engine/src/memory/memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts#L1-L174)
+- [packages/engine/src/memory/stateUpdater.ts](file://packages/engine/src/memory/stateUpdater.ts#L1-L435)
+- [packages/engine/src/story/structuredState.ts](file://packages/engine/src/story/structuredState.ts#L1-L235)
+- [packages/engine/src/pipeline/generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L108)
+- [packages/engine/src/story/bible.ts](file://packages/engine/src/story/bible.ts#L1-L73)
+- [packages/engine/src/agents/writer.ts](file://packages/engine/src/agents/writer.ts#L1-L146)
+- [packages/engine/src/agents/completeness.ts](file://packages/engine/src/agents/completeness.ts#L1-L56)
+- [packages/engine/src/agents/summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L1-L64)
+- [packages/engine/src/agents/canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L1-L59)
+- [packages/engine/src/agents/memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L1-L97)
+- [packages/engine/src/agents/stateUpdater.ts](file://packages/engine/src/agents/stateUpdater.ts#L1-L193)
+- [packages/engine/src/agents/chapterPlanner.ts](file://packages/engine/src/agents/chapterPlanner.ts#L1-L326)
+- [packages/engine/src/world/worldState.ts](file://packages/engine/src/world/worldState.ts#L1-L321)
+- [packages/engine/src/world/characterAgent.ts](file://packages/engine/src/world/characterAgent.ts#L1-L304)
+- [packages/engine/src/world/eventResolver.ts](file://packages/engine/src/world/eventResolver.ts#L1-L272)
+- [packages/engine/src/constraints/constraintGraph.ts](file://packages/engine/src/constraints/constraintGraph.ts#L1-L471)
+- [packages/engine/src/constraints/validator.ts](file://packages/engine/src/constraints/validator.ts#L1-L286)
+- [apps/cli/src/commands/generate.ts](file://apps/cli/src/commands/generate.ts#L1-L55)
+- [apps/cli/src/commands/validate.ts](file://apps/cli/src/commands/validate.ts#L1-L107)
+- [apps/cli/src/commands/state.ts](file://apps/cli/src/commands/state.ts#L1-L83)
+- [apps/cli/src/commands/memories.ts](file://apps/cli/src/commands/memories.ts#L1-L66)
+- [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts#L1-L195)
+
+## Architecture Overview
+The system employs:
+- Factory pattern for LLM providers: The LLM client factory selects and instantiates a provider based on environment configuration, enabling pluggable backends.
+- Pipeline pattern for generation workflow: The generateChapter function coordinates writing, optional continuation, validation, and summarization in a deterministic loop.
+- Agent-based architecture: Each agent encapsulates a distinct responsibility and interacts with the LLM client through a shared interface.
+- World Simulation Layer: Characters with goals, knowledge, and autonomy generate emergent plot through decision-making and event resolution.
+- Constraint Graph: Narrative consistency system enforcing logical rules for canon, location, knowledge, timeline, and logical constraints.
+- Vector Memory System: HNSW-based semantic search with automatic embedding generation for contextual memory retrieval.
+- Memory Retriever: Contextual memory retrieval with ranking and categorization for LLM prompts.
+- State Updater Pipeline: Autonomous post-chapter state management with structured state tracking and constraint graph updates.
+- Structured State Management: Comprehensive character and plot thread state tracking with tension calculation and recent event management.
+- Chapter Planner Agent: Converts high-level objectives into detailed scene-by-scene outlines with tension progression.
+- Canonical memory management: A typed store maintains facts that inform writing and validation, with formatting helpers for LLM prompts.
+- Modular design: Clear boundaries between story creation, state management, memory, agents, world simulation, constraint enforcement, and pipeline enable independent testing and extension.
+
+```mermaid
+graph TB
+CLI["CLI Commands"] --> Gen["generateChapter()"]
+CLI --> Validate["validateCommand()"]
+CLI --> StateCmd["stateCommand()"]
+CLI --> MemoriesCmd["memoriesCommand()"]
+Gen --> Writer["ChapterWriter.write()"]
+Gen --> Checker["CompletenessChecker.check()"]
+Gen --> Summarizer["ChapterSummarizer.summarize()"]
+Gen --> Validator["CanonValidator.validate()"]
+Writer --> LLM["LLMClient.complete()"]
+Checker --> LLM
+Summarizer --> LLM
+Validator --> LLM
+subgraph "Memory System"
+VectorStore["VectorStore (HNSW)"]
+MemoryRetriever["MemoryRetriever"]
+MemoryExtractor["MemoryExtractor"]
+VectorStore --> MemoryRetriever
+MemoryExtractor --> VectorStore
+end
+subgraph "State Management"
+StructuredState["StructuredState"]
+StateUpdater["StateUpdaterPipeline"]
+StateUpdater --> VectorStore
+StateUpdater --> StructuredState
+end
+subgraph "World Simulation Layer"
+WorldState["WorldStateManager"]
+CharacterAgent["CharacterAgentSystem"]
+EventResolver["EventResolver"]
+WorldState --> CharacterAgent
+WorldState --> EventResolver
+CharacterAgent --> LLM
+EventResolver --> WorldState
+end
+subgraph "Constraint System"
+ConstraintGraph["ConstraintGraph"]
+Validator["Validator"]
+ConstraintGraph --> Validator
+end
+subgraph "Planning"
+ChapterPlanner["ChapterPlanner"]
+ChapterPlanner --> LLM
+end
+Gen --> Canon["CanonStore"]
+Gen --> ConstraintGraph
+Gen --> WorldState
+Gen --> ChapterPlanner
+Gen --> MemoryRetriever
+Gen --> MemoryExtractor
+CLI --> Store["Filesystem persistence"]
+Store --> Gen
+Store --> Validate
+Store --> StateCmd
+Store --> MemoriesCmd
+```
+
+**Diagram sources**
+- [packages/engine/src/pipeline/generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L26-L103)
+- [packages/engine/src/agents/writer.ts](file://packages/engine/src/agents/writer.ts#L55-L94)
+- [packages/engine/src/agents/completeness.ts](file://packages/engine/src/agents/completeness.ts#L37-L52)
+- [packages/engine/src/agents/summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L24-L38)
+- [packages/engine/src/agents/canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L32-L55)
+- [packages/engine/src/agents/chapterPlanner.ts](file://packages/engine/src/agents/chapterPlanner.ts#L110-L122)
+- [packages/engine/src/memory/vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L19-L208)
+- [packages/engine/src/memory/memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts#L18-L174)
+- [packages/engine/src/memory/stateUpdater.ts](file://packages/engine/src/memory/stateUpdater.ts#L90-L435)
+- [packages/engine/src/story/structuredState.ts](file://packages/engine/src/story/structuredState.ts#L23-L235)
+- [packages/engine/src/world/worldState.ts](file://packages/engine/src/world/worldState.ts#L24-L37)
+- [packages/engine/src/world/characterAgent.ts](file://packages/engine/src/world/characterAgent.ts#L91-L108)
+- [packages/engine/src/world/eventResolver.ts](file://packages/engine/src/world/eventResolver.ts#L30-L37)
+- [packages/engine/src/constraints/constraintGraph.ts](file://packages/engine/src/constraints/constraintGraph.ts#L29-L42)
+- [packages/engine/src/constraints/validator.ts](file://packages/engine/src/constraints/validator.ts#L73-L84)
+- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L31-L105)
+- [packages/engine/src/memory/canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L101-L129)
+- [apps/cli/src/commands/generate.ts](file://apps/cli/src/commands/generate.ts#L4-L54)
+- [apps/cli/src/commands/validate.ts](file://apps/cli/src/commands/validate.ts#L4-L107)
+- [apps/cli/src/commands/state.ts](file://apps/cli/src/commands/state.ts#L3-L83)
+- [apps/cli/src/commands/memories.ts](file://apps/cli/src/commands/memories.ts#L4-L66)
+- [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts#L15-L49)
+
+## Detailed Component Analysis
+
+### LLM Integration Layer
+- Provider abstraction: The LLMProvider interface defines a single method for completions, allowing interchangeable providers.
+- Provider factory: The LLM client loads configuration from environment variables and creates the appropriate provider (OpenAI or DeepSeek).
+- Singleton accessor: A global LLM client is lazily initialized and reused across agents.
+- JSON completion helper: A convenience method ensures strict JSON responses for validators and parsers.
+
+```mermaid
+classDiagram
+class LLMProvider {
++complete(prompt, config) Promise~string~
+}
+class OpenAIProvider {
+-client OpenAI
++complete(prompt, config) Promise~string~
+}
+class LLMClient {
+-provider LLMProvider
+-defaultConfig LLMConfig
++complete(prompt, config) Promise~string~
++completeJSON~T~(prompt, config) Promise~T~
+}
+LLMProvider <|.. OpenAIProvider
+LLMClient --> LLMProvider : "delegates"
+```
+
+**Diagram sources**
+- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L4-L105)
+
+**Section sources**
+- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L1-L106)
+
+### Vector Memory System
+- HNSW-based Semantic Search: Hierarchical Navigable Small World algorithm provides efficient approximate nearest neighbor search for semantic similarity.
+- Automatic Embedding Generation: Uses OpenAI's text-embedding-3-small model for vector representations, with fallback to mock embeddings for testing.
+- Memory Categories: Supports four categories (event, character, world, plot) for structured memory organization.
+- Dynamic Index Management: Automatic resizing and capacity management for growing memory collections.
+- Persistence Support: Complete serialization/deserialization for saving/loading vector stores between sessions.
+
+```mermaid
+classDiagram
+class VectorStore {
+-storyId string
+-index HierarchicalNSW
+-memories Map
+-dimension number
+-nextId number
++initialize(maxElements) Promise~void~
++addMemory(memory) Promise~NarrativeMemory~
++searchSimilar(query, k) Promise~MemorySearchResult[]~
++searchByCategory(query, category, k) Promise~MemorySearchResult[]~
++getAllMemories() NarrativeMemory[]
++serialize() string
++load(data) Promise~void~
+}
+class MemoryRetriever {
+-vectorStore VectorStore
++retrieveForChapter(context, k) Promise~RetrievedMemory[]~
++retrieveForCharacter(name, context, k) Promise~RetrievedMemory[]~
++retrieveForPlotThread(id, bible, k) Promise~RetrievedMemory[]~
++formatMemoriesForPrompt(memories) string
+}
+class NarrativeMemory {
+-id number
+-storyId string
+-chapterNumber number
+-content string
+-category "event|character|world|plot"
+-timestamp Date
+-embedding number[]
+}
+VectorStore --> NarrativeMemory : "stores"
+MemoryRetriever --> VectorStore : "uses"
+```
+
+**Diagram sources**
+- [packages/engine/src/memory/vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L19-L208)
+- [packages/engine/src/memory/memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts#L18-L174)
+
+**Section sources**
+- [packages/engine/src/memory/vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L1-L208)
+- [packages/engine/src/memory/memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts#L1-L174)
+
+### Structured State Management
+- Comprehensive Character Tracking: Emotion, location, relationships, goals, knowledge, and development tracking with automatic initialization from StoryBible.
+- Plot Thread Management: Status tracking (dormant, active, escalating, resolved), tension calculation, and summary management.
+- Tension Calculation: Mathematical formula for natural tension progression from low at beginning to peak in middle to resolution at end.
+- Recent Events Tracking: Maintains rolling window of recent events for context in subsequent chapters.
+- State Formatting: Structured prompt formatting for LLM consumption with clear organization of state information.
+
+```mermaid
+classDiagram
+class StoryStructuredState {
+-storyId string
+-chapter number
+-tension number
+-characters Record~string, CharacterState~
+-plotThreads Record~string, PlotThreadState~
+-unresolvedQuestions string[]
+-recentEvents string[]
+}
+class CharacterState {
+-name string
+-emotionalState string
+-location string
+-relationships Record
+-goals string[]
+-knowledge string[]
+-development string[]
+}
+class PlotThreadState {
+-id string
+-name string
+-status "dormant|active|escalating|resolved"
+-tension number
+-lastChapter number
+-involvedCharacters string[]
+-summary string
+}
+class StateUpdaterPipeline {
+-update(context) Promise~StateUpdateResult~
+-quickUpdate(context) Promise~StateUpdateResult~
+-formatResult(result) string
+}
+StoryStructuredState --> CharacterState : "contains"
+StoryStructuredState --> PlotThreadState : "contains"
+StateUpdaterPipeline --> StoryStructuredState : "updates"
+```
+
+**Diagram sources**
+- [packages/engine/src/story/structuredState.ts](file://packages/engine/src/story/structuredState.ts#L23-L235)
+- [packages/engine/src/memory/stateUpdater.ts](file://packages/engine/src/memory/stateUpdater.ts#L90-L435)
+
+**Section sources**
+- [packages/engine/src/story/structuredState.ts](file://packages/engine/src/story/structuredState.ts#L1-L235)
+- [packages/engine/src/memory/stateUpdater.ts](file://packages/engine/src/memory/stateUpdater.ts#L1-L435)
+
+### State Updater Pipeline
+- Autonomous Post-Chapter Processing: Extracts state changes, memories, and constraint updates automatically after chapter generation.
+- LLM-Powered Extraction: Uses structured prompts to extract character changes, plot thread updates, new facts, and world changes.
+- Constraint Graph Integration: Automatically updates constraint graph with new facts, locations, and events.
+- Memory Extraction: Extracts narrative memories from chapters and adds them to vector store with appropriate categorization.
+- Quick Update Mode: Provides fallback processing without LLM for testing and debugging scenarios.
+- Change Tracking: Comprehensive logging of all state changes for auditability and debugging.
+
+```mermaid
+sequenceDiagram
+participant Engine as "Engine"
+participant Pipeline as "StateUpdaterPipeline"
+participant LLM as "LLM Client"
+participant Vector as "VectorStore"
+participant Graph as "ConstraintGraph"
+Engine->>Pipeline : "update(context)"
+Pipeline->>LLM : "extractChanges(chapter, state)"
+LLM-->>Pipeline : "extraction result"
+Pipeline->>Pipeline : "apply character updates"
+Pipeline->>Pipeline : "apply plot thread updates"
+Pipeline->>Vector : "addMemory(memory)"
+Pipeline->>Graph : "updateConstraintGraph()"
+Graph-->>Pipeline : "graph updated"
+Pipeline-->>Engine : "StateUpdateResult"
+```
+
+**Diagram sources**
+- [packages/engine/src/memory/stateUpdater.ts](file://packages/engine/src/memory/stateUpdater.ts#L94-L248)
+
+**Section sources**
+- [packages/engine/src/memory/stateUpdater.ts](file://packages/engine/src/memory/stateUpdater.ts#L1-L435)
+
+### Constraint Graph System
+- Knowledge Graph Structure: Nodes representing characters, locations, facts, events, and items with typed relationships forming a narrative consistency network.
+- Constraint Checking: Automated validation of canon facts, location consistency, knowledge acquisition timelines, and logical coherence.
+- Violation Reporting: Structured error reporting with severity levels, descriptions, and suggested fixes for narrative inconsistencies.
+- Dual Validation Modes: Fast graph-based validation for immediate feedback and comprehensive LLM-based validation for detailed analysis.
+
+```mermaid
+classDiagram
+class ConstraintGraph {
+-nodes Map~string, ConstraintNode~
+-edges Map~string, ConstraintEdge~
+-adjacencyList Map~string, Set~string~~
+-addNode(node) void
+-addEdge(edge) void
+-checkConstraints(currentChapter) ConstraintViolation[]
+}
+class Validator {
+-constraintGraph ConstraintGraph
+-validateChapter(context) ValidationResult
+-quickValidate(context) ValidationResult
+}
+class ConstraintNode {
+-id string
+-type NodeType
+-label string
+-properties Record
+-chapterEstablished number
+}
+class ConstraintEdge {
+-id string
+-from string
+-to string
+-type string
+-properties Record
+}
+ConstraintGraph --> ConstraintNode : "contains"
+ConstraintGraph --> ConstraintEdge : "connects"
+Validator --> ConstraintGraph : "uses"
+```
+
+**Diagram sources**
+- [packages/engine/src/constraints/constraintGraph.ts](file://packages/engine/src/constraints/constraintGraph.ts#L29-L42)
+- [packages/engine/src/constraints/validator.ts](file://packages/engine/src/constraints/validator.ts#L73-L78)
+
+**Section sources**
+- [packages/engine/src/constraints/constraintGraph.ts](file://packages/engine/src/constraints/constraintGraph.ts#L1-L471)
+- [packages/engine/src/constraints/validator.ts](file://packages/engine/src/constraints/validator.ts#L1-L286)
+
+### Chapter Planner Agent
+- Scene Planning: Converts high-level chapter objectives into detailed scene-by-scene outlines with progressive tension building and word count estimation.
+- Fallback Generation: Automatic outline creation without LLM when AI services are unavailable, maintaining narrative flow.
+- Objective Validation: Ensures planned scenes adequately cover critical and high-priority objectives.
+
+```mermaid
+classDiagram
+class ChapterPlanner {
+-context PlannerContext
+-plan(context) ChapterOutline
+-generateFallbackOutline(directorOutput, targetWordCount) ChapterOutline
+-validateOutline(outline, objectives) ValidationResult
+-formatForPrompt(outline) string
+}
+class ChapterOutline {
+-chapterNumber number
+-overallGoal string
+-tone string
+-totalEstimatedWords number
+-scenes Scene[]
+-transitions string[]
+-notes string
+}
+class Scene {
+-id string
+-sequence number
+-goal string
+-description string
+-tension number
+-characters string[]
+-setting string
+-estimatedWords number
+}
+ChapterPlanner --> ChapterOutline : "creates"
+ChapterOutline --> Scene : "contains"
+```
+
+**Diagram sources**
+- [packages/engine/src/agents/chapterPlanner.ts](file://packages/engine/src/agents/chapterPlanner.ts#L110-L122)
+- [packages/engine/src/agents/chapterPlanner.ts](file://packages/engine/src/agents/chapterPlanner.ts#L17-L25)
+
+**Section sources**
+- [packages/engine/src/agents/chapterPlanner.ts](file://packages/engine/src/agents/chapterPlanner.ts#L1-L326)
+
+### Canonical Memory Management
+- Data model: CanonStore holds a story identifier and a list of CanonFact entries, each tagged by category and linked to the chapter they were established.
+- Fact lifecycle: Creation, lookup, updates (including chapter-establishment tracking), and extraction by category.
+- Prompt formatting: A formatter groups facts by category for inclusion in prompts, ensuring LLMs receive structured context.
+
+```mermaid
+flowchart TD
+Start(["extractCanonFromBible"]) --> Init["createCanonStore(storyId)"]
+Init --> IterateChars{"Characters?"}
+IterateChars --> |Yes| AddChar["addFact(character)"]
+AddChar --> IterateChars
+IterateChars --> |No| IterateThreads{"Plot Threads?"}
+IterateThreads --> |Yes| AddThread["addFact(plot thread)"]
+AddThread --> IterateThreads
+IterateThreads --> |No| ReturnStore["return CanonStore"]
+```
+
+**Diagram sources**
+- [packages/engine/src/memory/canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L24-L58)
+
+**Section sources**
+- [packages/engine/src/memory/canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L1-L134)
+
+### Generation Pipeline
+- Orchestration: The generateChapter function executes the core workflow: write, optionally continue until complete, validate against canon (optional), summarize, extract memories, and produce a chapter result.
+- Loop control: Continuation attempts are bounded by a configurable maximum, preventing runaway loops.
+- Validation: Optional canon validation reports violations; the pipeline surfaces them to the caller.
+- Memory Extraction: Automatically extracts narrative memories and stores them in vector memory for semantic search.
+- Result composition: Builds a Chapter entity enriched with metadata and timestamps.
+
+```mermaid
+sequenceDiagram
+participant CLI as "CLI"
+participant Pipe as "generateChapter"
+participant Writer as "ChapterWriter"
+participant Checker as "CompletenessChecker"
+participant Sum as "ChapterSummarizer"
+participant Valid as "CanonValidator"
+participant MemExt as "MemoryExtractor"
+participant LLM as "LLMClient"
+CLI->>Pipe : "invoke with GenerationContext"
+Pipe->>Writer : "write(context, canon, memoryRetriever)"
+Writer->>LLM : "complete(prompt)"
+LLM-->>Writer : "text"
+Writer-->>Pipe : "WriterOutput"
+loop "until complete or max attempts"
+Pipe->>Checker : "check(content)"
+alt "incomplete"
+Pipe->>Writer : "continue(existing, context)"
+Writer->>LLM : "complete(continuation prompt)"
+LLM-->>Writer : "text"
+Writer-->>Pipe : "extended content"
+else "complete"
+Pipe->>Pipe : "break"
+end
+end
+opt "validateCanon"
+Pipe->>Valid : "validate(text, canon)"
+Valid->>LLM : "complete(JSON prompt)"
+LLM-->>Valid : "JSON"
+Valid-->>Pipe : "validation result"
+end
+Pipe->>Sum : "summarize(text, chapterNumber)"
+Sum->>LLM : "complete(summary prompt)"
+LLM-->>Sum : "summary"
+Sum-->>Pipe : "ChapterSummary"
+opt "extract memories"
+Pipe->>MemExt : "extract(chapter, bible)"
+MemExt->>LLM : "complete(extraction prompt)"
+LLM-->>MemExt : "memories"
+MemExt-->>Pipe : "memory list"
+end
+Pipe-->>CLI : "GenerateChapterResult"
+```
+
+**Diagram sources**
+- [packages/engine/src/pipeline/generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L26-L103)
+- [packages/engine/src/agents/writer.ts](file://packages/engine/src/agents/writer.ts#L55-L117)
+- [packages/engine/src/agents/completeness.ts](file://packages/engine/src/agents/completeness.ts#L37-L52)
+- [packages/engine/src/agents/summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L24-L38)
+- [packages/engine/src/agents/canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L32-L55)
+- [packages/engine/src/agents/memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L52-L97)
+- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L78-L95)
+
+**Section sources**
+- [packages/engine/src/pipeline/generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L108)
+
+### Agents
+- ChapterWriter: Constructs a rich prompt from StoryBible, StoryState, and CanonStore, delegates to LLM, and extracts title and word count. Includes a continuation mode to extend partial chapters.
+- CompletenessChecker: Evaluates whether a chapter ends naturally using a concise prompt and strict token limits.
+- ChapterSummarizer: Produces a concise summary and identifies key events heuristically.
+- CanonValidator: Validates chapter content against the CanonStore, returning structured JSON with violations.
+- MemoryExtractor: Extracts narrative memories from chapters with proper categorization for vector storage.
+- StateUpdater: Extracts and applies state changes to structured state management system.
+- ChapterPlanner: Converts objectives into detailed scene outlines with tension progression and word count estimation.
+
+```mermaid
+classDiagram
+class ChapterWriter {
+-promptTemplate string
++write(context, canon, memoryRetriever) WriterOutput
++continue(existing, context) string
+-inferChapterGoal(...)
+-extractTitle(...)
+}
+class CompletenessChecker {
+-promptTemplate string
++check(text) CompletenessResult
+}
+class ChapterSummarizer {
+-promptTemplate string
++summarize(text, chapterNumber) ChapterSummary
+-extractKeyEvents(...)
+}
+class CanonValidator {
++validate(text, canon) CanonValidationResult
+}
+class MemoryExtractor {
+-extractionPrompt string
++extract(chapter, bible) ExtractedMemory[]
++extractFromSummary(number, summary, bible) ExtractedMemory[]
+}
+class StateUpdater {
+-updatePrompt string
++extractStateChanges(chapter, bible, state) StateUpdateOutput
++applyUpdates(state, updates, chapter) StoryStructuredState
+}
+class ChapterPlanner {
+-plan(context) ChapterOutline
+-generateFallbackOutline(directorOutput, targetWordCount) ChapterOutline
+-validateOutline(outline, objectives) ValidationResult
+}
+class LLMClient {
++complete(...)
++completeJSON~T~(...)
+}
+ChapterWriter --> LLMClient : "uses"
+CompletenessChecker --> LLMClient : "uses"
+ChapterSummarizer --> LLMClient : "uses"
+CanonValidator --> LLMClient : "uses"
+MemoryExtractor --> LLMClient : "uses"
+StateUpdater --> LLMClient : "uses"
+ChapterPlanner --> LLMClient : "uses"
+```
+
+**Diagram sources**
+- [packages/engine/src/agents/writer.ts](file://packages/engine/src/agents/writer.ts#L48-L146)
+- [packages/engine/src/agents/completeness.ts](file://packages/engine/src/agents/completeness.ts#L30-L56)
+- [packages/engine/src/agents/summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L17-L64)
+- [packages/engine/src/agents/canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L31-L59)
+- [packages/engine/src/agents/memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L52-L97)
+- [packages/engine/src/agents/stateUpdater.ts](file://packages/engine/src/agents/stateUpdater.ts#L85-L193)
+- [packages/engine/src/agents/chapterPlanner.ts](file://packages/engine/src/agents/chapterPlanner.ts#L110-L122)
+- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L31-L105)
+
+**Section sources**
+- [packages/engine/src/agents/writer.ts](file://packages/engine/src/agents/writer.ts#L1-L146)
+- [packages/engine/src/agents/completeness.ts](file://packages/engine/src/agents/completeness.ts#L1-L56)
+- [packages/engine/src/agents/summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L1-L64)
+- [packages/engine/src/agents/canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L1-L59)
+- [packages/engine/src/agents/memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L1-L97)
+- [packages/engine/src/agents/stateUpdater.ts](file://packages/engine/src/agents/stateUpdater.ts#L1-L193)
+- [packages/engine/src/agents/chapterPlanner.ts](file://packages/engine/src/agents/chapterPlanner.ts#L1-L326)
+
+### Story and State Management
+- StoryBible builder: Creates a story with metadata, characters, and plot threads, tracking creation/update timestamps.
+- Mutation helpers: Add characters and plot threads to the story, updating timestamps.
+- Structured State Initialization: Automatically creates and initializes structured state from StoryBible data.
+- CLI persistence: Saves and loads story artifacts (bible, state, chapters, canon, structured-state, vector-store, constraint-graph) to/from the filesystem under a user-specific directory.
+
+```mermaid
+flowchart TD
+Load["loadStory(id)"] --> ParseBible["parse bible.json"]
+ParseBible --> ParseState["parse state.json"]
+ParseState --> ParseChapters["parse chapters.json"]
+ParseChapters --> CanonCheck{"canon.json exists?"}
+CanonCheck --> |Yes| ParseCanon["parse canon.json"]
+CanonCheck --> |No| ExtractCanon["extractCanonFromBible(bible)"]
+ParseCanon --> StructuredCheck{"structured-state.json exists?"}
+StructuredCheck --> |Yes| ParseStructured["parse structured-state.json"]
+StructuredCheck --> |No| CreateStructured["createStructuredState()"]
+ParseStructured --> Return["return {bible, state, chapters, canon, structuredState}"]
+CreateStructured --> Return
+ExtractCanon --> Return
+```
+
+**Diagram sources**
+- [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts#L39-L67)
+- [packages/engine/src/story/bible.ts](file://packages/engine/src/story/bible.ts#L3-L26)
+- [packages/engine/src/memory/canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L24-L58)
+- [packages/engine/src/story/structuredState.ts](file://packages/engine/src/story/structuredState.ts#L33-L43)
+
+**Section sources**
+- [packages/engine/src/story/bible.ts](file://packages/engine/src/story/bible.ts#L1-L73)
+- [packages/engine/src/story/structuredState.ts](file://packages/engine/src/story/structuredState.ts#L1-L235)
+- [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts#L1-L195)
+
+### CLI Integration
+- Command routing: The CLI initializes commands for config, init, generate, status, continue, validate, state inspection, and memory querying.
+- Generation flow: Loads persisted story, constructs GenerationContext, invokes generateChapter, updates state, and persists results.
+- Validation flow: Comprehensive story validation including constraint checking, consistency verification, and violation reporting.
+- State inspection: Detailed character and plot thread state visualization with progress tracking.
+- Memory querying: Semantic search through vector memories with contextual filtering and relevance scoring.
+- Error handling: Catches generation failures and exits with a non-zero code.
+
+```mermaid
+sequenceDiagram
+participant User as "User"
+participant CLI as "CLI"
+participant FS as "Filesystem"
+participant Engine as "@narrative-os/engine"
+User->>CLI : "nos validate <story-id>"
+CLI->>FS : "loadStory()"
+FS-->>CLI : "{bible, state, chapters, canon, structuredState}"
+CLI->>Engine : "createConstraintGraph()"
+Engine-->>CLI : "ConstraintGraph"
+CLI->>Engine : "getVectorStore()"
+Engine-->>CLI : "VectorStore"
+CLI->>Engine : "Validator.quickValidate()"
+Engine-->>CLI : "ValidationResult"
+CLI-->>User : "Validation report"
+```
+
+**Diagram sources**
+- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L121-L150)
+- [apps/cli/src/commands/validate.ts](file://apps/cli/src/commands/validate.ts#L4-L107)
+- [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts#L15-L49)
+- [packages/engine/src/pipeline/generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L26-L103)
+- [packages/engine/src/constraints/validator.ts](file://packages/engine/src/constraints/validator.ts#L73-L84)
+
+**Section sources**
+- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L1-L54)
+- [apps/cli/src/commands/generate.ts](file://apps/cli/src/commands/generate.ts#L1-L55)
+- [apps/cli/src/commands/validate.ts](file://apps/cli/src/commands/validate.ts#L1-L107)
+- [apps/cli/src/commands/state.ts](file://apps/cli/src/commands/state.ts#L1-L83)
+- [apps/cli/src/commands/memories.ts](file://apps/cli/src/commands/memories.ts#L1-L66)
+- [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts#L1-L195)
+
+## Dependency Analysis
+- Cohesion: Each module focuses on a single responsibility—agents encapsulate prompting and inference, the pipeline orchestrates workflows, memory manages canonical facts and vector memories, world simulation handles character autonomy, constraints enforce narrative consistency, and state management tracks story progression.
+- Coupling: Agents depend on the LLM client abstraction; the pipeline depends on agents and memory; world simulation components interact through well-defined interfaces; constraints operate independently but integrate with validation systems; vector memory system integrates with state management and constraint graph.
+- Extensibility: New providers can be added to the LLM client factory; new agents can be integrated into the pipeline; additional categories can be added to the CanonStore; world simulation can accommodate new character types and event types; vector memory system supports new embedding models and search algorithms.
+
+```mermaid
+graph LR
+Types["types/index.ts"] --> LLM["llm/client.ts"]
+Types --> Memory["memory/*"]
+Types --> Pipeline["pipeline/generateChapter.ts"]
+Types --> Story["story/*"]
+Types --> Agents["agents/*"]
+Types --> World["world/*"]
+Types --> Constraints["constraints/*"]
+LLM --> Agents
+Memory --> Pipeline
+Memory --> StateUpdater
+Story --> Pipeline
+Story --> StateUpdater
+Agents --> Pipeline
+World --> Pipeline
+Constraints --> Pipeline
+CLI_Index["apps/cli/src/index.ts"] --> CLI_Gen["apps/cli/src/commands/generate.ts"]
+CLI_Index --> CLI_Validate["apps/cli/src/commands/validate.ts"]
+CLI_Index --> CLI_State["apps/cli/src/commands/state.ts"]
+CLI_Index --> CLI_Memories["apps/cli/src/commands/memories.ts"]
+CLI_Gen --> Engine_Index["@narrative-os/engine/src/index.ts"]
+CLI_Validate --> Engine_Index
+CLI_State --> Engine_Index
+CLI_Memories --> Engine_Index
+Engine_Index --> Pipeline
+Engine_Index --> Agents
+Engine_Index --> Memory
+Engine_Index --> Story
+Engine_Index --> LLM
+Engine_Index --> World
+Engine_Index --> Constraints
+```
+
+**Diagram sources**
+- [packages/engine/src/types/index.ts](file://packages/engine/src/types/index.ts#L1-L90)
+- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L1-L106)
+- [packages/engine/src/memory/vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L1-L208)
+- [packages/engine/src/memory/memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts#L1-L174)
+- [packages/engine/src/memory/stateUpdater.ts](file://packages/engine/src/memory/stateUpdater.ts#L1-L435)
+- [packages/engine/src/story/structuredState.ts](file://packages/engine/src/story/structuredState.ts#L1-L235)
+- [packages/engine/src/pipeline/generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L108)
+- [packages/engine/src/story/bible.ts](file://packages/engine/src/story/bible.ts#L1-L73)
+- [packages/engine/src/agents/writer.ts](file://packages/engine/src/agents/writer.ts#L1-L146)
+- [packages/engine/src/agents/completeness.ts](file://packages/engine/src/agents/completeness.ts#L1-L56)
+- [packages/engine/src/agents/summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L1-L64)
+- [packages/engine/src/agents/canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L1-L59)
+- [packages/engine/src/agents/memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L1-L97)
+- [packages/engine/src/agents/stateUpdater.ts](file://packages/engine/src/agents/stateUpdater.ts#L1-L193)
+- [packages/engine/src/agents/chapterPlanner.ts](file://packages/engine/src/agents/chapterPlanner.ts#L1-L326)
+- [packages/engine/src/world/worldState.ts](file://packages/engine/src/world/worldState.ts#L1-L321)
+- [packages/engine/src/world/characterAgent.ts](file://packages/engine/src/world/characterAgent.ts#L1-L304)
+- [packages/engine/src/world/eventResolver.ts](file://packages/engine/src/world/eventResolver.ts#L1-L272)
+- [packages/engine/src/constraints/constraintGraph.ts](file://packages/engine/src/constraints/constraintGraph.ts#L1-L471)
+- [packages/engine/src/constraints/validator.ts](file://packages/engine/src/constraints/validator.ts#L1-L286)
+- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L1-L54)
+- [apps/cli/src/commands/generate.ts](file://apps/cli/src/commands/generate.ts#L1-L55)
+- [apps/cli/src/commands/validate.ts](file://apps/cli/src/commands/validate.ts#L1-L107)
+- [apps/cli/src/commands/state.ts](file://apps/cli/src/commands/state.ts#L1-L83)
+- [apps/cli/src/commands/memories.ts](file://apps/cli/src/commands/memories.ts#L1-L66)
+- [packages/engine/src/index.ts](file://packages/engine/src/index.ts#L1-L116)
+
+**Section sources**
+- [packages/engine/src/index.ts](file://packages/engine/src/index.ts#L1-L116)
+
+## Performance Considerations
+- Token budgets: Agents configure maxTokens per task; tune these to balance quality and cost.
+- Temperature controls: Lower temperatures for validation and checks; higher for creative writing.
+- Continuation attempts: Limit maxContinuationAttempts to avoid long-running loops.
+- Prompt construction: Reuse formatted CanonStore sections and recent summaries to minimize redundant context.
+- Vector memory scaling: HNSW algorithm provides logarithmic search complexity; monitor index size and adjust capacity management.
+- Embedding generation: Batch embedding requests when possible; consider rate limiting for external API calls.
+- World simulation complexity: Character decision-making and event resolution add computational overhead; consider batching and caching strategies.
+- Constraint graph operations: Graph traversal and validation scale with story complexity; optimize adjacency list operations.
+- State management overhead: Structured state updates add processing time; consider lazy evaluation for non-critical calculations.
+- Persistence overhead: Batch writes and avoid frequent disk I/O during long runs.
+
+## Troubleshooting Guide
+- LLM provider errors: Verify environment variables for provider selection and keys. Confirm model availability and quotas.
+- JSON parsing failures: The JSON completion helper throws explicit errors when responses are invalid; review prompts and constraints.
+- Missing or corrupted story data: The CLI's loadStory function handles missing files by returning null; ensure the story directory exists and contains required JSON files.
+- Vector memory initialization: Ensure vector store is properly initialized before use; check embedding dimensions and index capacity.
+- Memory retrieval failures: Verify vector store contains memories and embeddings; check search parameters and category filters.
+- State update anomalies: The StateUpdaterPipeline provides detailed change tracking; review extraction prompts and constraint graph updates.
+- Validation anomalies: CanonValidator falls back to no violations if JSON parsing fails; inspect chapter content length and prompt truncation.
+- World simulation issues: CharacterAgentSystem provides fallback decision-making when LLM fails; check character state consistency and agenda items.
+- Constraint violations: ConstraintGraph validation may report logical inconsistencies; review narrative timeline and character knowledge updates.
+- Chapter planner failures: ChapterPlanner offers fallback outline generation; verify director objectives and target word counts.
+
+**Section sources**
+- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L46-L95)
+- [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts#L39-L67)
+- [packages/engine/src/memory/vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L30-L75)
+- [packages/engine/src/memory/stateUpdater.ts](file://packages/engine/src/memory/stateUpdater.ts#L94-L248)
+- [packages/engine/src/agents/canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L49-L55)
+- [packages/engine/src/world/characterAgent.ts](file://packages/engine/src/world/characterAgent.ts#L288-L296)
+- [packages/engine/src/constraints/constraintGraph.ts](file://packages/engine/src/constraints/constraintGraph.ts#L229-L244)
+
+## Conclusion
+The Narrative Operating System engine package implements a comprehensive, extensible architecture for AI-powered story generation. The system now features a sophisticated hybrid approach combining autonomous world simulation with narrative direction, supported by intelligent planning, strict consistency enforcement, and advanced memory management. The addition of vector memory system with semantic search, structured state management with comprehensive character and plot tracking, enhanced constraint validation with dual-mode approaches, and autonomous state updater pipeline enables emergent storytelling with logical coherence, narrative consistency, and rich contextual awareness. By separating concerns into agents, a provider-agnostic LLM client, canonical and vector memory systems, structured state management, world simulation, constraint enforcement, and a pipeline orchestrator, the system supports iterative chapter generation with validation, memory extraction, and state updates. The CLI demonstrates practical usage through generation, validation, state inspection, and memory querying commands, along with persistence and incremental progress tracking. The modular design and environment-driven configuration facilitate easy experimentation with providers and tuning of generation parameters.
+
+## Appendices
+- Technology stack: TypeScript, OpenAI SDK integration, HNSW-based vector search with hnswlib-node, monorepo orchestration with Turborepo and pnpm workspaces.
+- Cross-cutting concerns:
+  - Configuration management: Environment variables drive provider selection and defaults.
+  - Error handling: Centralized LLM client error reporting and fallbacks in validators.
+  - Extensibility: Factory pattern for providers, modular agents, flexible world simulation, constraint graph system, and vector memory architecture.
+  - Narrative consistency: Automated validation through constraint graph and LLM-based checking.
+  - Memory management: Semantic search with automatic embedding generation and contextual retrieval.
+  - State tracking: Comprehensive structured state management with tension calculation and recent event tracking.
+  - World simulation: Autonomous character agents with goal-driven decision making and event resolution.
+
+**Section sources**
+- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L46-L95)
+- [packages/engine/src/memory/vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L125-L168)
+- [packages/engine/src/story/structuredState.ts](file://packages/engine/src/story/structuredState.ts#L155-L179)
+- [turbo.json](file://turbo.json#L1-L19)
+- [pnpm-workspace.yaml](file://pnpm-workspace.yaml#L1-L4)

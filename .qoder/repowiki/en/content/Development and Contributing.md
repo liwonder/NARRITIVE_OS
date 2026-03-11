@@ -1,0 +1,640 @@
+# Development and Contributing
+
+<cite>
+**Referenced Files in This Document**
+- [package.json](file://package.json)
+- [pnpm-workspace.yaml](file://pnpm-workspace.yaml)
+- [turbo.json](file://turbo.json)
+- [install.ps1](file://install.ps1)
+- [publish.ps1](file://publish.ps1)
+- [publish.sh](file://publish.sh)
+- [apps/cli/package.json](file://apps/cli/package.json)
+- [packages/engine/package.json](file://packages/engine/package.json)
+- [apps/cli/src/index.ts](file://apps/cli/src/index.ts)
+- [apps/cli/src/commands/init.ts](file://apps/cli/src/commands/init.ts)
+- [apps/cli/src/commands/generate.ts](file://apps/cli/src/commands/generate.ts)
+- [packages/engine/src/index.ts](file://packages/engine/src/index.ts)
+- [packages/engine/src/types/index.ts](file://packages/engine/src/types/index.ts)
+- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts)
+- [packages/engine/src/memory/canonStore.ts](file://packages/engine/src/memory/canonStore.ts)
+- [packages/engine/src/pipeline/generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts)
+- [packages/engine/src/test/simple.test.ts](file://packages/engine/src/test/simple.test.ts)
+</cite>
+
+## Update Summary
+**Changes Made**
+- Added comprehensive installation script documentation for Windows PowerShell
+- Added cross-platform publishing workflow documentation for both Windows PowerShell and Unix-like systems
+- Enhanced development tooling section with platform-specific installation and publishing scripts
+- Updated troubleshooting guide to include platform-specific installation issues
+- Added new sections for automated installation and publishing workflows
+
+## Table of Contents
+1. [Introduction](#introduction)
+2. [Project Structure](#project-structure)
+3. [Core Components](#core-components)
+4. [Architecture Overview](#architecture-overview)
+5. [Detailed Component Analysis](#detailed-component-analysis)
+6. [Dependency Analysis](#dependency-analysis)
+7. [Development Tooling and Automation](#development-tooling-and-automation)
+8. [Cross-Platform Installation and Publishing](#cross-platform-installation-and-publishing)
+9. [Performance Considerations](#performance-considerations)
+10. [Troubleshooting Guide](#troubleshooting-guide)
+11. [Contribution Guidelines](#contribution-guidelines)
+12. [Release and Version Management](#release-and-version-management)
+13. [Extensibility Guide](#extensibility-guide)
+14. [Conclusion](#conclusion)
+
+## Introduction
+This document provides comprehensive development and contributing guidance for the Narrative Operating System (NOS) monorepo. It covers environment setup with PNPM workspaces and Turborepo orchestration, build and development workflows, testing strategies, CI considerations, contribution standards, debugging and profiling techniques, release processes, and extensibility for agents, memory strategies, and LLM providers. The project now includes comprehensive installation scripts for Windows PowerShell and cross-platform publishing workflows for both Windows and Unix-like systems.
+
+## Project Structure
+The repository is a TypeScript monorepo organized into:
+- apps/cli: A CLI application that orchestrates story creation and generation via the engine package.
+- packages/engine: The core engine responsible for story modeling, LLM orchestration, agent pipeline, and memory management.
+- **New**: Automated installation scripts for Windows PowerShell and cross-platform publishing workflows.
+
+PNPM workspaces define the package locations, and Turborepo defines shared tasks and caching behavior across the monorepo.
+
+```mermaid
+graph TB
+subgraph "Monorepo Root"
+ROOT_PKG["Root package.json<br/>scripts: build, dev, lint, test, cli"]
+WS["pnpm-workspace.yaml<br/>packages: apps/*, packages/*"]
+TURBO["turbo.json<br/>tasks: build, dev, lint, test"]
+INSTALL["install.ps1<br/>Windows PowerShell installer"]
+PUBLISH_PS["publish.ps1<br/>Windows PowerShell publisher"]
+PUBLISH_SH["publish.sh<br/>Unix-like shell publisher"]
+end
+subgraph "Apps"
+CLI_PKG["apps/cli/package.json<br/>binary: nos"]
+end
+subgraph "Packages"
+ENG_PKG["packages/engine/package.json<br/>exports: types, agents, pipeline, memory, llm"]
+end
+ROOT_PKG --> CLI_PKG
+ROOT_PKG --> ENG_PKG
+WS --> CLI_PKG
+WS --> ENG_PKG
+TURBO --> CLI_PKG
+TURBO --> ENG_PKG
+INSTALL --> ROOT_PKG
+PUBLISH_PS --> ROOT_PKG
+PUBLISH_SH --> ROOT_PKG
+```
+
+**Diagram sources**
+- [package.json](file://package.json#L1-L17)
+- [pnpm-workspace.yaml](file://pnpm-workspace.yaml#L1-L4)
+- [turbo.json](file://turbo.json#L1-L19)
+- [install.ps1](file://install.ps1#L1-L130)
+- [publish.ps1](file://publish.ps1#L1-L95)
+- [publish.sh](file://publish.sh#L1-L100)
+- [apps/cli/package.json](file://apps/cli/package.json#L1-L50)
+- [packages/engine/package.json](file://packages/engine/package.json#L1-L44)
+
+**Section sources**
+- [package.json](file://package.json#L1-L17)
+- [pnpm-workspace.yaml](file://pnpm-workspace.yaml#L1-L4)
+- [turbo.json](file://turbo.json#L1-L19)
+- [install.ps1](file://install.ps1#L1-L130)
+- [publish.ps1](file://publish.ps1#L1-L95)
+- [publish.sh](file://publish.sh#L1-L100)
+
+## Core Components
+- CLI Application: Provides commands to configure, initialize stories, generate chapters, show status, and continue sequences. It depends on the engine package and exposes a binary named nos.
+- Engine Package: Exports types, LLM client, agents (writer, completeness checker, summarizer, canon validator), pipeline for chapter generation, story bible/state utilities, and memory/canon store.
+- **New**: Automated installation and publishing scripts for streamlined development and distribution workflows.
+
+Key exports and entry points:
+- CLI entry: [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L1-L54)
+- Engine entry: [packages/engine/src/index.ts](file://packages/engine/src/index.ts#L1-L23)
+- Engine types: [packages/engine/src/types/index.ts](file://packages/engine/src/types/index.ts#L1-L90)
+- LLM client: [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L1-L106)
+- Canon store: [packages/engine/src/memory/canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L1-L134)
+- Generation pipeline: [packages/engine/src/pipeline/generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
+
+**Section sources**
+- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L1-L54)
+- [packages/engine/src/index.ts](file://packages/engine/src/index.ts#L1-L23)
+- [packages/engine/src/types/index.ts](file://packages/engine/src/types/index.ts#L1-L90)
+- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L1-L106)
+- [packages/engine/src/memory/canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L1-L134)
+- [packages/engine/src/pipeline/generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
+
+## Architecture Overview
+The CLI drives story lifecycle commands, delegating to the engine for generation and state management. The engine coordinates agents and memory to produce coherent chapters guided by the story bible and canonical facts. The system now includes automated installation and publishing workflows for seamless development and distribution.
+
+```mermaid
+graph TB
+CLI["CLI (apps/cli)<br/>commands: init, generate, status, continue"]
+ENGINE["@narrative-os/engine<br/>types, agents, pipeline, memory, llm"]
+LLM["LLM Provider (OpenAI/DeepSeek)"]
+STORE["Canon Store"]
+INSTALL["Windows Installer<br/>install.ps1"]
+PUBLISH["Cross-Platform Publisher<br/>publish.ps1 & publish.sh"]
+CLI --> ENGINE
+ENGINE --> LLM
+ENGINE --> STORE
+INSTALL --> CLI
+INSTALL --> ENGINE
+PUBLISH --> INSTALL
+```
+
+**Diagram sources**
+- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L1-L54)
+- [packages/engine/src/index.ts](file://packages/engine/src/index.ts#L1-L23)
+- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L1-L106)
+- [packages/engine/src/memory/canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L1-L134)
+- [install.ps1](file://install.ps1#L1-L130)
+- [publish.ps1](file://publish.ps1#L1-L95)
+- [publish.sh](file://publish.sh#L1-L100)
+
+## Detailed Component Analysis
+
+### CLI Commands
+- Initialization: Creates a story bible, adds characters, initializes state, and persists the story.
+- Generation: Loads a story, builds a generation context, invokes the engine pipeline, updates state, and persists results.
+
+```mermaid
+sequenceDiagram
+participant User as "Developer"
+participant CLI as "CLI (init)"
+participant Engine as "Engine"
+participant FS as "Config Store"
+User->>CLI : "nos init [options]"
+CLI->>Engine : createStoryBible(...)
+Engine-->>CLI : StoryBible
+CLI->>Engine : addCharacter(...), createStoryState(...)
+Engine-->>CLI : Updated Bible, State
+CLI->>FS : saveStory(...)
+FS-->>CLI : OK
+CLI-->>User : "Story created : ID ..."
+```
+
+**Diagram sources**
+- [apps/cli/src/commands/init.ts](file://apps/cli/src/commands/init.ts#L1-L50)
+- [packages/engine/src/index.ts](file://packages/engine/src/index.ts#L1-L23)
+
+**Section sources**
+- [apps/cli/src/commands/init.ts](file://apps/cli/src/commands/init.ts#L1-L50)
+
+```mermaid
+sequenceDiagram
+participant User as "Developer"
+participant CLI as "CLI (generate)"
+participant Engine as "Engine"
+participant FS as "Config Store"
+User->>CLI : "nos generate <story-id>"
+CLI->>FS : loadStory(...)
+FS-->>CLI : {bible, state, chapters, canon}
+CLI->>Engine : generateChapter(context, {canon})
+Engine-->>CLI : {chapter, summary, violations}
+CLI->>FS : saveStory(updated state, chapters + new chapter, canon)
+CLI-->>User : "Generated chapter N"
+```
+
+**Diagram sources**
+- [apps/cli/src/commands/generate.ts](file://apps/cli/src/commands/generate.ts#L1-L55)
+- [packages/engine/src/pipeline/generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
+
+**Section sources**
+- [apps/cli/src/commands/generate.ts](file://apps/cli/src/commands/generate.ts#L1-L55)
+
+### Engine Pipeline
+The generation pipeline composes the writer agent, completeness checks, optional canon validation, and summarization, returning structured results.
+
+```mermaid
+flowchart TD
+Start(["generateChapter(context, options)"]) --> Write["writer.write(context, canon)"]
+Write --> Check["completenessChecker.check(content)"]
+Check --> Complete{"isComplete?"}
+Complete --> |No| Continue["writer.continue(content, context)"] --> Write
+Complete --> |Yes| Canon{"validateCanon?"}
+Canon --> |Yes| Validate["canonValidator.validate(content, canon)"] --> Summarize["summarizer.summarize(content, n)"]
+Canon --> |No| Summarize
+Summarize --> Build["Build Chapter object"]
+Build --> End(["Return {chapter, summary, violations}"])
+```
+
+**Diagram sources**
+- [packages/engine/src/pipeline/generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
+- [packages/engine/src/agents/writer.ts](file://packages/engine/src/agents/writer.ts#L1-L146)
+- [packages/engine/src/agents/completeness.ts](file://packages/engine/src/agents/completeness.ts#L1-L200)
+- [packages/engine/src/agents/summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L1-L200)
+- [packages/engine/src/agents/canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L1-L200)
+
+**Section sources**
+- [packages/engine/src/pipeline/generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
+
+### LLM Client and Providers
+The LLM client supports configurable providers and models via environment variables. It exposes plain completion and JSON parsing helpers.
+
+```mermaid
+classDiagram
+class LLMClient {
++complete(prompt, config) Promise~string~
++completeJSON~T~(prompt, config) Promise~T~
+-loadConfig() LLMProviderConfig
+-createProvider(config) LLMProvider
+}
+class LLMProvider {
+<<interface>>
++complete(prompt, config) Promise~string~
+}
+class OpenAIProvider {
+-client OpenAI
++constructor(config)
++complete(prompt, config) Promise~string~
+}
+LLMClient --> LLMProvider : "delegates"
+OpenAIProvider ..|> LLMProvider
+```
+
+**Diagram sources**
+- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L1-L106)
+
+**Section sources**
+- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L1-L106)
+
+### Memory and Canon Store
+The canon store maintains immutable facts categorized by character/world/plot/timeline, enabling validation and prompt formatting.
+
+```mermaid
+classDiagram
+class CanonStore {
++string storyId
++CanonFact[] facts
+}
+class CanonFact {
++string id
++string category
++string subject
++string attribute
++string value
++number chapterEstablished
+}
+CanonStore "1" o--> "many" CanonFact : "contains"
+```
+
+**Diagram sources**
+- [packages/engine/src/memory/canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L1-L134)
+
+**Section sources**
+- [packages/engine/src/memory/canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L1-L134)
+
+### Types and Contracts
+Core data structures define story bibles, characters, plot threads, chapters, summaries, and generation contexts.
+
+```mermaid
+erDiagram
+STORY_BIBLE {
+string id
+string title
+string theme
+string genre
+string setting
+string tone
+number targetChapters
+string premise
+datetime createdAt
+datetime updatedAt
+}
+CHARACTER_PROFILE {
+string id
+string name
+enum role
+string[] personality
+string[] goals
+string background
+}
+PLOT_THREAD {
+string id
+string name
+string description
+enum status
+number tension
+}
+CHAPTER {
+string id
+string storyId
+number number
+string title
+string content
+string summary
+number wordCount
+datetime generatedAt
+}
+STORY_STATE {
+string storyId
+number currentChapter
+number totalChapters
+number currentTension
+string[] activePlotThreads
+}
+STORY_BIBLE ||--o{ CHARACTER_PROFILE : "has"
+STORY_BIBLE ||--o{ PLOT_THREAD : "has"
+STORY_BIBLE ||--o{ CHAPTER : "generates"
+STORY_STATE ||--|| STORY_BIBLE : "tracks"
+```
+
+**Diagram sources**
+- [packages/engine/src/types/index.ts](file://packages/engine/src/types/index.ts#L1-L90)
+
+**Section sources**
+- [packages/engine/src/types/index.ts](file://packages/engine/src/types/index.ts#L1-L90)
+
+## Dependency Analysis
+- Workspace dependencies:
+  - CLI depends on the engine package via workspace protocol.
+  - Engine depends on OpenAI SDK and Zod.
+- Orchestration:
+  - Root scripts delegate to Turborepo tasks.
+  - Turborepo tasks define caching, persistent processes for dev, and task dependencies.
+
+```mermaid
+graph LR
+Root["Root Scripts<br/>build/dev/lint/test"] --> Turbo["Turborepo Tasks"]
+Turbo --> CLI["apps/cli"]
+Turbo --> Engine["@narrative-os/engine"]
+CLI --> Engine
+Engine --> OpenAI["openai"]
+Engine --> Zod["zod"]
+```
+
+**Diagram sources**
+- [package.json](file://package.json#L5-L11)
+- [turbo.json](file://turbo.json#L4-L16)
+- [apps/cli/package.json](file://apps/cli/package.json#L40-L44)
+- [packages/engine/package.json](file://packages/engine/package.json#L34-L38)
+
+**Section sources**
+- [apps/cli/package.json](file://apps/cli/package.json#L1-L50)
+- [packages/engine/package.json](file://packages/engine/package.json#L1-L44)
+- [package.json](file://package.json#L1-L17)
+- [turbo.json](file://turbo.json#L1-L19)
+
+## Development Tooling and Automation
+
+### Automated Installation Scripts
+The project now includes comprehensive installation automation for streamlined development setup:
+
+**Windows PowerShell Installation (`install.ps1`)**
+- Automatic detection of package managers (pnpm preferred, npm fallback)
+- Node.js version verification (Node.js 20+ required)
+- Git-based cloning with fallback to ZIP download
+- Automatic dependency installation and project building
+- Global CLI installation for immediate use
+
+**Installation Features:**
+- Colorful progress indicators and error handling
+- Interactive configuration prompts
+- Automatic pnpm setup for Windows users
+- Fallback mechanisms for network failures
+- Comprehensive success messaging and quick start guide
+
+**Section sources**
+- [install.ps1](file://install.ps1#L1-L130)
+
+### Development Environment Setup
+- **Package Manager**: PNPM 9.0.0 with workspace support
+- **Node.js**: Version 20.0.0+ required for all packages
+- **TypeScript**: Version 5.4.0+ for type safety
+- **Turborepo**: Version 2.0.0+ for task orchestration
+
+**Section sources**
+- [package.json](file://package.json#L4-L15)
+- [apps/cli/package.json](file://apps/cli/package.json#L37-L39)
+- [packages/engine/package.json](file://packages/engine/package.json#L31-L33)
+
+## Cross-Platform Installation and Publishing
+
+### Windows PowerShell Installation Workflow
+The Windows installation script provides a complete automated setup experience:
+
+```mermaid
+flowchart TD
+Start(["Windows Installation"]) --> PM["Detect Package Manager"]
+PM --> PNPM{"pnpm Available?"}
+PNPM --> |Yes| Setup["Setup pnpm Environment"]
+PNPM --> |No| NPM["Use npm as Fallback"]
+Setup --> Node["Verify Node.js 20+"]
+NPM --> Node
+Node --> Dir["Create Install Directory"]
+Dir --> Clone["Clone Repository"]
+Clone --> Deps["Install Dependencies"]
+Deps --> Build["Build Project"]
+Build --> CLI["Install CLI Globally"]
+CLI --> Config["Configure LLM Provider"]
+Config --> End(["Installation Complete"])
+```
+
+**Diagram sources**
+- [install.ps1](file://install.ps1#L10-L130)
+
+**Section sources**
+- [install.ps1](file://install.ps1#L1-L130)
+
+### Cross-Platform Publishing Workflows
+The project supports publishing workflows for both Windows PowerShell and Unix-like systems:
+
+**Windows PowerShell Publisher (`publish.ps1`)**
+- Validates npm authentication before publishing
+- Builds the project using PNPM
+- Publishes both engine and CLI packages sequentially
+- Automatically updates CLI dependencies to match engine version
+- Provides detailed progress feedback and version confirmation
+
+**Unix-like Shell Publisher (`publish.sh`)**
+- Identical functionality to Windows publisher with shell scripting syntax
+- Uses bash color codes for enhanced user experience
+- Supports the same version bump types (patch, minor, major)
+- Maintains consistent workflow across platforms
+
+**Publishing Features:**
+- Version bump type validation (patch/minor/major)
+- Automatic dependency version synchronization
+- npm authentication verification
+- Progress tracking and success confirmation
+- User confirmation prompts for safety
+
+**Section sources**
+- [publish.ps1](file://publish.ps1#L1-L95)
+- [publish.sh](file://publish.sh#L1-L100)
+
+### Platform-Specific Considerations
+- **Windows Users**: PowerShell scripts provide native Windows integration with colored output and environment variable handling
+- **Unix-like Systems**: Shell scripts offer POSIX-compliant functionality with color support
+- **Cross-Platform Compatibility**: Both scripts maintain identical functionality while adapting to platform-specific syntax
+- **Environment Requirements**: Both scripts require PNPM 9.0.0+ and Node.js 20.0.0+
+
+**Section sources**
+- [publish.ps1](file://publish.ps1#L1-L95)
+- [publish.sh](file://publish.sh#L1-L100)
+
+## Performance Considerations
+- Caching and Dev Persistence:
+  - Turborepo disables caching for dev tasks and marks them as persistent to keep servers warm during development.
+- Task Dependencies:
+  - Tests depend on build to ensure compiled artifacts are available.
+- LLM Cost and Token Limits:
+  - Tune temperature and max tokens per provider to balance quality and cost.
+- Pipeline Iterations:
+  - The generation loop continues until completeness or max attempts; adjust maxContinuationAttempts to control latency vs. quality.
+- **New**: Installation and publishing script performance:
+  - Scripts optimize for minimal network requests and efficient dependency resolution.
+  - Parallel processing capabilities in PNPM reduce installation time compared to npm.
+
+[No sources needed since this section provides general guidance]
+
+## Troubleshooting Guide
+
+### Installation Issues
+- **Package Manager Detection**: Scripts automatically detect and use available package managers (pnpm preferred).
+- **Node.js Requirements**: Ensure Node.js 20.0.0+ is installed; scripts verify version compatibility.
+- **Git Availability**: Git is required for cloning; fallback to ZIP download if git is unavailable.
+- **Network Connectivity**: Scripts include fallback mechanisms for repository access failures.
+
+### Publishing Issues
+- **npm Authentication**: Both scripts verify npm login status before proceeding with publishing.
+- **Version Conflicts**: Scripts automatically synchronize CLI dependency versions with engine releases.
+- **Build Failures**: Publishing scripts build projects before attempting publication to ensure clean releases.
+
+### Environment Variables
+- LLM provider selection and credentials are loaded from environment variables. Ensure provider and API keys are set before running tests or generation.
+- **New**: Installation scripts handle environment setup automatically, including pnpm configuration on Windows.
+
+### Test Setup
+- The test loads a local config file to inject provider and model settings prior to importing engine modules.
+
+### Error Handling
+- CLI commands exit with non-zero status on failure; inspect logs for detailed errors.
+- **New**: Installation and publishing scripts provide detailed error messages and recovery suggestions.
+
+**Section sources**
+- [install.ps1](file://install.ps1#L20-L51)
+- [publish.ps1](file://publish.ps1#L11-L19)
+- [publish.sh](file://publish.sh#L18-L27)
+- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L46-L66)
+- [packages/engine/src/test/simple.test.ts](file://packages/engine/src/test/simple.test.ts#L5-L18)
+- [apps/cli/src/commands/generate.ts](file://apps/cli/src/commands/generate.ts#L50-L53)
+
+## Contribution Guidelines
+- Development Environment
+  - Install PNPM and use workspaces to link packages automatically.
+  - Use Turborepo scripts for building, developing, linting, and testing across the monorepo.
+  - **New**: Use installation scripts for rapid environment setup on Windows or Unix-like systems.
+- Code Style
+  - Follow TypeScript strictness and formatting conventions used in the repository.
+- Commit Messages and PRs
+  - Keep commits focused and descriptive.
+  - Reference related issues and include a summary of changes.
+  - Ensure tests pass locally before opening a pull request.
+- Review Process
+  - Request reviews from maintainers; address feedback promptly.
+- **New**: Publishing Contributions
+  - Use appropriate publishing scripts for cross-platform compatibility.
+  - Follow semantic versioning guidelines when preparing releases.
+
+[No sources needed since this section provides general guidance]
+
+## Release and Version Management
+
+### Versioning Strategy
+- **Semantic Versioning**: Follow semver (major.minor.patch) for all releases.
+- **Automated Versioning**: Publishing scripts support automatic version bumping (patch, minor, major).
+- **Dependency Synchronization**: CLI packages automatically update engine dependencies to match release versions.
+
+### Publishing Process
+**Windows PowerShell Publishing:**
+1. Run `.\publish.ps1 [patch|minor|major]`
+2. Scripts automatically build, version, and publish both packages
+3. Verify successful publication and update documentation
+
+**Unix-like Publishing:**
+1. Run `./publish.sh [patch|minor|major]`
+2. Scripts perform identical workflow to Windows version
+3. Ensure npm authentication before running scripts
+
+### Release Automation
+- **Automated Dependency Updates**: CLI scripts automatically update engine dependency versions.
+- **Consistent Versioning**: Both platforms maintain identical version numbers across packages.
+- **Progress Tracking**: Scripts provide detailed feedback throughout the publishing process.
+
+**Section sources**
+- [publish.ps1](file://publish.ps1#L23-L48)
+- [publish.sh](file://publish.sh#L29-L54)
+
+## Extensibility Guide
+
+### Adding a New Agent
+- Define a new agent module exporting a class or factory with a complete method.
+- Integrate the agent into the pipeline by composing it with existing steps (e.g., validation, summarization).
+- Export the new agent from the engine entry point so the CLI and other consumers can use it.
+
+**Section sources**
+- [packages/engine/src/pipeline/generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
+- [packages/engine/src/index.ts](file://packages/engine/src/index.ts#L8-L12)
+
+### Extending Memory Strategies
+- Extend the CanonStore API to support new categories or retrieval patterns.
+- Add formatting helpers for prompts and integrate them into agent prompts.
+
+**Section sources**
+- [packages/engine/src/memory/canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L101-L129)
+
+### Supporting Additional LLM Providers
+- Implement a new provider class conforming to the LLMProvider interface.
+- Extend the provider selection logic to handle the new provider and its configuration.
+- Add environment variables for credentials and base URLs.
+
+**Section sources**
+- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L4-L6)
+- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L68-L76)
+- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L46-L66)
+
+## Testing Strategies
+- Unit Tests for the Engine
+  - The engine includes a simple integration-style test that loads a local configuration, constructs a story context, and runs a single chapter generation end-to-end. This serves as a practical smoke test for the pipeline.
+- Integration Testing Approaches
+  - Use the CLI to drive end-to-end flows: initialize a story, generate chapters iteratively, and verify persisted state and outputs.
+  - Mock or stub the LLM client for deterministic tests when appropriate.
+- Continuous Integration
+  - Configure CI to install PNPM, install dependencies, build, lint, and run tests using Turborepo tasks.
+  - Cache node_modules and Turbo cache to speed up jobs.
+- **New**: Automated Testing with Installation Scripts
+  - Installation scripts can be used to quickly set up test environments on different platforms.
+  - Publishing scripts ensure consistent testing environments across development and production.
+
+**Section sources**
+- [packages/engine/src/test/simple.test.ts](file://packages/engine/src/test/simple.test.ts#L1-L73)
+
+## Development Workflow
+- Local Setup
+  - Install PNPM and run installation in the monorepo root.
+  - Use Turborepo scripts for development and building.
+  - **New**: Use installation scripts for rapid environment setup on Windows or Unix-like systems.
+- Running the CLI
+  - Build the engine and CLI, then use the CLI binary to manage stories.
+- Debugging
+  - Enable verbose logging in the LLM client and pipeline steps.
+  - Inspect persisted story state and chapter outputs to isolate issues.
+- Profiling
+  - Measure generation latency per chapter and track token usage per provider.
+  - Adjust model parameters and prompt sizes to optimize throughput.
+- **New**: Cross-Platform Development
+  - Use platform-appropriate installation and publishing scripts for consistent development experience.
+  - Leverage automated scripts for environment setup and cleanup across different operating systems.
+
+**Section sources**
+- [package.json](file://package.json#L5-L11)
+- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L1-L54)
+- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L18-L28)
+- [install.ps1](file://install.ps1#L1-L130)
+
+## Conclusion
+This guide outlines how to develop, test, and contribute to the Narrative Operating System monorepo. By leveraging PNPM workspaces and Turborepo, you can efficiently manage a multi-package TypeScript codebase. The engine's modular design enables easy extension with new agents, memory strategies, and LLM providers, while the CLI provides a practical interface for iterative development and experimentation.
+
+**New additions** to this guide include comprehensive coverage of the automated installation scripts for Windows PowerShell and cross-platform publishing workflows that streamline development and distribution processes. These tools ensure consistent development experiences across different operating systems while maintaining the flexibility and power of the underlying monorepo architecture.
+
+The installation scripts provide a complete automated setup experience for Windows users, while the publishing workflows enable consistent releases across both Windows PowerShell and Unix-like shell environments. Together, these tools significantly reduce the barrier to entry for contributors and ensure reliable distribution of the Narrative Operating System across diverse development environments.
