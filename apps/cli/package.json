@@ -1,6 +1,6 @@
 {
   "name": "@narrative-os/cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "AI-native narrative engine for long-form story generation",
   "main": "dist/index.js",
   "bin": {

@@ -1,0 +1,58 @@
+# @narrative-os/cli
+
+AI-native narrative engine for long-form story generation.
+
+## Installation
+
+```bash
+npm install -g @narrative-os/cli
+```
+
+## Quick Start
+
+```bash
+# Configure your LLM provider
+nos config
+
+# Create a new story
+nos init --title "My Adventure" --chapters 10
+
+# Generate chapters
+nos generate <story-id>
+
+# Or auto-generate all remaining chapters
+nos continue <story-id>
+```
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `nos init` | Create a new story |
+| `nos generate <id>` | Generate next chapter |
+| `nos continue <id>` | Auto-generate remaining chapters |
+| `nos status [id]` | View story status |
+| `nos list` | List all stories |
+| `nos read <id> [chapter]` | Read chapter content |
+| `nos bible <id>` | View story bible |
+| `nos memories <id>` | Search narrative memories |
+| `nos validate <id>` | Validate story consistency |
+| `nos export <id>` | Export story to markdown |
+| `nos delete <id>` | Delete a story |
+| `nos config` | Configure LLM settings |
+
+## Features
+
+- **Persistent Memory**: Never forgets what happened 50 chapters ago
+- **Logical Consistency**: Enforces facts and character continuity
+- **World Simulation**: Characters have goals and act autonomously
+- **Tension Control**: Manages narrative arc and pacing
+- **Multi-Story Support**: Work on multiple stories simultaneously
+
+## Documentation
+
+For full documentation, visit: https://github.com/liwonder/NARRITIVE_OS
+
+## License
+
+MIT
