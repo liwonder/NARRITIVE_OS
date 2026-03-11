@@ -33,7 +33,10 @@ if (process.argv.length <= 2) {
 program
   .command('config')
   .description('Configure LLM provider and API key')
-  .action(configCommand);
+  .option('-s, --show', 'Show current configuration')
+  .action((options: { show?: boolean }) => {
+    configCommand(options.show);
+  });
 
 // Story Management
 program

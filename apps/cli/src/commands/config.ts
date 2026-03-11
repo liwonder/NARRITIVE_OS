@@ -35,9 +35,29 @@ function saveConfig(config: Config) {
   writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
 }
 
-export async function configCommand() {
-  const { select, password } = await import('@inquirer/prompts');
+export async function configCommand(showOnly = false) {
   const existing = loadConfig();
+
+  // Show current configuration
+  if (showOnly) {
+    if (!existing) {
+      console.log('❌ No configuration found.');
+      console.log('Run: nos config  to set up your LLM provider');
+      return;
+    }
+
+    console.log('\n📋 Current Configuration:');
+    console.log('========================');
+    console.log(`Provider: ${existing.provider}`);
+    console.log(`Model:    ${existing.model}`);
+    console.log(`API Key:  ${existing.apiKey ? '✅ Set (' + '*'.repeat(Math.min(existing.apiKey.length - 4, 8)) + existing.apiKey.slice(-4) + ')' : '❌ Not set'}`);
+    console.log('');
+    console.log(`Config file: ${CONFIG_FILE}`);
+    return;
+  }
+
+  // Interactive configuration
+  const { select, password } = await import('@inquirer/prompts');
 
   const provider = await select({
     message: 'Select LLM provider:',
@@ -61,7 +81,7 @@ export async function configCommand() {
   const config: Config = { provider: provider as 'openai' | 'deepseek', model, apiKey };
   saveConfig(config);
 
-  console.log(`\nConfiguration saved for ${providerInfo.name}`);
+  console.log(`\n✅ Configuration saved for ${providerInfo.name}`);
   console.log(`Model: ${model}`);
 }
 
