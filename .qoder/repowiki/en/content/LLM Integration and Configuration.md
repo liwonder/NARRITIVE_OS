@@ -15,6 +15,7 @@
 - [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts)
 - [config.ts](file://apps/cli/src/commands/config.ts)
 - [store.ts](file://apps/cli/src/config/store.ts)
+- [index.ts](file://apps/cli/src/index.ts)
 - [writer.md](file://packages/engine/src/llm/prompts/writer.md)
 - [completeness.md](file://packages/engine/src/llm/prompts/completeness.md)
 - [summarizer.md](file://packages/engine/src/llm/prompts/summarizer.md)
@@ -33,6 +34,8 @@
 - Added specialized response handling for reasoning models
 - Updated agent integration examples with reasoning field usage
 - Revised configuration examples for reasoning model optimization
+- **Enhanced Configuration System**: Added show configuration feature allowing users to view current LLM provider settings without interactive setup
+- **Improved CLI Integration**: Enhanced configuration command with --show option and better user feedback
 - **Enhanced Test Infrastructure**: Added automatic configuration loading from ~/.narrative-os/config.json for seamless testing without manual setup requirements
 
 ## Table of Contents
@@ -42,17 +45,18 @@
 4. [Architecture Overview](#architecture-overview)
 5. [Detailed Component Analysis](#detailed-component-analysis)
 6. [Reasoning Model Integration](#reasoning-model-integration)
-7. [Test Infrastructure Enhancement](#test-infrastructure-enhancement)
-8. [Dependency Analysis](#dependency-analysis)
-9. [Performance Considerations](#performance-considerations)
-10. [Troubleshooting Guide](#troubleshooting-guide)
-11. [Conclusion](#conclusion)
-12. [Appendices](#appendices)
+7. [Enhanced Configuration System](#enhanced-configuration-system)
+8. [Test Infrastructure Enhancement](#test-infrastructure-enhancement)
+9. [Dependency Analysis](#dependency-analysis)
+10. [Performance Considerations](#performance-considerations)
+11. [Troubleshooting Guide](#troubleshooting-guide)
+12. [Conclusion](#conclusion)
+13. [Appendices](#appendices)
 
 ## Introduction
 This document explains the LLM integration and configuration within the Narrative Operating System. It covers the provider abstraction supporting OpenAI and DeepSeek, configuration management for API keys and model parameters, and prompt engineering strategies. The system now includes enhanced support for reasoning models with specialized response handling and improved JSON content extraction from markdown code blocks. It documents the client architecture, environment variable management, error handling, and the relationship between LLM configuration and agent performance. Practical examples demonstrate provider switching, model selection criteria, and cost optimization strategies.
 
-**Enhanced**: The test infrastructure now features automatic configuration loading from ~/.narrative-os/config.json, enabling seamless testing with configured LLM providers without manual setup requirements.
+**Enhanced**: The configuration system now features a show configuration capability that allows users to view their current LLM provider settings without entering interactive setup mode. The CLI integrates this feature seamlessly with the --show option, providing immediate feedback about current configuration status.
 
 ## Project Structure
 The LLM integration spans three primary areas:
@@ -63,7 +67,8 @@ The LLM integration spans three primary areas:
 ```mermaid
 graph TB
 subgraph "CLI"
-CFG["config.ts<br/>User config prompts and env application"]
+IDX["index.ts<br/>Application entry point"]
+CFG["config.ts<br/>User config prompts and env application<br/>Show configuration feature"]
 STORE["store.ts<br/>Story persistence"]
 end
 subgraph "Engine"
@@ -82,6 +87,7 @@ end
 subgraph "Test Infrastructure"
 TEST_AUTO["Automatic Config Loading<br/>~/.narrative-os/config.json"]
 end
+IDX --> CFG
 CFG --> CLIENT
 CFG --> PIPE
 STORE --> PIPE
@@ -103,25 +109,27 @@ TEST_AUTO --> CLIENT
 ```
 
 **Diagram sources**
-- [client.ts](file://packages/engine/src/llm/client.ts#L1-L120)
-- [types/index.ts](file://packages/engine/src/types/index.ts#L78-L89)
-- [writer.ts](file://packages/engine/src/agents/writer.ts#L1-L146)
-- [completeness.ts](file://packages/engine/src/agents/completeness.ts#L1-L56)
-- [summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L1-L64)
-- [canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L1-L59)
-- [memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L1-L97)
-- [tensionController.ts](file://packages/engine/src/agents/tensionController.ts#L1-L252)
-- [characterAgent.ts](file://packages/engine/src/world/characterAgent.ts#L1-L304)
-- [canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L1-L134)
-- [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
-- [config.ts](file://apps/cli/src/commands/config.ts#L1-L84)
-- [store.ts](file://apps/cli/src/config/store.ts#L1-L78)
-- [structured-state.test.ts](file://packages/engine/src/test/structured-state.test.ts#L1-L203)
+- [index.ts:17-39](file://apps/cli/src/index.ts#L17-L39)
+- [client.ts:1-119](file://packages/engine/src/llm/client.ts#L1-L119)
+- [types/index.ts:78-89](file://packages/engine/src/types/index.ts#L78-L89)
+- [writer.ts:1-146](file://packages/engine/src/agents/writer.ts#L1-L146)
+- [completeness.ts:1-56](file://packages/engine/src/agents/completeness.ts#L1-L56)
+- [summarizer.ts:1-64](file://packages/engine/src/agents/summarizer.ts#L1-L64)
+- [canonValidator.ts:1-59](file://packages/engine/src/agents/canonValidator.ts#L1-L59)
+- [memoryExtractor.ts:1-97](file://packages/engine/src/agents/memoryExtractor.ts#L1-L97)
+- [tensionController.ts:1-252](file://packages/engine/src/agents/tensionController.ts#L1-L252)
+- [characterAgent.ts:1-304](file://packages/engine/src/world/characterAgent.ts#L1-L304)
+- [canonStore.ts:1-134](file://packages/engine/src/memory/canonStore.ts#L1-L134)
+- [generateChapter.ts:1-76](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
+- [config.ts:38-86](file://apps/cli/src/commands/config.ts#L38-L86)
+- [store.ts:1-195](file://apps/cli/src/config/store.ts#L1-L195)
+- [structured-state.test.ts:1-203](file://packages/engine/src/test/structured-state.test.ts#L1-L203)
 
 **Section sources**
-- [client.ts](file://packages/engine/src/llm/client.ts#L1-L120)
-- [types/index.ts](file://packages/engine/src/types/index.ts#L78-L89)
-- [config.ts](file://apps/cli/src/commands/config.ts#L1-L84)
+- [client.ts:1-119](file://packages/engine/src/llm/client.ts#L1-L119)
+- [types/index.ts:78-89](file://packages/engine/src/types/index.ts#L78-L89)
+- [config.ts:38-86](file://apps/cli/src/commands/config.ts#L38-L86)
+- [index.ts:32-39](file://apps/cli/src/index.ts#L32-L39)
 
 ## Core Components
 - Provider abstraction: An LLMProvider interface and provider implementations encapsulate model calls behind a unified contract.
@@ -136,18 +144,19 @@ Key responsibilities:
 - Prompt construction and injection of story context, recent summaries, and canon facts.
 - JSON mode enforcement for structured outputs with robust error handling.
 - Specialized response handling for reasoning models with content extraction from reasoning_content fields.
+- **Enhanced**: Show configuration feature that displays current LLM provider settings without interactive setup.
 
 **Section sources**
-- [client.ts](file://packages/engine/src/llm/client.ts#L4-L120)
-- [types/index.ts](file://packages/engine/src/types/index.ts#L78-L89)
-- [writer.ts](file://packages/engine/src/agents/writer.ts#L48-L94)
-- [completeness.ts](file://packages/engine/src/agents/completeness.ts#L30-L52)
-- [summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L17-L38)
-- [canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L31-L55)
-- [memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L52-L68)
-- [tensionController.ts](file://packages/engine/src/agents/tensionController.ts#L4-L10)
-- [characterAgent.ts](file://packages/engine/src/world/characterAgent.ts#L25-L31)
-- [config.ts](file://apps/cli/src/commands/config.ts#L24-L83)
+- [client.ts:4-119](file://packages/engine/src/llm/client.ts#L4-L119)
+- [types/index.ts:78-89](file://packages/engine/src/types/index.ts#L78-L89)
+- [writer.ts:48-94](file://packages/engine/src/agents/writer.ts#L48-L94)
+- [completeness.ts:30-52](file://packages/engine/src/agents/completeness.ts#L30-L52)
+- [summarizer.ts:17-38](file://packages/engine/src/agents/summarizer.ts#L17-L38)
+- [canonValidator.ts:31-55](file://packages/engine/src/agents/canonValidator.ts#L31-L55)
+- [memoryExtractor.ts:52-68](file://packages/engine/src/agents/memoryExtractor.ts#L52-L68)
+- [tensionController.ts:4-10](file://packages/engine/src/agents/tensionController.ts#L4-L10)
+- [characterAgent.ts:25-31](file://packages/engine/src/world/characterAgent.ts#L25-L31)
+- [config.ts:38-86](file://apps/cli/src/commands/config.ts#L38-L86)
 
 ## Architecture Overview
 The system follows a layered design:
@@ -164,7 +173,10 @@ participant Env as "Environment"
 participant Engine as "LLMClient"
 participant Provider as "OpenAIProvider"
 participant LLM as "LLM API"
-User->>CLI : Run config command
+User->>CLI : Run config --show
+CLI->>CLI : Load existing config
+CLI->>User : Display current configuration
+User->>CLI : Run config (interactive)
 CLI->>CLI : Prompt provider/model/API key
 CLI->>Env : Set LLM_PROVIDER/LLM_MODEL/OPENAI_API_KEY/DEEPSEEK_API_KEY
 User->>Engine : Call getLLM().complete()/completeJSON()
@@ -177,8 +189,9 @@ Engine-->>User : Text or parsed JSON
 ```
 
 **Diagram sources**
-- [config.ts](file://apps/cli/src/commands/config.ts#L38-L83)
-- [client.ts](file://packages/engine/src/llm/client.ts#L32-L35)
+- [index.ts:32-39](file://apps/cli/src/index.ts#L32-L39)
+- [config.ts:38-86](file://apps/cli/src/commands/config.ts#L38-L86)
+- [client.ts:53-73](file://packages/engine/src/llm/client.ts#L53-L73)
 
 ## Detailed Component Analysis
 
@@ -215,17 +228,18 @@ OpenAIProvider ..|> LLMProvider
 ```
 
 **Diagram sources**
-- [client.ts](file://packages/engine/src/llm/client.ts#L4-L120)
+- [client.ts:4-119](file://packages/engine/src/llm/client.ts#L4-L119)
 
 **Section sources**
-- [client.ts](file://packages/engine/src/llm/client.ts#L4-L120)
-- [types/index.ts](file://packages/engine/src/types/index.ts#L78-L89)
+- [client.ts:4-119](file://packages/engine/src/llm/client.ts#L4-L119)
+- [types/index.ts:78-89](file://packages/engine/src/types/index.ts#L78-L89)
 
 ### Configuration Management and Environment Variables
 - CLI configuration:
   - Prompts user for provider, model, and API key.
   - Writes a local JSON config file under the user's home directory.
   - Applies environment variables for provider, model, and the appropriate API key.
+  - **Enhanced**: Supports --show option to display current configuration without interactive setup.
 - Engine configuration:
   - Reads LLM_PROVIDER, OPENAI_API_KEY, DEEPSEEK_API_KEY, LLM_MODEL, and optional LLM_BASE_URL.
   - Defaults to OpenAI with gpt-4o-mini if unspecified.
@@ -235,6 +249,7 @@ Practical examples:
 - Switching providers: Change LLM_PROVIDER to "deepseek" and set DEEPSEEK_API_KEY; optionally set LLM_MODEL to a DeepSeek model.
 - Model selection: Choose among supported models exposed by each provider; engine defaults to a sensible model if none is set.
 - Cost optimization: Lower maxTokens and temperature for simpler tasks; prefer smaller models when output quality allows.
+- **Enhanced**: Viewing configuration: Use `nos config --show` to quickly check current LLM provider settings.
 
 Security considerations:
 - Store API keys securely; avoid committing secrets to source control.
@@ -242,8 +257,9 @@ Security considerations:
 - Limit stored CLI config to local machine and review permissions.
 
 **Section sources**
-- [config.ts](file://apps/cli/src/commands/config.ts#L14-L83)
-- [client.ts](file://packages/engine/src/llm/client.ts#L53-L73)
+- [config.ts:14-86](file://apps/cli/src/commands/config.ts#L14-L86)
+- [client.ts:53-73](file://packages/engine/src/llm/client.ts#L53-L73)
+- [index.ts:32-39](file://apps/cli/src/index.ts#L32-L39)
 
 ### Prompt Engineering Strategies
 Prompts are designed to be explicit, constrained, and context-rich:
@@ -269,23 +285,23 @@ Parse --> |No| Error["Throw error with context"]
 ```
 
 **Diagram sources**
-- [writer.ts](file://packages/engine/src/agents/writer.ts#L71-L88)
-- [completeness.ts](file://packages/engine/src/agents/completeness.ts#L37-L43)
-- [summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L24-L30)
-- [canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L40-L47)
-- [memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L52-L68)
-- [characterAgent.ts](file://packages/engine/src/world/characterAgent.ts#L187-L210)
+- [writer.ts:71-88](file://packages/engine/src/agents/writer.ts#L71-L88)
+- [completeness.ts:37-43](file://packages/engine/src/agents/completeness.ts#L37-L43)
+- [summarizer.ts:24-30](file://packages/engine/src/agents/summarizer.ts#L24-L30)
+- [canonValidator.ts:40-47](file://packages/engine/src/agents/canonValidator.ts#L40-L47)
+- [memoryExtractor.ts:52-68](file://packages/engine/src/agents/memoryExtractor.ts#L52-L68)
+- [characterAgent.ts:187-210](file://packages/engine/src/world/characterAgent.ts#L187-L210)
 
 **Section sources**
-- [writer.md](file://packages/engine/src/llm/prompts/writer.md#L1-L38)
-- [completeness.md](file://packages/engine/src/llm/prompts/completeness.md#L1-L26)
-- [summarizer.md](file://packages/engine/src/llm/prompts/summarizer.md#L1-L13)
-- [writer.ts](file://packages/engine/src/agents/writer.ts#L48-L94)
-- [completeness.ts](file://packages/engine/src/agents/completeness.ts#L30-L52)
-- [summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L17-L38)
-- [canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L31-L55)
-- [memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L14-L50)
-- [characterAgent.ts](file://packages/engine/src/world/characterAgent.ts#L41-L89)
+- [writer.md:1-38](file://packages/engine/src/llm/prompts/writer.md#L1-L38)
+- [completeness.md:1-26](file://packages/engine/src/llm/prompts/completeness.md#L1-L26)
+- [summarizer.md:1-13](file://packages/engine/src/llm/prompts/summarizer.md#L1-L13)
+- [writer.ts:48-94](file://packages/engine/src/agents/writer.ts#L48-L94)
+- [completeness.ts:30-52](file://packages/engine/src/agents/completeness.ts#L30-L52)
+- [summarizer.ts:17-38](file://packages/engine/src/agents/summarizer.ts#L17-L38)
+- [canonValidator.ts:31-55](file://packages/engine/src/agents/canonValidator.ts#L31-L55)
+- [memoryExtractor.ts:14-50](file://packages/engine/src/agents/memoryExtractor.ts#L14-L50)
+- [characterAgent.ts:41-89](file://packages/engine/src/world/characterAgent.ts#L41-L89)
 
 ### Agent Layer and Pipeline Orchestration
 - ChapterWriter composes the narrative prompt and produces chapter content with inferred goals and target word counts.
@@ -317,21 +333,21 @@ Pipe-->>Pipe : build Chapter and summary
 ```
 
 **Diagram sources**
-- [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L20-L71)
-- [writer.ts](file://packages/engine/src/agents/writer.ts#L96-L117)
-- [completeness.ts](file://packages/engine/src/agents/completeness.ts#L37-L52)
-- [summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L24-L38)
-- [canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L32-L55)
+- [generateChapter.ts:20-71](file://packages/engine/src/pipeline/generateChapter.ts#L20-L71)
+- [writer.ts:96-117](file://packages/engine/src/agents/writer.ts#L96-L117)
+- [completeness.ts:37-52](file://packages/engine/src/agents/completeness.ts#L37-L52)
+- [summarizer.ts:24-38](file://packages/engine/src/agents/summarizer.ts#L24-L38)
+- [canonValidator.ts:32-55](file://packages/engine/src/agents/canonValidator.ts#L32-L55)
 
 **Section sources**
-- [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
-- [writer.ts](file://packages/engine/src/agents/writer.ts#L48-L146)
-- [completeness.ts](file://packages/engine/src/agents/completeness.ts#L30-L56)
-- [summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L17-L64)
-- [canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L31-L59)
-- [memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L52-L97)
-- [tensionController.ts](file://packages/engine/src/agents/tensionController.ts#L58-L97)
-- [characterAgent.ts](file://packages/engine/src/world/characterAgent.ts#L187-L301)
+- [generateChapter.ts:1-76](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
+- [writer.ts:48-146](file://packages/engine/src/agents/writer.ts#L48-L146)
+- [completeness.ts:30-56](file://packages/engine/src/agents/completeness.ts#L30-L56)
+- [summarizer.ts:17-64](file://packages/engine/src/agents/summarizer.ts#L17-L64)
+- [canonValidator.ts:31-59](file://packages/engine/src/agents/canonValidator.ts#L31-L59)
+- [memoryExtractor.ts:52-97](file://packages/engine/src/agents/memoryExtractor.ts#L52-L97)
+- [tensionController.ts:58-97](file://packages/engine/src/agents/tensionController.ts#L58-L97)
+- [characterAgent.ts:187-301](file://packages/engine/src/world/characterAgent.ts#L187-L301)
 
 ### Relationship Between LLM Configuration and Agent Performance
 - Model selection impacts quality and cost; choose larger models for creative writing and smaller ones for validation tasks.
@@ -347,12 +363,12 @@ Parameter tuning examples:
 - **Enhanced**: Reasoning tasks: use appropriate reasoning models with higher temperature for creative tasks, lower temperature for analytical tasks.
 
 **Section sources**
-- [writer.ts](file://packages/engine/src/agents/writer.ts#L85-L88)
-- [completeness.ts](file://packages/engine/src/agents/completeness.ts#L40-L43)
-- [summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L27-L30)
-- [canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L44-L47)
-- [memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L62-L65)
-- [characterAgent.ts](file://packages/engine/src/world/characterAgent.ts#L204-L207)
+- [writer.ts:85-88](file://packages/engine/src/agents/writer.ts#L85-L88)
+- [completeness.ts:40-43](file://packages/engine/src/agents/completeness.ts#L40-L43)
+- [summarizer.ts:27-30](file://packages/engine/src/agents/summarizer.ts#L27-L30)
+- [canonValidator.ts:44-47](file://packages/engine/src/agents/canonValidator.ts#L44-L47)
+- [memoryExtractor.ts:62-65](file://packages/engine/src/agents/memoryExtractor.ts#L62-L65)
+- [characterAgent.ts:204-207](file://packages/engine/src/world/characterAgent.ts#L204-L207)
 
 ## Reasoning Model Integration
 
@@ -392,15 +408,78 @@ ParseJSON --> Success["Return structured output"]
 ```
 
 **Diagram sources**
-- [client.ts](file://packages/engine/src/llm/client.ts#L28-L35)
-- [client.ts](file://packages/engine/src/llm/client.ts#L97-L102)
+- [client.ts:28-35](file://packages/engine/src/llm/client.ts#L28-L35)
+- [client.ts:97-102](file://packages/engine/src/llm/client.ts#L97-L102)
 
 **Section sources**
-- [client.ts](file://packages/engine/src/llm/client.ts#L28-L35)
-- [client.ts](file://packages/engine/src/llm/client.ts#L97-L102)
-- [tensionController.ts](file://packages/engine/src/agents/tensionController.ts#L70-L96)
-- [characterAgent.ts](file://packages/engine/src/world/characterAgent.ts#L25-L31)
-- [memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L52-L68)
+- [client.ts:28-35](file://packages/engine/src/llm/client.ts#L28-L35)
+- [client.ts:97-102](file://packages/engine/src/llm/client.ts#L97-L102)
+- [tensionController.ts:70-96](file://packages/engine/src/agents/tensionController.ts#L70-L96)
+- [characterAgent.ts:25-31](file://packages/engine/src/world/characterAgent.ts#L25-L31)
+- [memoryExtractor.ts:52-68](file://packages/engine/src/agents/memoryExtractor.ts#L52-L68)
+
+## Enhanced Configuration System
+
+### Show Configuration Feature
+The CLI configuration system now includes a powerful show configuration feature that allows users to view their current LLM provider settings without entering interactive setup mode.
+
+#### Command Line Interface
+The configuration command supports two modes:
+- **Interactive Mode**: `nos config` - Full setup with prompts for provider, model, and API key
+- **Show Mode**: `nos config --show` - Display current configuration without prompts
+
+#### Configuration Display Format
+When using the show mode, the system presents a formatted display showing:
+- Current provider (OpenAI or DeepSeek)
+- Selected model
+- API key status (masked for security)
+- Configuration file location
+- Clear indication if no configuration exists
+
+#### Implementation Details
+The show configuration feature is implemented through the `configCommand` function with a `showOnly` parameter:
+
+```mermaid
+flowchart TD
+Start(["User runs nos config --show"]) --> CheckConfig{"Configuration exists?"}
+CheckConfig --> |No| NoConfig["Display 'No configuration found' message"]
+NoConfig --> SuggestSetup["Suggest running nos config for setup"]
+CheckConfig --> |Yes| LoadConfig["Load existing configuration"]
+LoadConfig --> Display["Display formatted configuration"]
+Display --> End["Show current settings"]
+```
+
+**Diagram sources**
+- [config.ts:38-57](file://apps/cli/src/commands/config.ts#L38-L57)
+
+#### User Experience Benefits
+- **Quick Status Checks**: Users can immediately verify their current LLM provider settings
+- **No Setup Overhead**: Avoids entering sensitive API key information when only checking status
+- **Error Prevention**: Prevents accidental overwrites of existing configurations
+- **Security**: API keys remain masked in the display output
+- **Convenience**: Works regardless of whether configuration file exists
+
+#### Integration with Application Startup
+The CLI automatically applies configuration at startup through the `applyConfig` function, ensuring that:
+- Environment variables are set before any engine components are initialized
+- Configuration changes take effect immediately without restart
+- Both interactive and show modes contribute to consistent environment setup
+
+**Section sources**
+- [config.ts:38-57](file://apps/cli/src/commands/config.ts#L38-L57)
+- [index.ts:17-17](file://apps/cli/src/index.ts#L17-L17)
+
+### Improved CLI Integration
+The enhanced configuration system integrates seamlessly with the broader CLI application:
+
+- **Command Registration**: The `--show` option is registered as part of the main `config` command
+- **Option Processing**: Commander.js handles the `--show` flag and passes it to the configuration handler
+- **Immediate Feedback**: Results are displayed to the user without requiring additional commands
+- **Consistent UX**: Maintains the same prompt-based interface for interactive setup while adding the show capability
+
+**Section sources**
+- [index.ts:32-39](file://apps/cli/src/index.ts#L32-L39)
+- [config.ts:38-86](file://apps/cli/src/commands/config.ts#L38-L86)
 
 ## Test Infrastructure Enhancement
 
@@ -457,12 +536,12 @@ The enhanced test files demonstrate several implementation patterns:
 4. **Error Handling**: Graceful handling of missing configuration files
 
 **Section sources**
-- [structured-state.test.ts](file://packages/engine/src/test/structured-state.test.ts#L1-L203)
-- [simple.test.ts](file://packages/engine/src/test/simple.test.ts#L1-L73)
-- [canon.test.ts](file://packages/engine/src/test/canon.test.ts#L1-L151)
-- [chapter-planner.test.ts](file://packages/engine/src/test/chapter-planner.test.ts#L1-L216)
-- [constraints.test.ts](file://packages/engine/src/test/constraints.test.ts#L1-L264)
-- [state-updater.test.ts](file://packages/engine/src/test/state-updater.test.ts#L1-L251)
+- [structured-state.test.ts:1-203](file://packages/engine/src/test/structured-state.test.ts#L1-L203)
+- [simple.test.ts:1-73](file://packages/engine/src/test/simple.test.ts#L1-L73)
+- [canon.test.ts:1-151](file://packages/engine/src/test/canon.test.ts#L1-L151)
+- [chapter-planner.test.ts:1-216](file://packages/engine/src/test/chapter-planner.test.ts#L1-L216)
+- [constraints.test.ts:1-264](file://packages/engine/src/test/constraints.test.ts#L1-L264)
+- [state-updater.test.ts:1-251](file://packages/engine/src/test/state-updater.test.ts#L1-L251)
 
 ## Dependency Analysis
 The engine depends on:
@@ -491,28 +570,28 @@ PIPE --> CV
 ```
 
 **Diagram sources**
-- [types/index.ts](file://packages/engine/src/types/index.ts#L78-L89)
-- [client.ts](file://packages/engine/src/llm/client.ts#L38-L120)
-- [writer.ts](file://packages/engine/src/agents/writer.ts#L1-L4)
-- [completeness.ts](file://packages/engine/src/agents/completeness.ts#L1-L2)
-- [summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L1-L2)
-- [canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L1-L2)
-- [memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L1-L2)
-- [tensionController.ts](file://packages/engine/src/agents/tensionController.ts#L1-L2)
-- [characterAgent.ts](file://packages/engine/src/world/characterAgent.ts#L1-L2)
-- [canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L101-L129)
-- [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L7)
+- [types/index.ts:78-89](file://packages/engine/src/types/index.ts#L78-L89)
+- [client.ts:38-119](file://packages/engine/src/llm/client.ts#L38-L119)
+- [writer.ts:1-4](file://packages/engine/src/agents/writer.ts#L1-L4)
+- [completeness.ts:1-2](file://packages/engine/src/agents/completeness.ts#L1-L2)
+- [summarizer.ts:1-2](file://packages/engine/src/agents/summarizer.ts#L1-L2)
+- [canonValidator.ts:1-2](file://packages/engine/src/agents/canonValidator.ts#L1-L2)
+- [memoryExtractor.ts:1-2](file://packages/engine/src/agents/memoryExtractor.ts#L1-L2)
+- [tensionController.ts:1-2](file://packages/engine/src/agents/tensionController.ts#L1-L2)
+- [characterAgent.ts:1-2](file://packages/engine/src/world/characterAgent.ts#L1-L2)
+- [canonStore.ts:101-129](file://packages/engine/src/memory/canonStore.ts#L101-L129)
+- [generateChapter.ts:1-7](file://packages/engine/src/pipeline/generateChapter.ts#L1-L7)
 
 **Section sources**
-- [client.ts](file://packages/engine/src/llm/client.ts#L38-L120)
-- [writer.ts](file://packages/engine/src/agents/writer.ts#L1-L4)
-- [completeness.ts](file://packages/engine/src/agents/completeness.ts#L1-L2)
-- [summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L1-L2)
-- [canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L1-L2)
-- [memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L1-L2)
-- [tensionController.ts](file://packages/engine/src/agents/tensionController.ts#L1-L2)
-- [characterAgent.ts](file://packages/engine/src/world/characterAgent.ts#L1-L2)
-- [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L7)
+- [client.ts:38-119](file://packages/engine/src/llm/client.ts#L38-L119)
+- [writer.ts:1-4](file://packages/engine/src/agents/writer.ts#L1-L4)
+- [completeness.ts:1-2](file://packages/engine/src/agents/completeness.ts#L1-L2)
+- [summarizer.ts:1-2](file://packages/engine/src/agents/summarizer.ts#L1-L2)
+- [canonValidator.ts:1-2](file://packages/engine/src/agents/canonValidator.ts#L1-L2)
+- [memoryExtractor.ts:1-2](file://packages/engine/src/agents/memoryExtractor.ts#L1-L2)
+- [tensionController.ts:1-2](file://packages/engine/src/agents/tensionController.ts#L1-L2)
+- [characterAgent.ts:1-2](file://packages/engine/src/world/characterAgent.ts#L1-L2)
+- [generateChapter.ts:1-7](file://packages/engine/src/pipeline/generateChapter.ts#L1-L7)
 
 ## Performance Considerations
 - Connection pooling: The OpenAI SDK manages HTTP connections internally; no manual pooling is implemented in the client.
@@ -526,6 +605,7 @@ PIPE --> CV
 - Throughput: Batch operations at the pipeline level (e.g., process multiple chapters sequentially) and avoid unnecessary re-runs.
 - **Enhanced**: Reasoning model performance: Monitor token usage and costs for reasoning models separately from standard chat models.
 - **Enhanced**: Test infrastructure efficiency: Automatic configuration loading reduces test setup overhead and ensures consistent environment across test runs.
+- **Enhanced**: Configuration system efficiency: The show configuration feature provides instant feedback without the overhead of interactive setup.
 
 ## Troubleshooting Guide
 Common issues and resolutions:
@@ -538,20 +618,24 @@ Common issues and resolutions:
 - **Enhanced**: JSON extraction problems: The client now handles markdown code blocks automatically; if JSON parsing still fails, check that the prompt explicitly requests JSON format.
 - **Enhanced**: Test configuration issues: If tests fail to load configuration, ensure ~/.narrative-os/config.json exists and contains valid JSON with provider, apiKey, and model fields.
 - **Enhanced**: Automatic loading failures: Tests automatically handle missing configuration files; they will run without LLM integration if no config is found.
+- **Enhanced**: Configuration display issues: If `nos config --show` doesn't display expected results, verify that ~/.narrative-os/config.json exists and is readable.
+- **Enhanced**: Configuration conflicts: If environment variables conflict with stored configuration, the CLI applies the stored configuration at startup through `applyConfig`.
 
 **Section sources**
-- [client.ts](file://packages/engine/src/llm/client.ts#L70-L72)
-- [client.ts](file://packages/engine/src/llm/client.ts#L104-L108)
-- [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L32-L43)
-- [canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L49-L54)
-- [client.ts](file://packages/engine/src/llm/client.ts#L28-L35)
-- [client.ts](file://packages/engine/src/llm/client.ts#L97-L102)
-- [structured-state.test.ts](file://packages/engine/src/test/structured-state.test.ts#L5-L18)
+- [client.ts:70-72](file://packages/engine/src/llm/client.ts#L70-L72)
+- [client.ts:104-108](file://packages/engine/src/llm/client.ts#L104-L108)
+- [generateChapter.ts:32-43](file://packages/engine/src/pipeline/generateChapter.ts#L32-L43)
+- [canonValidator.ts:49-54](file://packages/engine/src/agents/canonValidator.ts#L49-L54)
+- [client.ts:28-35](file://packages/engine/src/llm/client.ts#L28-L35)
+- [client.ts:97-102](file://packages/engine/src/llm/client.ts#L97-L102)
+- [structured-state.test.ts:5-18](file://packages/engine/src/test/structured-state.test.ts#L5-L18)
+- [config.ts:42-57](file://apps/cli/src/commands/config.ts#L42-L57)
+- [index.ts:17-17](file://apps/cli/src/index.ts#L17-L17)
 
 ## Conclusion
-The Narrative Operating System provides a clean provider abstraction over OpenAI and DeepSeek, with environment-driven configuration and robust prompt engineering. The enhanced LLM client now supports reasoning models with specialized response handling and improved JSON content extraction from markdown code blocks. Agents leverage the LLM client to deliver narrative generation, validation, summarization, and reasoning tasks, while the pipeline coordinates iterative refinement and canonical consistency. 
+The Narrative Operating System provides a clean provider abstraction over OpenAI and DeepSeek, with environment-driven configuration and robust prompt engineering. The enhanced LLM client now supports reasoning models with specialized response handling and improved JSON content extraction from markdown code blocks. Agents leverage the LLM client to deliver narrative generation, validation, summarization, and reasoning tasks, while the pipeline coordinates iterative refinement and canonical consistency.
 
-**Enhanced**: The test infrastructure now features automatic configuration loading from ~/.narrative-os/config.json, enabling seamless testing with configured LLM providers without manual setup requirements. This enhancement significantly improves the developer experience by ensuring consistent environment setup across all test scenarios while maintaining backward compatibility for manual configuration approaches.
+**Enhanced**: The configuration system now features a comprehensive show configuration capability that allows users to view their current LLM provider settings instantly without entering interactive setup mode. This enhancement, combined with the automatic configuration loading in the test infrastructure, significantly improves the developer experience by providing immediate feedback about configuration status and ensuring consistent environment setup across all test scenarios while maintaining backward compatibility for manual configuration approaches.
 
 By tuning parameters, selecting appropriate models, and utilizing reasoning capabilities thoughtfully, teams can optimize for quality, cost, and performance.
 
@@ -566,11 +650,13 @@ By tuning parameters, selecting appropriate models, and utilizing reasoning capa
   - LLM_BASE_URL: Optional base URL override (DeepSeek default provided)
 - CLI config file location: User home directory under a hidden folder; stores provider, model, and API key.
 - **Enhanced**: Test configuration file location: ~/.narrative-os/config.json for automatic test setup.
+- **Enhanced**: Show configuration command: `nos config --show` displays current configuration without interactive setup.
 
 **Section sources**
-- [client.ts](file://packages/engine/src/llm/client.ts#L53-L73)
-- [config.ts](file://apps/cli/src/commands/config.ts#L5-L83)
-- [structured-state.test.ts](file://packages/engine/src/test/structured-state.test.ts#L5-L18)
+- [client.ts:53-73](file://packages/engine/src/llm/client.ts#L53-L73)
+- [config.ts:5-86](file://apps/cli/src/commands/config.ts#L5-L86)
+- [structured-state.test.ts:5-18](file://packages/engine/src/test/structured-state.test.ts#L5-L18)
+- [index.ts:32-39](file://apps/cli/src/index.ts#L32-L39)
 
 ### Reasoning Model Configuration Examples
 - **DeepSeek Reasoning Models**: Use `deepseek-chat` or other DeepSeek reasoning models for tasks requiring step-by-step reasoning.
@@ -578,18 +664,31 @@ By tuning parameters, selecting appropriate models, and utilizing reasoning capa
 - **Temperature Tuning**: Adjust temperature based on task complexity; higher for creative tasks, lower for analytical tasks.
 
 **Section sources**
-- [structured-state.test.ts](file://packages/engine/src/test/structured-state.test.ts#L10-L11)
-- [client.ts](file://packages/engine/src/llm/client.ts#L63-L69)
+- [structured-state.test.ts:10-11](file://packages/engine/src/test/structured-state.test.ts#L10-L11)
+- [client.ts:63-69](file://packages/engine/src/llm/client.ts#L63-L69)
 
 ### Test Infrastructure Usage Examples
 - **Automatic Configuration Loading**: All test files automatically detect and apply ~/.narrative-os/config.json settings.
 - **Provider Flexibility**: Tests work with either OpenAI or DeepSeek configurations without modification.
 - **Environment Consistency**: Ensures tests run with the same LLM configuration as the CLI interface.
 - **Graceful Degradation**: Tests continue running even if no configuration file is found.
+- **Enhanced**: Configuration verification: Use `nos config --show` to verify test configuration before running tests.
 
 **Section sources**
-- [simple.test.ts](file://packages/engine/src/test/simple.test.ts#L5-L18)
-- [canon.test.ts](file://packages/engine/src/test/canon.test.ts#L5-L17)
-- [chapter-planner.test.ts](file://packages/engine/src/test/chapter-planner.test.ts#L5-L17)
-- [constraints.test.ts](file://packages/engine/src/test/constraints.test.ts#L5-L18)
-- [state-updater.test.ts](file://packages/engine/src/test/state-updater.test.ts#L5-L18)
+- [simple.test.ts:5-18](file://packages/engine/src/test/simple.test.ts#L5-L18)
+- [canon.test.ts:5-17](file://packages/engine/src/test/canon.test.ts#L5-L17)
+- [chapter-planner.test.ts:5-17](file://packages/engine/src/test/chapter-planner.test.ts#L5-L17)
+- [constraints.test.ts:5-18](file://packages/engine/src/test/constraints.test.ts#L5-L18)
+- [state-updater.test.ts:5-18](file://packages/engine/src/test/state-updater.test.ts#L5-L18)
+- [config.ts:42-57](file://apps/cli/src/commands/config.ts#L42-L57)
+
+### Enhanced Configuration Commands
+- **Interactive Setup**: `nos config` - Full configuration with provider selection, model choice, and API key entry
+- **Show Configuration**: `nos config --show` - Display current configuration status without prompts
+- **Immediate Application**: Configuration changes are applied to environment variables at startup
+- **Security Features**: API keys are masked in display output for privacy protection
+
+**Section sources**
+- [index.ts:32-39](file://apps/cli/src/index.ts#L32-L39)
+- [config.ts:38-86](file://apps/cli/src/commands/config.ts#L38-L86)
+- [index.ts:17-17](file://apps/cli/src/index.ts#L17-L17)

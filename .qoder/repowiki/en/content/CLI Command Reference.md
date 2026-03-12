@@ -33,11 +33,10 @@
 
 ## Update Summary
 **Changes Made**
-- Added comprehensive documentation for 12 new CLI commands: bible, clone, delete, export, hint, list, memories, read, regenerate, state, validate
-- Enhanced command routing documentation to reflect expanded CLI interface
-- Updated interactive hints system documentation with new contextual help features
-- Added detailed coverage of story management, reading, export, validation, and memory systems
-- Expanded troubleshooting section to cover new command-specific error scenarios
+- Added documentation for the new `config --show` command functionality that allows users to display current configuration without interactive setup
+- Updated the config command section to include both interactive and non-interactive modes
+- Enhanced troubleshooting section to cover configuration display scenarios
+- Updated command syntax examples to include the new `--show` flag
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -104,34 +103,34 @@ CMD_STATE --> STATE_UPDATER["State Updater<br/>packages/engine/src/agents/stateU
 ```
 
 **Diagram sources**
-- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L1-L151)
-- [apps/cli/src/commands/config.ts](file://apps/cli/src/commands/config.ts#L1-L84)
-- [apps/cli/src/commands/init.ts](file://apps/cli/src/commands/init.ts#L1-L50)
-- [apps/cli/src/commands/generate.ts](file://apps/cli/src/commands/generate.ts#L1-L70)
-- [apps/cli/src/commands/status.ts](file://apps/cli/src/commands/status.ts#L1-L55)
-- [apps/cli/src/commands/continue.ts](file://apps/cli/src/commands/continue.ts#L1-L63)
-- [apps/cli/src/commands/list.ts](file://apps/cli/src/commands/list.ts#L1-L23)
-- [apps/cli/src/commands/delete.ts](file://apps/cli/src/commands/delete.ts#L1-L36)
-- [apps/cli/src/commands/clone.ts](file://apps/cli/src/commands/clone.ts#L1-L53)
-- [apps/cli/src/commands/export.ts](file://apps/cli/src/commands/export.ts#L1-L114)
-- [apps/cli/src/commands/read.ts](file://apps/cli/src/commands/read.ts#L1-L48)
-- [apps/cli/src/commands/bible.ts](file://apps/cli/src/commands/bible.ts#L1-L54)
-- [apps/cli/src/commands/state.ts](file://apps/cli/src/commands/state.ts#L1-L83)
-- [apps/cli/src/commands/memories.ts](file://apps/cli/src/commands/memories.ts#L1-L66)
-- [apps/cli/src/commands/validate.ts](file://apps/cli/src/commands/validate.ts#L1-L107)
-- [apps/cli/src/commands/regenerate.ts](file://apps/cli/src/commands/regenerate.ts#L1-L68)
-- [apps/cli/src/commands/hint.ts](file://apps/cli/src/commands/hint.ts#L1-L73)
-- [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts#L1-L151)
-- [packages/engine/src/types/index.ts](file://packages/engine/src/types/index.ts#L1-L90)
-- [packages/engine/src/story/bible.ts](file://packages/engine/src/story/bible.ts#L1-L73)
-- [packages/engine/src/story/state.ts](file://packages/engine/src/story/state.ts#L1-L30)
-- [packages/engine/src/story/structuredState.ts](file://packages/engine/src/story/structuredState.ts#L1-L235)
-- [packages/engine/src/agents/stateUpdater.ts](file://packages/engine/src/agents/stateUpdater.ts#L1-L193)
+- [apps/cli/src/index.ts:1-154](file://apps/cli/src/index.ts#L1-L154)
+- [apps/cli/src/commands/config.ts:1-104](file://apps/cli/src/commands/config.ts#L1-L104)
+- [apps/cli/src/commands/init.ts:1-50](file://apps/cli/src/commands/init.ts#L1-L50)
+- [apps/cli/src/commands/generate.ts:1-70](file://apps/cli/src/commands/generate.ts#L1-L70)
+- [apps/cli/src/commands/status.ts:1-55](file://apps/cli/src/commands/status.ts#L1-L55)
+- [apps/cli/src/commands/continue.ts:1-63](file://apps/cli/src/commands/continue.ts#L1-L63)
+- [apps/cli/src/commands/list.ts:1-23](file://apps/cli/src/commands/list.ts#L1-L23)
+- [apps/cli/src/commands/delete.ts:1-36](file://apps/cli/src/commands/delete.ts#L1-L36)
+- [apps/cli/src/commands/clone.ts:1-53](file://apps/cli/src/commands/clone.ts#L1-L53)
+- [apps/cli/src/commands/export.ts:1-114](file://apps/cli/src/commands/export.ts#L1-L114)
+- [apps/cli/src/commands/read.ts:1-48](file://apps/cli/src/commands/read.ts#L1-L48)
+- [apps/cli/src/commands/bible.ts:1-54](file://apps/cli/src/commands/bible.ts#L1-L54)
+- [apps/cli/src/commands/state.ts:1-83](file://apps/cli/src/commands/state.ts#L1-L83)
+- [apps/cli/src/commands/memories.ts:1-66](file://apps/cli/src/commands/memories.ts#L1-L66)
+- [apps/cli/src/commands/validate.ts:1-107](file://apps/cli/src/commands/validate.ts#L1-L107)
+- [apps/cli/src/commands/regenerate.ts:1-68](file://apps/cli/src/commands/regenerate.ts#L1-L68)
+- [apps/cli/src/commands/hint.ts:1-73](file://apps/cli/src/commands/hint.ts#L1-L73)
+- [apps/cli/src/config/store.ts:1-151](file://apps/cli/src/config/store.ts#L1-L151)
+- [packages/engine/src/types/index.ts:1-90](file://packages/engine/src/types/index.ts#L1-L90)
+- [packages/engine/src/story/bible.ts:1-73](file://packages/engine/src/story/bible.ts#L1-L73)
+- [packages/engine/src/story/state.ts:1-30](file://packages/engine/src/story/state.ts#L1-L30)
+- [packages/engine/src/story/structuredState.ts:1-235](file://packages/engine/src/story/structuredState.ts#L1-L235)
+- [packages/engine/src/agents/stateUpdater.ts:1-193](file://packages/engine/src/agents/stateUpdater.ts#L1-L193)
 
 **Section sources**
-- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L1-L151)
-- [apps/cli/package.json](file://apps/cli/package.json#L1-L22)
-- [package.json](file://package.json#L1-L17)
+- [apps/cli/src/index.ts:1-154](file://apps/cli/src/index.ts#L1-L154)
+- [apps/cli/package.json:1-22](file://apps/cli/package.json#L1-L22)
+- [package.json:1-17](file://package.json#L1-L17)
 
 ## Core Components
 - CLI entrypoint defines the nos binary, version, and registers commands with their options and actions, including the new 12 commands.
@@ -149,12 +148,12 @@ Key runtime behaviors:
 - **New**: Contextual help system provides intelligent suggestions based on story state and user actions.
 
 **Section sources**
-- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L11-L53)
-- [apps/cli/src/commands/config.ts](file://apps/cli/src/commands/config.ts#L38-L83)
-- [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts#L15-L49)
-- [packages/engine/src/types/index.ts](file://packages/engine/src/types/index.ts#L1-L90)
-- [packages/engine/src/story/structuredState.ts](file://packages/engine/src/story/structuredState.ts#L23-L85)
-- [apps/cli/src/commands/hint.ts](file://apps/cli/src/commands/hint.ts#L3-L47)
+- [apps/cli/src/index.ts:11-53](file://apps/cli/src/index.ts#L11-L53)
+- [apps/cli/src/commands/config.ts:38-104](file://apps/cli/src/commands/config.ts#L38-L104)
+- [apps/cli/src/config/store.ts:15-49](file://apps/cli/src/config/store.ts#L15-L49)
+- [packages/engine/src/types/index.ts:1-90](file://packages/engine/src/types/index.ts#L1-L90)
+- [packages/engine/src/story/structuredState.ts:23-85](file://packages/engine/src/story/structuredState.ts#L23-L85)
+- [apps/cli/src/commands/hint.ts:3-47](file://apps/cli/src/commands/hint.ts#L3-L47)
 
 ## Architecture Overview
 The CLI orchestrates story lifecycle operations backed by the engine with enhanced structured state management and comprehensive story management capabilities. Configuration is applied at startup and injected into environment variables for downstream LLM clients, while structured state provides detailed narrative tracking and memory systems enable sophisticated narrative recall.
@@ -189,29 +188,33 @@ CLI-->>User : "Contextual suggestions"
 ```
 
 **Diagram sources**
-- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L18-L33)
-- [apps/cli/src/commands/config.ts](file://apps/cli/src/commands/config.ts#L38-L66)
-- [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts#L15-L26)
-- [packages/engine/src/story/bible.ts](file://packages/engine/src/story/bible.ts#L3-L26)
-- [packages/engine/src/story/state.ts](file://packages/engine/src/story/state.ts#L3-L12)
-- [packages/engine/src/story/structuredState.ts](file://packages/engine/src/story/structuredState.ts#L33-L85)
-- [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts#L139-L151)
-- [apps/cli/src/commands/hint.ts](file://apps/cli/src/commands/hint.ts#L3-L47)
+- [apps/cli/src/index.ts:18-33](file://apps/cli/src/index.ts#L18-L33)
+- [apps/cli/src/commands/config.ts:38-66](file://apps/cli/src/commands/config.ts#L38-L66)
+- [apps/cli/src/config/store.ts:15-26](file://apps/cli/src/config/store.ts#L15-L26)
+- [packages/engine/src/story/bible.ts:3-26](file://packages/engine/src/story/bible.ts#L3-L26)
+- [packages/engine/src/story/state.ts:3-12](file://packages/engine/src/story/state.ts#L3-L12)
+- [packages/engine/src/story/structuredState.ts:33-85](file://packages/engine/src/story/structuredState.ts#L33-L85)
+- [apps/cli/src/config/store.ts:139-151](file://apps/cli/src/config/store.ts#L139-L151)
+- [apps/cli/src/commands/hint.ts:3-47](file://apps/cli/src/commands/hint.ts#L3-L47)
 
 ## Detailed Component Analysis
 
 ### Command: nos config
 Purpose
 - Interactively configure the LLM provider, model, and API key. Persists configuration to ~/.narrative-os/config.json and applies environment variables for the LLM client.
+- **New**: Can display current configuration without interactive setup using the `--show` flag.
 
 Syntax
 - nos config
+- nos config --show
+
+Options
+- --show, -s: Show current configuration without interactive setup
 
 Behavior
-- Prompts for provider selection (OpenAI or DeepSeek).
-- Prompts for model selection based on provider.
-- Prompts for API key (masked).
-- Writes configuration and prints a confirmation summary.
+- **Interactive mode** (default): Prompts for provider selection (OpenAI or DeepSeek), model selection based on provider, and API key (masked), then writes configuration.
+- **Display mode** (`--show`): Shows current configuration without prompting for interactive setup.
+- Writes configuration and prints a confirmation summary in interactive mode.
 
 Configuration file location
 - ~/.narrative-os/config.json
@@ -224,15 +227,19 @@ Exit codes
 
 Common usage
 - Initial setup after installing the CLI.
+- **New**: Check current configuration without changing it using `nos config --show`.
 
 Advanced usage
 - Re-run to change provider or model without manual edits.
 - Combine with CI setup by exporting environment variables prior to invoking nos generate/continue.
+- **New**: Use `nos config --show` in scripts to verify configuration before running story generation commands.
+
+**Updated** Added support for non-interactive configuration display via the `--show` flag
 
 **Section sources**
-- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L18-L21)
-- [apps/cli/src/commands/config.ts](file://apps/cli/src/commands/config.ts#L38-L83)
-- [apps/cli/package.json](file://apps/cli/package.json#L12-L16)
+- [apps/cli/src/index.ts:32-39](file://apps/cli/src/index.ts#L32-L39)
+- [apps/cli/src/commands/config.ts:38-104](file://apps/cli/src/commands/config.ts#L38-L104)
+- [apps/cli/package.json:12-16](file://apps/cli/package.json#L12-L16)
 
 ### Command: nos init
 Purpose
@@ -264,11 +271,11 @@ Example
 - nos init --title "Dystopian Noir" --genre "Crime Fiction" --chapters 8
 
 **Section sources**
-- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L23-L33)
-- [apps/cli/src/commands/init.ts](file://apps/cli/src/commands/init.ts#L4-L49)
-- [packages/engine/src/story/bible.ts](file://packages/engine/src/story/bible.ts#L3-L26)
-- [packages/engine/src/story/state.ts](file://packages/engine/src/story/state.ts#L3-L12)
-- [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts#L139-L151)
+- [apps/cli/src/index.ts:41-52](file://apps/cli/src/index.ts#L41-L52)
+- [apps/cli/src/commands/init.ts:4-49](file://apps/cli/src/commands/init.ts#L4-L49)
+- [packages/engine/src/story/bible.ts:3-26](file://packages/engine/src/story/bible.ts#L3-L26)
+- [packages/engine/src/story/state.ts:3-12](file://packages/engine/src/story/state.ts#L3-L12)
+- [apps/cli/src/config/store.ts:139-151](file://apps/cli/src/config/store.ts#L139-L151)
 
 ### Command: nos generate <story-id>
 Purpose
@@ -296,11 +303,11 @@ Automation tip
 - Use a shell loop to iterate nos generate until completion.
 
 **Section sources**
-- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L35-L38)
-- [apps/cli/src/commands/generate.ts](file://apps/cli/src/commands/generate.ts#L4-L70)
-- [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts#L28-L49)
-- [packages/engine/src/types/index.ts](file://packages/engine/src/types/index.ts#L60-L65)
-- [packages/engine/src/agents/stateUpdater.ts](file://packages/engine/src/agents/stateUpdater.ts#L85-L193)
+- [apps/cli/src/index.ts:78-83](file://apps/cli/src/index.ts#L78-L83)
+- [apps/cli/src/commands/generate.ts:4-70](file://apps/cli/src/commands/generate.ts#L4-L70)
+- [apps/cli/src/config/store.ts:28-49](file://apps/cli/src/config/store.ts#L28-L49)
+- [packages/engine/src/types/index.ts:60-65](file://packages/engine/src/types/index.ts#L60-L65)
+- [packages/engine/src/agents/stateUpdater.ts:85-193](file://packages/engine/src/agents/stateUpdater.ts#L85-L193)
 
 ### Command: nos status [story-id]
 Purpose
@@ -322,9 +329,9 @@ Example
 - nos status abc123def
 
 **Section sources**
-- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L40-L43)
-- [apps/cli/src/commands/status.ts](file://apps/cli/src/commands/status.ts#L3-L54)
-- [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts#L51-L75)
+- [apps/cli/src/index.ts:60-63](file://apps/cli/src/index.ts#L60-L63)
+- [apps/cli/src/commands/status.ts:3-54](file://apps/cli/src/commands/status.ts#L3-L54)
+- [apps/cli/src/config/store.ts:51-75](file://apps/cli/src/config/store.ts#L51-L75)
 
 ### Command: nos continue <story-id>
 Purpose
@@ -350,10 +357,10 @@ Batch operations
 - Combine with shell scripting to process multiple stories or retry on failure.
 
 **Section sources**
-- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L45-L51)
-- [apps/cli/src/commands/continue.ts](file://apps/cli/src/commands/continue.ts#L4-L63)
-- [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts#L28-L49)
-- [packages/engine/src/agents/stateUpdater.ts](file://packages/engine/src/agents/stateUpdater.ts#L85-L193)
+- [apps/cli/src/index.ts:85-91](file://apps/cli/src/index.ts#L85-L91)
+- [apps/cli/src/commands/continue.ts:4-63](file://apps/cli/src/commands/continue.ts#L4-L63)
+- [apps/cli/src/config/store.ts:28-49](file://apps/cli/src/config/store.ts#L28-L49)
+- [packages/engine/src/agents/stateUpdater.ts:85-193](file://packages/engine/src/agents/stateUpdater.ts#L85-L193)
 
 ### Command: nos list
 Purpose
@@ -377,8 +384,8 @@ Example
 - nos list
 
 **Section sources**
-- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L51-L55)
-- [apps/cli/src/commands/list.ts](file://apps/cli/src/commands/list.ts#L1-L23)
+- [apps/cli/src/index.ts:54-58](file://apps/cli/src/index.ts#L54-L58)
+- [apps/cli/src/commands/list.ts:1-23](file://apps/cli/src/commands/list.ts#L1-L23)
 
 ### Command: nos delete <story-id> [--force]
 Purpose
@@ -404,8 +411,8 @@ Example
 - nos delete abc123def --force
 
 **Section sources**
-- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L62-L68)
-- [apps/cli/src/commands/delete.ts](file://apps/cli/src/commands/delete.ts#L1-L36)
+- [apps/cli/src/index.ts:65-71](file://apps/cli/src/index.ts#L65-L71)
+- [apps/cli/src/commands/delete.ts:1-36](file://apps/cli/src/commands/delete.ts#L1-L36)
 
 ### Command: nos clone <story-id> <new-title>
 Purpose
@@ -428,8 +435,8 @@ Example
 - nos clone abc123def "New Adventure"
 
 **Section sources**
-- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L70-L73)
-- [apps/cli/src/commands/clone.ts](file://apps/cli/src/commands/clone.ts#L1-L53)
+- [apps/cli/src/index.ts:73-76](file://apps/cli/src/index.ts#L73-L76)
+- [apps/cli/src/commands/clone.ts:1-53](file://apps/cli/src/commands/clone.ts#L1-L53)
 
 ### Command: nos export <story-id> [--format <format>] [--output <file>]
 Purpose
@@ -456,8 +463,8 @@ Example
 - nos export abc123def --format txt --output my_story.txt
 
 **Section sources**
-- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L107-L114)
-- [apps/cli/src/commands/export.ts](file://apps/cli/src/commands/export.ts#L1-L114)
+- [apps/cli/src/index.ts:110-117](file://apps/cli/src/index.ts#L110-L117)
+- [apps/cli/src/commands/export.ts:1-114](file://apps/cli/src/commands/export.ts#L1-L114)
 
 ### Command: nos read <story-id> [chapter-number]
 Purpose
@@ -479,8 +486,8 @@ Example
 - nos read abc123def 5
 
 **Section sources**
-- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L100-L105)
-- [apps/cli/src/commands/read.ts](file://apps/cli/src/commands/read.ts#L1-L48)
+- [apps/cli/src/index.ts:103-108](file://apps/cli/src/index.ts#L103-L108)
+- [apps/cli/src/commands/read.ts:1-48](file://apps/cli/src/commands/read.ts#L1-L48)
 
 ### Command: nos bible <story-id>
 Purpose
@@ -503,8 +510,8 @@ Example
 - nos bible abc123def
 
 **Section sources**
-- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L117-L120)
-- [apps/cli/src/commands/bible.ts](file://apps/cli/src/commands/bible.ts#L1-L54)
+- [apps/cli/src/index.ts:120-123](file://apps/cli/src/index.ts#L120-L123)
+- [apps/cli/src/commands/bible.ts:1-54](file://apps/cli/src/commands/bible.ts#L1-L54)
 
 ### Command: nos state <story-id>
 Purpose
@@ -528,8 +535,8 @@ Example
 - nos state abc123def
 
 **Section sources**
-- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L122-L125)
-- [apps/cli/src/commands/state.ts](file://apps/cli/src/commands/state.ts#L1-L83)
+- [apps/cli/src/index.ts:125-128](file://apps/cli/src/index.ts#L125-L128)
+- [apps/cli/src/commands/state.ts:1-83](file://apps/cli/src/commands/state.ts#L1-L83)
 
 ### Command: nos memories <story-id> [query]
 Purpose
@@ -553,8 +560,8 @@ Example
 - nos memories abc123def "character meeting"
 
 **Section sources**
-- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L127-L133)
-- [apps/cli/src/commands/memories.ts](file://apps/cli/src/commands/memories.ts#L1-L66)
+- [apps/cli/src/index.ts:130-136](file://apps/cli/src/index.ts#L130-L136)
+- [apps/cli/src/commands/memories.ts:1-66](file://apps/cli/src/commands/memories.ts#L1-L66)
 
 ### Command: nos validate <story-id>
 Purpose
@@ -577,8 +584,8 @@ Example
 - nos validate abc123def
 
 **Section sources**
-- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L135-L141)
-- [apps/cli/src/commands/validate.ts](file://apps/cli/src/commands/validate.ts#L1-L107)
+- [apps/cli/src/index.ts:138-144](file://apps/cli/src/index.ts#L138-L144)
+- [apps/cli/src/commands/validate.ts:1-107](file://apps/cli/src/commands/validate.ts#L1-L107)
 
 ### Command: nos regenerate <story-id> <chapter-number>
 Purpose
@@ -602,8 +609,8 @@ Example
 - nos regenerate abc123def 3
 
 **Section sources**
-- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L90-L97)
-- [apps/cli/src/commands/regenerate.ts](file://apps/cli/src/commands/regenerate.ts#L1-L68)
+- [apps/cli/src/index.ts:93-100](file://apps/cli/src/index.ts#L93-L100)
+- [apps/cli/src/commands/regenerate.ts:1-68](file://apps/cli/src/commands/regenerate.ts#L1-L68)
 
 ### Command: nos hint [story-id]
 Purpose
@@ -629,8 +636,8 @@ Example
 - nos hint abc123def
 
 **Section sources**
-- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L143-L148)
-- [apps/cli/src/commands/hint.ts](file://apps/cli/src/commands/hint.ts#L1-L73)
+- [apps/cli/src/index.ts:146-151](file://apps/cli/src/index.ts#L146-L151)
+- [apps/cli/src/commands/hint.ts:1-73](file://apps/cli/src/commands/hint.ts#L1-L73)
 
 ## Dependency Analysis
 The CLI depends on the engine package for story types, generation logic, structured state management, and memory systems. It persists data locally and reads/writes JSON files including the new structured-state.json and vector-store.json. Configuration is applied at startup and influences environment variables consumed by the engine.
@@ -682,36 +689,36 @@ STORE --> GENERATE_PIPELINE["engine/pipeline/generateChapter.ts"]
 ```
 
 **Diagram sources**
-- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L1-L151)
-- [apps/cli/src/commands/config.ts](file://apps/cli/src/commands/config.ts#L1-L84)
-- [apps/cli/src/commands/init.ts](file://apps/cli/src/commands/init.ts#L1-L50)
-- [apps/cli/src/commands/generate.ts](file://apps/cli/src/commands/generate.ts#L1-L70)
-- [apps/cli/src/commands/status.ts](file://apps/cli/src/commands/status.ts#L1-L55)
-- [apps/cli/src/commands/continue.ts](file://apps/cli/src/commands/continue.ts#L1-L63)
-- [apps/cli/src/commands/list.ts](file://apps/cli/src/commands/list.ts#L1-L23)
-- [apps/cli/src/commands/delete.ts](file://apps/cli/src/commands/delete.ts#L1-L36)
-- [apps/cli/src/commands/clone.ts](file://apps/cli/src/commands/clone.ts#L1-L53)
-- [apps/cli/src/commands/export.ts](file://apps/cli/src/commands/export.ts#L1-L114)
-- [apps/cli/src/commands/read.ts](file://apps/cli/src/commands/read.ts#L1-L48)
-- [apps/cli/src/commands/bible.ts](file://apps/cli/src/commands/bible.ts#L1-L54)
-- [apps/cli/src/commands/state.ts](file://apps/cli/src/commands/state.ts#L1-L83)
-- [apps/cli/src/commands/memories.ts](file://apps/cli/src/commands/memories.ts#L1-L66)
-- [apps/cli/src/commands/validate.ts](file://apps/cli/src/commands/validate.ts#L1-L107)
-- [apps/cli/src/commands/regenerate.ts](file://apps/cli/src/commands/regenerate.ts#L1-L68)
-- [apps/cli/src/commands/hint.ts](file://apps/cli/src/commands/hint.ts#L1-L73)
-- [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts#L1-L151)
-- [packages/engine/src/types/index.ts](file://packages/engine/src/types/index.ts#L1-L90)
-- [packages/engine/src/story/bible.ts](file://packages/engine/src/story/bible.ts#L1-L73)
-- [packages/engine/src/story/state.ts](file://packages/engine/src/story/state.ts#L1-L30)
-- [packages/engine/src/story/structuredState.ts](file://packages/engine/src/story/structuredState.ts#L1-L235)
-- [packages/engine/src/agents/stateUpdater.ts](file://packages/engine/src/agents/stateUpdater.ts#L1-L193)
-- [packages/engine/src/pipeline/generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L108)
+- [apps/cli/src/index.ts:1-154](file://apps/cli/src/index.ts#L1-L154)
+- [apps/cli/src/commands/config.ts:1-104](file://apps/cli/src/commands/config.ts#L1-L104)
+- [apps/cli/src/commands/init.ts:1-50](file://apps/cli/src/commands/init.ts#L1-L50)
+- [apps/cli/src/commands/generate.ts:1-70](file://apps/cli/src/commands/generate.ts#L1-L70)
+- [apps/cli/src/commands/status.ts:1-55](file://apps/cli/src/commands/status.ts#L1-L55)
+- [apps/cli/src/commands/continue.ts:1-63](file://apps/cli/src/commands/continue.ts#L1-L63)
+- [apps/cli/src/commands/list.ts:1-23](file://apps/cli/src/commands/list.ts#L1-L23)
+- [apps/cli/src/commands/delete.ts:1-36](file://apps/cli/src/commands/delete.ts#L1-L36)
+- [apps/cli/src/commands/clone.ts:1-53](file://apps/cli/src/commands/clone.ts#L1-L53)
+- [apps/cli/src/commands/export.ts:1-114](file://apps/cli/src/commands/export.ts#L1-L114)
+- [apps/cli/src/commands/read.ts:1-48](file://apps/cli/src/commands/read.ts#L1-L48)
+- [apps/cli/src/commands/bible.ts:1-54](file://apps/cli/src/commands/bible.ts#L1-L54)
+- [apps/cli/src/commands/state.ts:1-83](file://apps/cli/src/commands/state.ts#L1-L83)
+- [apps/cli/src/commands/memories.ts:1-66](file://apps/cli/src/commands/memories.ts#L1-L66)
+- [apps/cli/src/commands/validate.ts:1-107](file://apps/cli/src/commands/validate.ts#L1-L107)
+- [apps/cli/src/commands/regenerate.ts:1-68](file://apps/cli/src/commands/regenerate.ts#L1-L68)
+- [apps/cli/src/commands/hint.ts:1-73](file://apps/cli/src/commands/hint.ts#L1-L73)
+- [apps/cli/src/config/store.ts:1-151](file://apps/cli/src/config/store.ts#L1-L151)
+- [packages/engine/src/types/index.ts:1-90](file://packages/engine/src/types/index.ts#L1-L90)
+- [packages/engine/src/story/bible.ts:1-73](file://packages/engine/src/story/bible.ts#L1-L73)
+- [packages/engine/src/story/state.ts:1-30](file://packages/engine/src/story/state.ts#L1-L30)
+- [packages/engine/src/story/structuredState.ts:1-235](file://packages/engine/src/story/structuredState.ts#L1-L235)
+- [packages/engine/src/agents/stateUpdater.ts:1-193](file://packages/engine/src/agents/stateUpdater.ts#L1-L193)
+- [packages/engine/src/pipeline/generateChapter.ts:1-108](file://packages/engine/src/pipeline/generateChapter.ts#L1-L108)
 
 **Section sources**
-- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L1-L151)
-- [apps/cli/src/commands/config.ts](file://apps/cli/src/commands/config.ts#L1-L84)
-- [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts#L1-L151)
-- [packages/engine/src/types/index.ts](file://packages/engine/src/types/index.ts#L1-L90)
+- [apps/cli/src/index.ts:1-154](file://apps/cli/src/index.ts#L1-L154)
+- [apps/cli/src/commands/config.ts:1-104](file://apps/cli/src/commands/config.ts#L1-L104)
+- [apps/cli/src/config/store.ts:1-151](file://apps/cli/src/config/store.ts#L1-L151)
+- [packages/engine/src/types/index.ts:1-90](file://packages/engine/src/types/index.ts#L1-L90)
 
 ## Performance Considerations
 - Each nos generate invocation performs disk I/O to load/save story data; batching via nos continue reduces overhead.
@@ -723,6 +730,7 @@ STORE --> GENERATE_PIPELINE["engine/pipeline/generateChapter.ts"]
 - For large-scale automation, cache configuration and reuse environment variables to avoid repeated file reads.
 - **New**: Structured state serialization/deserialization is lightweight JSON operations that don not significantly impact performance.
 - **New**: Contextual hints system provides immediate feedback without heavy computation.
+- **New**: Configuration display operation is extremely fast as it only reads from local file system without any interactive prompts.
 
 ## Troubleshooting Guide
 Common issues and resolutions
@@ -732,6 +740,9 @@ Common issues and resolutions
 - Configuration missing
   - Cause: No ~/.narrative-os/config.json.
   - Resolution: Run nos config to set provider, model, and API key.
+- **New**: Configuration display issues
+  - Cause: No configuration file exists or is corrupted.
+  - Resolution: Run `nos config --show` to see current configuration status; if empty, run `nos config` to set up.
 - Generation failures
   - Cause: LLM API errors, network issues, or invalid context.
   - Resolution: Verify API credentials; retry; inspect recent summaries via nos status; reduce concurrency.
@@ -762,14 +773,14 @@ Exit codes summary
 - 1: Error (e.g., story not found, generation failure, validation issues)
 
 **Section sources**
-- [apps/cli/src/commands/generate.ts](file://apps/cli/src/commands/generate.ts#L7-L10)
-- [apps/cli/src/commands/generate.ts](file://apps/cli/src/commands/generate.ts#L50-L53)
-- [apps/cli/src/commands/status.ts](file://apps/cli/src/commands/status.ts#L25-L28)
-- [apps/cli/src/commands/continue.ts](file://apps/cli/src/commands/continue.ts#L7-L10)
-- [apps/cli/src/commands/continue.ts](file://apps/cli/src/commands/continue.ts#L42-L45)
-- [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts#L139-L151)
-- [apps/cli/src/commands/regenerate.ts](file://apps/cli/src/commands/regenerate.ts#L17-L21)
-- [apps/cli/src/commands/export.ts](file://apps/cli/src/commands/export.ts#L7-L10)
+- [apps/cli/src/commands/generate.ts:7-10](file://apps/cli/src/commands/generate.ts#L7-L10)
+- [apps/cli/src/commands/generate.ts:50-53](file://apps/cli/src/commands/generate.ts#L50-L53)
+- [apps/cli/src/commands/status.ts:25-28](file://apps/cli/src/commands/status.ts#L25-L28)
+- [apps/cli/src/commands/continue.ts:7-10](file://apps/cli/src/commands/continue.ts#L7-L10)
+- [apps/cli/src/commands/continue.ts:42-45](file://apps/cli/src/commands/continue.ts#L42-L45)
+- [apps/cli/src/config/store.ts:139-151](file://apps/cli/src/config/store.ts#L139-L151)
+- [apps/cli/src/commands/regenerate.ts:17-21](file://apps/cli/src/commands/regenerate.ts#L17-L21)
+- [apps/cli/src/commands/export.ts:7-10](file://apps/cli/src/commands/export.ts#L7-L10)
 
 ## Conclusion
 The nos CLI provides a comprehensive and powerful workflow for creating, generating, managing, and validating stories powered by the Narrative Operating System engine. With the addition of 12 new commands, enhanced structured state persistence, interactive hints system, and sophisticated memory management, it now offers advanced narrative tracking capabilities, comprehensive story management, and intelligent assistance while maintaining both beginner-friendly workflows and advanced automation scenarios.
@@ -894,10 +905,10 @@ ConstraintGraph --> StoryBible
 ```
 
 **Diagram sources**
-- [packages/engine/src/types/index.ts](file://packages/engine/src/types/index.ts#L1-L90)
-- [packages/engine/src/story/structuredState.ts](file://packages/engine/src/story/structuredState.ts#L23-L235)
-- [packages/engine/src/memory/vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L1-L200)
-- [packages/engine/src/constraints/constraintGraph.ts](file://packages/engine/src/constraints/constraintGraph.ts#L1-L150)
+- [packages/engine/src/types/index.ts:1-90](file://packages/engine/src/types/index.ts#L1-L90)
+- [packages/engine/src/story/structuredState.ts:23-235](file://packages/engine/src/story/structuredState.ts#L23-L235)
+- [packages/engine/src/memory/vectorStore.ts:1-200](file://packages/engine/src/memory/vectorStore.ts#L1-L200)
+- [packages/engine/src/constraints/constraintGraph.ts:1-150](file://packages/engine/src/constraints/constraintGraph.ts#L1-L150)
 
 ### Storage Layout
 Stories are persisted under ~/.narrative-os/stories/<id> with the following files:
@@ -911,13 +922,14 @@ Stories are persisted under ~/.narrative-os/stories/<id> with the following file
 - **New**: command-history.json: Command execution history for hints system
 
 **Section sources**
-- [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts#L15-L49)
-- [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts#L117-L151)
+- [apps/cli/src/config/store.ts:15-49](file://apps/cli/src/config/store.ts#L15-L49)
+- [apps/cli/src/config/store.ts:117-151](file://apps/cli/src/config/store.ts#L117-L151)
 
 ### Practical Examples and Workflows
 
 Beginner workflows
 - Configure provider and model: nos config
+- **New**: Check configuration: nos config --show
 - Create a story: nos init --title "My Story" --chapters 5
 - Generate chapters one-by-one: nos generate <story-id>
 - Check progress: nos status <story-id>
@@ -933,12 +945,13 @@ Power-user techniques
 - **New**: Quality assurance: validate story consistency with nos validate
 - **New**: Story management: clone templates with nos clone, export finished works with nos export
 - **New**: Chapter correction: regenerate specific chapters with nos regenerate
+- **New**: Configuration verification: use `nos config --show` in deployment scripts to verify environment setup
 
 **Section sources**
-- [PROGRESS.md](file://PROGRESS.md#L126-L137)
-- [apps/cli/src/commands/continue.ts](file://apps/cli/src/commands/continue.ts#L22-L46)
-- [packages/engine/src/story/structuredState.ts](file://packages/engine/src/story/structuredState.ts#L181-L235)
-- [apps/cli/src/commands/hint.ts](file://apps/cli/src/commands/hint.ts#L25-L46)
+- [PROGRESS.md:126-137](file://PROGRESS.md#L126-L137)
+- [apps/cli/src/commands/continue.ts:22-46](file://apps/cli/src/commands/continue.ts#L22-L46)
+- [packages/engine/src/story/structuredState.ts:181-235](file://packages/engine/src/story/structuredState.ts#L181-L235)
+- [apps/cli/src/commands/hint.ts:25-46](file://apps/cli/src/commands/hint.ts#L25-L46)
 
 ### Structured State Management Features
 **New**: The enhanced CLI now provides sophisticated narrative tracking through structured state management:
@@ -950,9 +963,9 @@ Power-user techniques
 - **Integration**: Seamless integration with the StateUpdater agent for automated narrative state management
 
 **Section sources**
-- [packages/engine/src/story/structuredState.ts](file://packages/engine/src/story/structuredState.ts#L23-L85)
-- [packages/engine/src/agents/stateUpdater.ts](file://packages/engine/src/agents/stateUpdater.ts#L85-L193)
-- [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts#L139-L151)
+- [packages/engine/src/story/structuredState.ts:23-85](file://packages/engine/src/story/structuredState.ts#L23-L85)
+- [packages/engine/src/agents/stateUpdater.ts:85-193](file://packages/engine/src/agents/stateUpdater.ts#L85-L193)
+- [apps/cli/src/config/store.ts:139-151](file://apps/cli/src/config/store.ts#L139-L151)
 
 ### Interactive Hints System Features
 **New**: The CLI now includes an intelligent hints system that provides contextual guidance:
@@ -964,8 +977,8 @@ Power-user techniques
 - **Completion Recognition**: Suggests next steps when stories are finished
 
 **Section sources**
-- [apps/cli/src/commands/hint.ts](file://apps/cli/src/commands/hint.ts#L3-L47)
-- [apps/cli/src/commands/hint.ts](file://apps/cli/src/commands/hint.ts#L49-L73)
+- [apps/cli/src/commands/hint.ts:3-47](file://apps/cli/src/commands/hint.ts#L3-L47)
+- [apps/cli/src/commands/hint.ts:49-73](file://apps/cli/src/commands/hint.ts#L49-L73)
 
 ### Memory System Capabilities
 **New**: The CLI integrates advanced memory management for narrative recall:
@@ -977,8 +990,8 @@ Power-user techniques
 - **Relevance Scoring**: Provides confidence ratings for memory matches
 
 **Section sources**
-- [apps/cli/src/commands/memories.ts](file://apps/cli/src/commands/memories.ts#L1-L66)
-- [packages/engine/src/memory/vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L1-L200)
+- [apps/cli/src/commands/memories.ts:1-66](file://apps/cli/src/commands/memories.ts#L1-L66)
+- [packages/engine/src/memory/vectorStore.ts:1-200](file://packages/engine/src/memory/vectorStore.ts#L1-L200)
 
 ### Validation and Quality Assurance
 **New**: Comprehensive validation system ensures narrative consistency:
@@ -990,6 +1003,19 @@ Power-user techniques
 - **Progressive Validation**: Validates chapters as they're generated
 
 **Section sources**
-- [apps/cli/src/commands/validate.ts](file://apps/cli/src/commands/validate.ts#L1-L107)
-- [packages/engine/src/constraints/constraintGraph.ts](file://packages/engine/src/constraints/constraintGraph.ts#L1-L150)
-- [packages/engine/src/constraints/validator.ts](file://packages/engine/src/constraints/validator.ts#L1-L200)
+- [apps/cli/src/commands/validate.ts:1-107](file://apps/cli/src/commands/validate.ts#L1-L107)
+- [packages/engine/src/constraints/constraintGraph.ts:1-150](file://packages/engine/src/constraints/constraintGraph.ts#L1-L150)
+- [packages/engine/src/constraints/validator.ts:1-200](file://packages/engine/src/constraints/validator.ts#L1-L200)
+
+### Configuration Display Features
+**New**: The CLI now provides a convenient way to display current configuration without interactive setup:
+
+- **Non-Interactive Display**: The `--show` flag allows users to quickly check their current configuration
+- **Immediate Feedback**: Shows provider, model, and API key status without any prompts
+- **File Path Information**: Displays the exact location of the configuration file
+- **Error Handling**: Gracefully handles cases where no configuration exists
+- **Script Integration**: Ideal for use in automation scripts and CI/CD pipelines
+
+**Section sources**
+- [apps/cli/src/commands/config.ts:38-104](file://apps/cli/src/commands/config.ts#L38-L104)
+- [apps/cli/src/index.ts:32-39](file://apps/cli/src/index.ts#L32-L39)

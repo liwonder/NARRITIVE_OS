@@ -46,36 +46,46 @@ Most AI writing tools suffer from "goldfish memory" — they forget what happene
 
 ## Installation
 
-### Option 1: Global Install with npm (Recommended)
+### Option 1: Install from npm (Recommended - Easiest)
 
 **Prerequisites:** Node.js 20+
 
+```bash
+# Install globally from npm
+npm install -g @narrative-os/cli
+
+# Configure your LLM provider
+nos config
+
+# Start creating stories!
+nos init --title "My Adventure" --chapters 10
+```
+
+That's it! The `nos` command is now available everywhere.
+
+### Option 2: Build from Source
+
+If you want to contribute or modify the code:
+
+**With npm:**
 ```bash
 # Clone the repository
 git clone https://github.com/liwonder/NARRITIVE_OS.git
 cd narrative_os
 
-# Install dependencies (npm works too!)
+# Install and build
 npm install
-
-# Build the project
 npm run build
 
-# Install CLI globally
+# Install CLI globally from local source
 npm install -g ./apps/cli
 
-# Now you can use 'nos' from anywhere!
+# Use it!
 nos --help
 ```
 
-### Option 1b: Global Install with pnpm (Alternative)
-
-If you prefer pnpm:
-
+**With pnpm:**
 ```bash
-# Setup pnpm (if not already done)
-pnpm setup
-
 # Clone and install
 git clone https://github.com/liwonder/NARRITIVE_OS.git
 cd narrative_os
@@ -87,34 +97,6 @@ pnpm add -g ./apps/cli
 
 # Use it!
 nos --help
-```
-
-**Note:** After `pnpm setup`, you may need to restart your terminal for the PATH changes to take effect.
-
-### Option 2: Local Development
-
-```bash
-# Clone and setup
-git clone https://github.com/liwonder/NARRITIVE_OS.git
-cd narrative_os
-pnpm install
-pnpm build
-
-# Use via pnpm
-pnpm --filter @narrative-os/cli start
-
-# Or run directly
-node apps/cli/dist/index.js
-```
-
-### Option 3: Quick Setup Script
-
-```bash
-# Windows PowerShell
-iwr -useb https://raw.githubusercontent.com/yourusername/narrative_os/main/install.ps1 | iex
-
-# macOS/Linux
-curl -fsSL https://raw.githubusercontent.com/yourusername/narrative_os/main/install.sh | bash
 ```
 
 ### First Time Setup

@@ -32,17 +32,18 @@
 - [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts)
 - [turbo.json](file://turbo.json)
 - [pnpm-workspace.yaml](file://pnpm-workspace.yaml)
+- [packages/engine/README.md](file://packages/engine/README.md)
+- [packages/engine/package.json](file://packages/engine/package.json)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Added comprehensive vector memory system with HNSW-based semantic search
-- Integrated structured state management with character and plot thread tracking
-- Enhanced constraint validation with dual-mode validation (fast graph + LLM-based)
-- Added new CLI commands for validation, state inspection, and memory querying
-- Implemented state updater pipeline for autonomous post-chapter updates
-- Enhanced memory retrieval system with contextual querying and categorization
-- Added constraint graph integration for narrative consistency enforcement
+- Added comprehensive README.md documentation providing high-level architecture overview and feature descriptions
+- Enhanced architectural documentation with hierarchical memory system visualization
+- Expanded feature coverage to include HNSW vector search, constraint graph enforcement, and world simulation
+- Updated usage examples demonstrating createStory and generateChapter API patterns
+- Added detailed architecture diagrams showing data flow from StoryBible through generation pipeline
+- Integrated tension controller and story director components into the architectural overview
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -58,6 +59,8 @@
 
 ## Introduction
 This document describes the architecture of the Narrative Operating System engine package, focusing on the AI-powered story generation system. The engine follows an agent-based architecture with a clear separation of concerns: agents encapsulate specialized tasks (writing, completeness checking, summarization, and canon validation), a centralized LLM integration layer abstracts provider details, a canonical memory system maintains story facts, a vector memory system provides semantic search capabilities, and a generation pipeline orchestrates the workflow. The system now incorporates a World Simulation Layer with autonomous character agents, a Chapter Planner Agent for structured scene planning, a Constraint Graph for narrative consistency enforcement, and a comprehensive state management system with structured state tracking.
+
+**Updated** Added comprehensive README.md documentation that provides high-level architecture overview and feature descriptions, including hierarchical memory system visualization and detailed component descriptions.
 
 ## Project Structure
 The repository is organized as a monorepo using pnpm workspaces and Turborepo orchestration:
@@ -107,17 +110,17 @@ E_Index --> E_Constraints
 ```
 
 **Diagram sources**
-- [packages/engine/src/index.ts](file://packages/engine/src/index.ts#L1-L116)
-- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L121-L150)
-- [apps/cli/src/commands/generate.ts](file://apps/cli/src/commands/generate.ts#L1-L55)
-- [apps/cli/src/commands/validate.ts](file://apps/cli/src/commands/validate.ts#L1-L107)
-- [apps/cli/src/commands/state.ts](file://apps/cli/src/commands/state.ts#L1-L83)
-- [apps/cli/src/commands/memories.ts](file://apps/cli/src/commands/memories.ts#L1-L66)
-- [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts#L1-L195)
+- [packages/engine/src/index.ts:1-116](file://packages/engine/src/index.ts#L1-L116)
+- [apps/cli/src/index.ts:121-150](file://apps/cli/src/index.ts#L121-L150)
+- [apps/cli/src/commands/generate.ts:1-55](file://apps/cli/src/commands/generate.ts#L1-L55)
+- [apps/cli/src/commands/validate.ts:1-107](file://apps/cli/src/commands/validate.ts#L1-L107)
+- [apps/cli/src/commands/state.ts:1-83](file://apps/cli/src/commands/state.ts#L1-L83)
+- [apps/cli/src/commands/memories.ts:1-66](file://apps/cli/src/commands/memories.ts#L1-L66)
+- [apps/cli/src/config/store.ts:1-195](file://apps/cli/src/config/store.ts#L1-L195)
 
 **Section sources**
-- [pnpm-workspace.yaml](file://pnpm-workspace.yaml#L1-L4)
-- [turbo.json](file://turbo.json#L1-L19)
+- [pnpm-workspace.yaml:1-4](file://pnpm-workspace.yaml#L1-L4)
+- [turbo.json:1-19](file://turbo.json#L1-L19)
 
 ## Core Components
 - Export surface: The engine's public API is exported via a single barrel file, exposing types, LLM client, agents, pipeline, story utilities, memory APIs, world simulation components, and constraint systems.
@@ -136,33 +139,33 @@ E_Index --> E_Constraints
 - CLI integration: Loads persisted stories, constructs GenerationContext, invokes the pipeline, updates state, and persists results.
 
 **Section sources**
-- [packages/engine/src/index.ts](file://packages/engine/src/index.ts#L1-L116)
-- [packages/engine/src/types/index.ts](file://packages/engine/src/types/index.ts#L1-L90)
-- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L1-L106)
-- [packages/engine/src/memory/canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L1-L134)
-- [packages/engine/src/memory/vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L1-L208)
-- [packages/engine/src/memory/memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts#L1-L174)
-- [packages/engine/src/memory/stateUpdater.ts](file://packages/engine/src/memory/stateUpdater.ts#L1-L435)
-- [packages/engine/src/story/structuredState.ts](file://packages/engine/src/story/structuredState.ts#L1-L235)
-- [packages/engine/src/pipeline/generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L108)
-- [packages/engine/src/story/bible.ts](file://packages/engine/src/story/bible.ts#L1-L73)
-- [packages/engine/src/agents/writer.ts](file://packages/engine/src/agents/writer.ts#L1-L146)
-- [packages/engine/src/agents/completeness.ts](file://packages/engine/src/agents/completeness.ts#L1-L56)
-- [packages/engine/src/agents/summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L1-L64)
-- [packages/engine/src/agents/canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L1-L59)
-- [packages/engine/src/agents/memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L1-L97)
-- [packages/engine/src/agents/stateUpdater.ts](file://packages/engine/src/agents/stateUpdater.ts#L1-L193)
-- [packages/engine/src/agents/chapterPlanner.ts](file://packages/engine/src/agents/chapterPlanner.ts#L1-L326)
-- [packages/engine/src/world/worldState.ts](file://packages/engine/src/world/worldState.ts#L1-L321)
-- [packages/engine/src/world/characterAgent.ts](file://packages/engine/src/world/characterAgent.ts#L1-L304)
-- [packages/engine/src/world/eventResolver.ts](file://packages/engine/src/world/eventResolver.ts#L1-L272)
-- [packages/engine/src/constraints/constraintGraph.ts](file://packages/engine/src/constraints/constraintGraph.ts#L1-L471)
-- [packages/engine/src/constraints/validator.ts](file://packages/engine/src/constraints/validator.ts#L1-L286)
-- [apps/cli/src/commands/generate.ts](file://apps/cli/src/commands/generate.ts#L1-L55)
-- [apps/cli/src/commands/validate.ts](file://apps/cli/src/commands/validate.ts#L1-L107)
-- [apps/cli/src/commands/state.ts](file://apps/cli/src/commands/state.ts#L1-L83)
-- [apps/cli/src/commands/memories.ts](file://apps/cli/src/commands/memories.ts#L1-L66)
-- [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts#L1-L195)
+- [packages/engine/src/index.ts:1-116](file://packages/engine/src/index.ts#L1-L116)
+- [packages/engine/src/types/index.ts:1-90](file://packages/engine/src/types/index.ts#L1-L90)
+- [packages/engine/src/llm/client.ts:1-106](file://packages/engine/src/llm/client.ts#L1-L106)
+- [packages/engine/src/memory/canonStore.ts:1-134](file://packages/engine/src/memory/canonStore.ts#L1-L134)
+- [packages/engine/src/memory/vectorStore.ts:1-208](file://packages/engine/src/memory/vectorStore.ts#L1-L208)
+- [packages/engine/src/memory/memoryRetriever.ts:1-174](file://packages/engine/src/memory/memoryRetriever.ts#L1-L174)
+- [packages/engine/src/memory/stateUpdater.ts:1-435](file://packages/engine/src/memory/stateUpdater.ts#L1-L435)
+- [packages/engine/src/story/structuredState.ts:1-235](file://packages/engine/src/story/structuredState.ts#L1-L235)
+- [packages/engine/src/pipeline/generateChapter.ts:1-108](file://packages/engine/src/pipeline/generateChapter.ts#L1-L108)
+- [packages/engine/src/story/bible.ts:1-73](file://packages/engine/src/story/bible.ts#L1-L73)
+- [packages/engine/src/agents/writer.ts:1-146](file://packages/engine/src/agents/writer.ts#L1-L146)
+- [packages/engine/src/agents/completeness.ts:1-56](file://packages/engine/src/agents/completeness.ts#L1-L56)
+- [packages/engine/src/agents/summarizer.ts:1-64](file://packages/engine/src/agents/summarizer.ts#L1-L64)
+- [packages/engine/src/agents/canonValidator.ts:1-59](file://packages/engine/src/agents/canonValidator.ts#L1-L59)
+- [packages/engine/src/agents/memoryExtractor.ts:1-97](file://packages/engine/src/agents/memoryExtractor.ts#L1-L97)
+- [packages/engine/src/agents/stateUpdater.ts:1-193](file://packages/engine/src/agents/stateUpdater.ts#L1-L193)
+- [packages/engine/src/agents/chapterPlanner.ts:1-326](file://packages/engine/src/agents/chapterPlanner.ts#L1-L326)
+- [packages/engine/src/world/worldState.ts:1-321](file://packages/engine/src/world/worldState.ts#L1-L321)
+- [packages/engine/src/world/characterAgent.ts:1-304](file://packages/engine/src/world/characterAgent.ts#L1-L304)
+- [packages/engine/src/world/eventResolver.ts:1-272](file://packages/engine/src/world/eventResolver.ts#L1-L272)
+- [packages/engine/src/constraints/constraintGraph.ts:1-471](file://packages/engine/src/constraints/constraintGraph.ts#L1-L471)
+- [packages/engine/src/constraints/validator.ts:1-286](file://packages/engine/src/constraints/validator.ts#L1-L286)
+- [apps/cli/src/commands/generate.ts:1-55](file://apps/cli/src/commands/generate.ts#L1-L55)
+- [apps/cli/src/commands/validate.ts:1-107](file://apps/cli/src/commands/validate.ts#L1-L107)
+- [apps/cli/src/commands/state.ts:1-83](file://apps/cli/src/commands/state.ts#L1-L83)
+- [apps/cli/src/commands/memories.ts:1-66](file://apps/cli/src/commands/memories.ts#L1-L66)
+- [apps/cli/src/config/store.ts:1-195](file://apps/cli/src/config/store.ts#L1-L195)
 
 ## Architecture Overview
 The system employs:
@@ -238,28 +241,31 @@ Store --> MemoriesCmd
 ```
 
 **Diagram sources**
-- [packages/engine/src/pipeline/generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L26-L103)
-- [packages/engine/src/agents/writer.ts](file://packages/engine/src/agents/writer.ts#L55-L94)
-- [packages/engine/src/agents/completeness.ts](file://packages/engine/src/agents/completeness.ts#L37-L52)
-- [packages/engine/src/agents/summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L24-L38)
-- [packages/engine/src/agents/canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L32-L55)
-- [packages/engine/src/agents/chapterPlanner.ts](file://packages/engine/src/agents/chapterPlanner.ts#L110-L122)
-- [packages/engine/src/memory/vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L19-L208)
-- [packages/engine/src/memory/memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts#L18-L174)
-- [packages/engine/src/memory/stateUpdater.ts](file://packages/engine/src/memory/stateUpdater.ts#L90-L435)
-- [packages/engine/src/story/structuredState.ts](file://packages/engine/src/story/structuredState.ts#L23-L235)
-- [packages/engine/src/world/worldState.ts](file://packages/engine/src/world/worldState.ts#L24-L37)
-- [packages/engine/src/world/characterAgent.ts](file://packages/engine/src/world/characterAgent.ts#L91-L108)
-- [packages/engine/src/world/eventResolver.ts](file://packages/engine/src/world/eventResolver.ts#L30-L37)
-- [packages/engine/src/constraints/constraintGraph.ts](file://packages/engine/src/constraints/constraintGraph.ts#L29-L42)
-- [packages/engine/src/constraints/validator.ts](file://packages/engine/src/constraints/validator.ts#L73-L84)
-- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L31-L105)
-- [packages/engine/src/memory/canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L101-L129)
-- [apps/cli/src/commands/generate.ts](file://apps/cli/src/commands/generate.ts#L4-L54)
-- [apps/cli/src/commands/validate.ts](file://apps/cli/src/commands/validate.ts#L4-L107)
-- [apps/cli/src/commands/state.ts](file://apps/cli/src/commands/state.ts#L3-L83)
-- [apps/cli/src/commands/memories.ts](file://apps/cli/src/commands/memories.ts#L4-L66)
-- [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts#L15-L49)
+- [packages/engine/src/pipeline/generateChapter.ts:26-103](file://packages/engine/src/pipeline/generateChapter.ts#L26-L103)
+- [packages/engine/src/agents/writer.ts:55-94](file://packages/engine/src/agents/writer.ts#L55-L94)
+- [packages/engine/src/agents/completeness.ts:37-52](file://packages/engine/src/agents/completeness.ts#L37-L52)
+- [packages/engine/src/agents/summarizer.ts:24-38](file://packages/engine/src/agents/summarizer.ts#L24-L38)
+- [packages/engine/src/agents/canonValidator.ts:32-55](file://packages/engine/src/agents/canonValidator.ts#L32-L55)
+- [packages/engine/src/agents/chapterPlanner.ts:110-122](file://packages/engine/src/agents/chapterPlanner.ts#L110-L122)
+- [packages/engine/src/memory/vectorStore.ts:19-208](file://packages/engine/src/memory/vectorStore.ts#L19-L208)
+- [packages/engine/src/memory/memoryRetriever.ts:18-174](file://packages/engine/src/memory/memoryRetriever.ts#L18-L174)
+- [packages/engine/src/memory/stateUpdater.ts:90-435](file://packages/engine/src/memory/stateUpdater.ts#L90-L435)
+- [packages/engine/src/story/structuredState.ts:23-235](file://packages/engine/src/story/structuredState.ts#L23-L235)
+- [packages/engine/src/world/worldState.ts:24-37](file://packages/engine/src/world/worldState.ts#L24-L37)
+- [packages/engine/src/world/characterAgent.ts:91-108](file://packages/engine/src/world/characterAgent.ts#L91-L108)
+- [packages/engine/src/world/eventResolver.ts:30-37](file://packages/engine/src/world/eventResolver.ts#L30-L37)
+- [packages/engine/src/constraints/constraintGraph.ts:29-42](file://packages/engine/src/constraints/constraintGraph.ts#L29-L42)
+- [packages/engine/src/constraints/validator.ts:73-84](file://packages/engine/src/constraints/validator.ts#L73-L84)
+- [packages/engine/src/llm/client.ts:31-105](file://packages/engine/src/llm/client.ts#L31-L105)
+- [packages/engine/src/memory/canonStore.ts:101-129](file://packages/engine/src/memory/canonStore.ts#L101-L129)
+- [apps/cli/src/commands/generate.ts:4-54](file://apps/cli/src/commands/generate.ts#L4-L54)
+- [apps/cli/src/commands/validate.ts:4-107](file://apps/cli/src/commands/validate.ts#L4-L107)
+- [apps/cli/src/commands/state.ts:3-83](file://apps/cli/src/commands/state.ts#L3-L83)
+- [apps/cli/src/commands/memories.ts:4-66](file://apps/cli/src/commands/memories.ts#L4-L66)
+- [apps/cli/src/config/store.ts:15-49](file://apps/cli/src/config/store.ts#L15-L49)
+
+**Section sources**
+- [packages/engine/README.md:36-50](file://packages/engine/README.md#L36-L50)
 
 ## Detailed Component Analysis
 
@@ -289,10 +295,10 @@ LLMClient --> LLMProvider : "delegates"
 ```
 
 **Diagram sources**
-- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L4-L105)
+- [packages/engine/src/llm/client.ts:4-105](file://packages/engine/src/llm/client.ts#L4-L105)
 
 **Section sources**
-- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L1-L106)
+- [packages/engine/src/llm/client.ts:1-106](file://packages/engine/src/llm/client.ts#L1-L106)
 
 ### Vector Memory System
 - HNSW-based Semantic Search: Hierarchical Navigable Small World algorithm provides efficient approximate nearest neighbor search for semantic similarity.
@@ -338,12 +344,12 @@ MemoryRetriever --> VectorStore : "uses"
 ```
 
 **Diagram sources**
-- [packages/engine/src/memory/vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L19-L208)
-- [packages/engine/src/memory/memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts#L18-L174)
+- [packages/engine/src/memory/vectorStore.ts:19-208](file://packages/engine/src/memory/vectorStore.ts#L19-L208)
+- [packages/engine/src/memory/memoryRetriever.ts:18-174](file://packages/engine/src/memory/memoryRetriever.ts#L18-L174)
 
 **Section sources**
-- [packages/engine/src/memory/vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L1-L208)
-- [packages/engine/src/memory/memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts#L1-L174)
+- [packages/engine/src/memory/vectorStore.ts:1-208](file://packages/engine/src/memory/vectorStore.ts#L1-L208)
+- [packages/engine/src/memory/memoryRetriever.ts:1-174](file://packages/engine/src/memory/memoryRetriever.ts#L1-L174)
 
 ### Structured State Management
 - Comprehensive Character Tracking: Emotion, location, relationships, goals, knowledge, and development tracking with automatic initialization from StoryBible.
@@ -392,12 +398,12 @@ StateUpdaterPipeline --> StoryStructuredState : "updates"
 ```
 
 **Diagram sources**
-- [packages/engine/src/story/structuredState.ts](file://packages/engine/src/story/structuredState.ts#L23-L235)
-- [packages/engine/src/memory/stateUpdater.ts](file://packages/engine/src/memory/stateUpdater.ts#L90-L435)
+- [packages/engine/src/story/structuredState.ts:23-235](file://packages/engine/src/story/structuredState.ts#L23-L235)
+- [packages/engine/src/memory/stateUpdater.ts:90-435](file://packages/engine/src/memory/stateUpdater.ts#L90-L435)
 
 **Section sources**
-- [packages/engine/src/story/structuredState.ts](file://packages/engine/src/story/structuredState.ts#L1-L235)
-- [packages/engine/src/memory/stateUpdater.ts](file://packages/engine/src/memory/stateUpdater.ts#L1-L435)
+- [packages/engine/src/story/structuredState.ts:1-235](file://packages/engine/src/story/structuredState.ts#L1-L235)
+- [packages/engine/src/memory/stateUpdater.ts:1-435](file://packages/engine/src/memory/stateUpdater.ts#L1-L435)
 
 ### State Updater Pipeline
 - Autonomous Post-Chapter Processing: Extracts state changes, memories, and constraint updates automatically after chapter generation.
@@ -426,10 +432,10 @@ Pipeline-->>Engine : "StateUpdateResult"
 ```
 
 **Diagram sources**
-- [packages/engine/src/memory/stateUpdater.ts](file://packages/engine/src/memory/stateUpdater.ts#L94-L248)
+- [packages/engine/src/memory/stateUpdater.ts:94-248](file://packages/engine/src/memory/stateUpdater.ts#L94-L248)
 
 **Section sources**
-- [packages/engine/src/memory/stateUpdater.ts](file://packages/engine/src/memory/stateUpdater.ts#L1-L435)
+- [packages/engine/src/memory/stateUpdater.ts:1-435](file://packages/engine/src/memory/stateUpdater.ts#L1-L435)
 
 ### Constraint Graph System
 - Knowledge Graph Structure: Nodes representing characters, locations, facts, events, and items with typed relationships forming a narrative consistency network.
@@ -472,12 +478,12 @@ Validator --> ConstraintGraph : "uses"
 ```
 
 **Diagram sources**
-- [packages/engine/src/constraints/constraintGraph.ts](file://packages/engine/src/constraints/constraintGraph.ts#L29-L42)
-- [packages/engine/src/constraints/validator.ts](file://packages/engine/src/constraints/validator.ts#L73-L78)
+- [packages/engine/src/constraints/constraintGraph.ts:29-42](file://packages/engine/src/constraints/constraintGraph.ts#L29-L42)
+- [packages/engine/src/constraints/validator.ts:73-78](file://packages/engine/src/constraints/validator.ts#L73-L78)
 
 **Section sources**
-- [packages/engine/src/constraints/constraintGraph.ts](file://packages/engine/src/constraints/constraintGraph.ts#L1-L471)
-- [packages/engine/src/constraints/validator.ts](file://packages/engine/src/constraints/validator.ts#L1-L286)
+- [packages/engine/src/constraints/constraintGraph.ts:1-471](file://packages/engine/src/constraints/constraintGraph.ts#L1-L471)
+- [packages/engine/src/constraints/validator.ts:1-286](file://packages/engine/src/constraints/validator.ts#L1-L286)
 
 ### Chapter Planner Agent
 - Scene Planning: Converts high-level chapter objectives into detailed scene-by-scene outlines with progressive tension building and word count estimation.
@@ -500,7 +506,7 @@ class ChapterOutline {
 -totalEstimatedWords number
 -scenes Scene[]
 -transitions string[]
--notes string
+.notes string
 }
 class Scene {
 -id string
@@ -517,11 +523,11 @@ ChapterOutline --> Scene : "contains"
 ```
 
 **Diagram sources**
-- [packages/engine/src/agents/chapterPlanner.ts](file://packages/engine/src/agents/chapterPlanner.ts#L110-L122)
-- [packages/engine/src/agents/chapterPlanner.ts](file://packages/engine/src/agents/chapterPlanner.ts#L17-L25)
+- [packages/engine/src/agents/chapterPlanner.ts:110-122](file://packages/engine/src/agents/chapterPlanner.ts#L110-L122)
+- [packages/engine/src/agents/chapterPlanner.ts:17-25](file://packages/engine/src/agents/chapterPlanner.ts#L17-L25)
 
 **Section sources**
-- [packages/engine/src/agents/chapterPlanner.ts](file://packages/engine/src/agents/chapterPlanner.ts#L1-L326)
+- [packages/engine/src/agents/chapterPlanner.ts:1-326](file://packages/engine/src/agents/chapterPlanner.ts#L1-L326)
 
 ### Canonical Memory Management
 - Data model: CanonStore holds a story identifier and a list of CanonFact entries, each tagged by category and linked to the chapter they were established.
@@ -541,10 +547,10 @@ IterateThreads --> |No| ReturnStore["return CanonStore"]
 ```
 
 **Diagram sources**
-- [packages/engine/src/memory/canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L24-L58)
+- [packages/engine/src/memory/canonStore.ts:24-58](file://packages/engine/src/memory/canonStore.ts#L24-L58)
 
 **Section sources**
-- [packages/engine/src/memory/canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L1-L134)
+- [packages/engine/src/memory/canonStore.ts:1-134](file://packages/engine/src/memory/canonStore.ts#L1-L134)
 
 ### Generation Pipeline
 - Orchestration: The generateChapter function executes the core workflow: write, optionally continue until complete, validate against canon (optional), summarize, extract memories, and produce a chapter result.
@@ -599,16 +605,16 @@ Pipe-->>CLI : "GenerateChapterResult"
 ```
 
 **Diagram sources**
-- [packages/engine/src/pipeline/generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L26-L103)
-- [packages/engine/src/agents/writer.ts](file://packages/engine/src/agents/writer.ts#L55-L117)
-- [packages/engine/src/agents/completeness.ts](file://packages/engine/src/agents/completeness.ts#L37-L52)
-- [packages/engine/src/agents/summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L24-L38)
-- [packages/engine/src/agents/canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L32-L55)
-- [packages/engine/src/agents/memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L52-L97)
-- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L78-L95)
+- [packages/engine/src/pipeline/generateChapter.ts:26-103](file://packages/engine/src/pipeline/generateChapter.ts#L26-L103)
+- [packages/engine/src/agents/writer.ts:55-117](file://packages/engine/src/agents/writer.ts#L55-L117)
+- [packages/engine/src/agents/completeness.ts:37-52](file://packages/engine/src/agents/completeness.ts#L37-L52)
+- [packages/engine/src/agents/summarizer.ts:24-38](file://packages/engine/src/agents/summarizer.ts#L24-L38)
+- [packages/engine/src/agents/canonValidator.ts:32-55](file://packages/engine/src/agents/canonValidator.ts#L32-L55)
+- [packages/engine/src/agents/memoryExtractor.ts:52-97](file://packages/engine/src/agents/memoryExtractor.ts#L52-L97)
+- [packages/engine/src/llm/client.ts:78-95](file://packages/engine/src/llm/client.ts#L78-L95)
 
 **Section sources**
-- [packages/engine/src/pipeline/generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L108)
+- [packages/engine/src/pipeline/generateChapter.ts:1-108](file://packages/engine/src/pipeline/generateChapter.ts#L1-L108)
 
 ### Agents
 - ChapterWriter: Constructs a rich prompt from StoryBible, StoryState, and CanonStore, delegates to LLM, and extracts title and word count. Includes a continuation mode to extend partial chapters.
@@ -669,23 +675,23 @@ ChapterPlanner --> LLMClient : "uses"
 ```
 
 **Diagram sources**
-- [packages/engine/src/agents/writer.ts](file://packages/engine/src/agents/writer.ts#L48-L146)
-- [packages/engine/src/agents/completeness.ts](file://packages/engine/src/agents/completeness.ts#L30-L56)
-- [packages/engine/src/agents/summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L17-L64)
-- [packages/engine/src/agents/canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L31-L59)
-- [packages/engine/src/agents/memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L52-L97)
-- [packages/engine/src/agents/stateUpdater.ts](file://packages/engine/src/agents/stateUpdater.ts#L85-L193)
-- [packages/engine/src/agents/chapterPlanner.ts](file://packages/engine/src/agents/chapterPlanner.ts#L110-L122)
-- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L31-L105)
+- [packages/engine/src/agents/writer.ts:48-146](file://packages/engine/src/agents/writer.ts#L48-L146)
+- [packages/engine/src/agents/completeness.ts:30-56](file://packages/engine/src/agents/completeness.ts#L30-L56)
+- [packages/engine/src/agents/summarizer.ts:17-64](file://packages/engine/src/agents/summarizer.ts#L17-L64)
+- [packages/engine/src/agents/canonValidator.ts:31-59](file://packages/engine/src/agents/canonValidator.ts#L31-L59)
+- [packages/engine/src/agents/memoryExtractor.ts:52-97](file://packages/engine/src/agents/memoryExtractor.ts#L52-L97)
+- [packages/engine/src/agents/stateUpdater.ts:85-193](file://packages/engine/src/agents/stateUpdater.ts#L85-L193)
+- [packages/engine/src/agents/chapterPlanner.ts:110-122](file://packages/engine/src/agents/chapterPlanner.ts#L110-L122)
+- [packages/engine/src/llm/client.ts:31-105](file://packages/engine/src/llm/client.ts#L31-L105)
 
 **Section sources**
-- [packages/engine/src/agents/writer.ts](file://packages/engine/src/agents/writer.ts#L1-L146)
-- [packages/engine/src/agents/completeness.ts](file://packages/engine/src/agents/completeness.ts#L1-L56)
-- [packages/engine/src/agents/summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L1-L64)
-- [packages/engine/src/agents/canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L1-L59)
-- [packages/engine/src/agents/memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L1-L97)
-- [packages/engine/src/agents/stateUpdater.ts](file://packages/engine/src/agents/stateUpdater.ts#L1-L193)
-- [packages/engine/src/agents/chapterPlanner.ts](file://packages/engine/src/agents/chapterPlanner.ts#L1-L326)
+- [packages/engine/src/agents/writer.ts:1-146](file://packages/engine/src/agents/writer.ts#L1-L146)
+- [packages/engine/src/agents/completeness.ts:1-56](file://packages/engine/src/agents/completeness.ts#L1-L56)
+- [packages/engine/src/agents/summarizer.ts:1-64](file://packages/engine/src/agents/summarizer.ts#L1-L64)
+- [packages/engine/src/agents/canonValidator.ts:1-59](file://packages/engine/src/agents/canonValidator.ts#L1-L59)
+- [packages/engine/src/agents/memoryExtractor.ts:1-97](file://packages/engine/src/agents/memoryExtractor.ts#L1-L97)
+- [packages/engine/src/agents/stateUpdater.ts:1-193](file://packages/engine/src/agents/stateUpdater.ts#L1-L193)
+- [packages/engine/src/agents/chapterPlanner.ts:1-326](file://packages/engine/src/agents/chapterPlanner.ts#L1-L326)
 
 ### Story and State Management
 - StoryBible builder: Creates a story with metadata, characters, and plot threads, tracking creation/update timestamps.
@@ -710,15 +716,15 @@ ExtractCanon --> Return
 ```
 
 **Diagram sources**
-- [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts#L39-L67)
-- [packages/engine/src/story/bible.ts](file://packages/engine/src/story/bible.ts#L3-L26)
-- [packages/engine/src/memory/canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L24-L58)
-- [packages/engine/src/story/structuredState.ts](file://packages/engine/src/story/structuredState.ts#L33-L43)
+- [apps/cli/src/config/store.ts:39-67](file://apps/cli/src/config/store.ts#L39-L67)
+- [packages/engine/src/story/bible.ts:3-26](file://packages/engine/src/story/bible.ts#L3-L26)
+- [packages/engine/src/memory/canonStore.ts:24-58](file://packages/engine/src/memory/canonStore.ts#L24-L58)
+- [packages/engine/src/story/structuredState.ts:33-43](file://packages/engine/src/story/structuredState.ts#L33-L43)
 
 **Section sources**
-- [packages/engine/src/story/bible.ts](file://packages/engine/src/story/bible.ts#L1-L73)
-- [packages/engine/src/story/structuredState.ts](file://packages/engine/src/story/structuredState.ts#L1-L235)
-- [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts#L1-L195)
+- [packages/engine/src/story/bible.ts:1-73](file://packages/engine/src/story/bible.ts#L1-L73)
+- [packages/engine/src/story/structuredState.ts:1-235](file://packages/engine/src/story/structuredState.ts#L1-L235)
+- [apps/cli/src/config/store.ts:1-195](file://apps/cli/src/config/store.ts#L1-L195)
 
 ### CLI Integration
 - Command routing: The CLI initializes commands for config, init, generate, status, continue, validate, state inspection, and memory querying.
@@ -747,19 +753,19 @@ CLI-->>User : "Validation report"
 ```
 
 **Diagram sources**
-- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L121-L150)
-- [apps/cli/src/commands/validate.ts](file://apps/cli/src/commands/validate.ts#L4-L107)
-- [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts#L15-L49)
-- [packages/engine/src/pipeline/generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L26-L103)
-- [packages/engine/src/constraints/validator.ts](file://packages/engine/src/constraints/validator.ts#L73-L84)
+- [apps/cli/src/index.ts:121-150](file://apps/cli/src/index.ts#L121-L150)
+- [apps/cli/src/commands/validate.ts:4-107](file://apps/cli/src/commands/validate.ts#L4-L107)
+- [apps/cli/src/config/store.ts:15-49](file://apps/cli/src/config/store.ts#L15-L49)
+- [packages/engine/src/pipeline/generateChapter.ts:26-103](file://packages/engine/src/pipeline/generateChapter.ts#L26-L103)
+- [packages/engine/src/constraints/validator.ts:73-84](file://packages/engine/src/constraints/validator.ts#L73-L84)
 
 **Section sources**
-- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L1-L54)
-- [apps/cli/src/commands/generate.ts](file://apps/cli/src/commands/generate.ts#L1-L55)
-- [apps/cli/src/commands/validate.ts](file://apps/cli/src/commands/validate.ts#L1-L107)
-- [apps/cli/src/commands/state.ts](file://apps/cli/src/commands/state.ts#L1-L83)
-- [apps/cli/src/commands/memories.ts](file://apps/cli/src/commands/memories.ts#L1-L66)
-- [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts#L1-L195)
+- [apps/cli/src/index.ts:1-54](file://apps/cli/src/index.ts#L1-L54)
+- [apps/cli/src/commands/generate.ts:1-55](file://apps/cli/src/commands/generate.ts#L1-L55)
+- [apps/cli/src/commands/validate.ts:1-107](file://apps/cli/src/commands/validate.ts#L1-L107)
+- [apps/cli/src/commands/state.ts:1-83](file://apps/cli/src/commands/state.ts#L1-L83)
+- [apps/cli/src/commands/memories.ts:1-66](file://apps/cli/src/commands/memories.ts#L1-L66)
+- [apps/cli/src/config/store.ts:1-195](file://apps/cli/src/config/store.ts#L1-L195)
 
 ## Dependency Analysis
 - Cohesion: Each module focuses on a single responsibility—agents encapsulate prompting and inference, the pipeline orchestrates workflows, memory manages canonical facts and vector memories, world simulation handles character autonomy, constraints enforce narrative consistency, and state management tracks story progression.
@@ -801,35 +807,35 @@ Engine_Index --> Constraints
 ```
 
 **Diagram sources**
-- [packages/engine/src/types/index.ts](file://packages/engine/src/types/index.ts#L1-L90)
-- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L1-L106)
-- [packages/engine/src/memory/vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L1-L208)
-- [packages/engine/src/memory/memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts#L1-L174)
-- [packages/engine/src/memory/stateUpdater.ts](file://packages/engine/src/memory/stateUpdater.ts#L1-L435)
-- [packages/engine/src/story/structuredState.ts](file://packages/engine/src/story/structuredState.ts#L1-L235)
-- [packages/engine/src/pipeline/generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L108)
-- [packages/engine/src/story/bible.ts](file://packages/engine/src/story/bible.ts#L1-L73)
-- [packages/engine/src/agents/writer.ts](file://packages/engine/src/agents/writer.ts#L1-L146)
-- [packages/engine/src/agents/completeness.ts](file://packages/engine/src/agents/completeness.ts#L1-L56)
-- [packages/engine/src/agents/summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L1-L64)
-- [packages/engine/src/agents/canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L1-L59)
-- [packages/engine/src/agents/memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L1-L97)
-- [packages/engine/src/agents/stateUpdater.ts](file://packages/engine/src/agents/stateUpdater.ts#L1-L193)
-- [packages/engine/src/agents/chapterPlanner.ts](file://packages/engine/src/agents/chapterPlanner.ts#L1-L326)
-- [packages/engine/src/world/worldState.ts](file://packages/engine/src/world/worldState.ts#L1-L321)
-- [packages/engine/src/world/characterAgent.ts](file://packages/engine/src/world/characterAgent.ts#L1-L304)
-- [packages/engine/src/world/eventResolver.ts](file://packages/engine/src/world/eventResolver.ts#L1-L272)
-- [packages/engine/src/constraints/constraintGraph.ts](file://packages/engine/src/constraints/constraintGraph.ts#L1-L471)
-- [packages/engine/src/constraints/validator.ts](file://packages/engine/src/constraints/validator.ts#L1-L286)
-- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L1-L54)
-- [apps/cli/src/commands/generate.ts](file://apps/cli/src/commands/generate.ts#L1-L55)
-- [apps/cli/src/commands/validate.ts](file://apps/cli/src/commands/validate.ts#L1-L107)
-- [apps/cli/src/commands/state.ts](file://apps/cli/src/commands/state.ts#L1-L83)
-- [apps/cli/src/commands/memories.ts](file://apps/cli/src/commands/memories.ts#L1-L66)
-- [packages/engine/src/index.ts](file://packages/engine/src/index.ts#L1-L116)
+- [packages/engine/src/types/index.ts:1-90](file://packages/engine/src/types/index.ts#L1-L90)
+- [packages/engine/src/llm/client.ts:1-106](file://packages/engine/src/llm/client.ts#L1-L106)
+- [packages/engine/src/memory/vectorStore.ts:1-208](file://packages/engine/src/memory/vectorStore.ts#L1-L208)
+- [packages/engine/src/memory/memoryRetriever.ts:1-174](file://packages/engine/src/memory/memoryRetriever.ts#L1-L174)
+- [packages/engine/src/memory/stateUpdater.ts:1-435](file://packages/engine/src/memory/stateUpdater.ts#L1-L435)
+- [packages/engine/src/story/structuredState.ts:1-235](file://packages/engine/src/story/structuredState.ts#L1-L235)
+- [packages/engine/src/pipeline/generateChapter.ts:1-108](file://packages/engine/src/pipeline/generateChapter.ts#L1-L108)
+- [packages/engine/src/story/bible.ts:1-73](file://packages/engine/src/story/bible.ts#L1-L73)
+- [packages/engine/src/agents/writer.ts:1-146](file://packages/engine/src/agents/writer.ts#L1-L146)
+- [packages/engine/src/agents/completeness.ts:1-56](file://packages/engine/src/agents/completeness.ts#L1-L56)
+- [packages/engine/src/agents/summarizer.ts:1-64](file://packages/engine/src/agents/summarizer.ts#L1-L64)
+- [packages/engine/src/agents/canonValidator.ts:1-59](file://packages/engine/src/agents/canonValidator.ts#L1-L59)
+- [packages/engine/src/agents/memoryExtractor.ts:1-97](file://packages/engine/src/agents/memoryExtractor.ts#L1-L97)
+- [packages/engine/src/agents/stateUpdater.ts:1-193](file://packages/engine/src/agents/stateUpdater.ts#L1-L193)
+- [packages/engine/src/agents/chapterPlanner.ts:1-326](file://packages/engine/src/agents/chapterPlanner.ts#L1-L326)
+- [packages/engine/src/world/worldState.ts:1-321](file://packages/engine/src/world/worldState.ts#L1-L321)
+- [packages/engine/src/world/characterAgent.ts:1-304](file://packages/engine/src/world/characterAgent.ts#L1-L304)
+- [packages/engine/src/world/eventResolver.ts:1-272](file://packages/engine/src/world/eventResolver.ts#L1-L272)
+- [packages/engine/src/constraints/constraintGraph.ts:1-471](file://packages/engine/src/constraints/constraintGraph.ts#L1-L471)
+- [packages/engine/src/constraints/validator.ts:1-286](file://packages/engine/src/constraints/validator.ts#L1-L286)
+- [apps/cli/src/index.ts:1-54](file://apps/cli/src/index.ts#L1-L54)
+- [apps/cli/src/commands/generate.ts:1-55](file://apps/cli/src/commands/generate.ts#L1-L55)
+- [apps/cli/src/commands/validate.ts:1-107](file://apps/cli/src/commands/validate.ts#L1-L107)
+- [apps/cli/src/commands/state.ts:1-83](file://apps/cli/src/commands/state.ts#L1-L83)
+- [apps/cli/src/commands/memories.ts:1-66](file://apps/cli/src/commands/memories.ts#L1-L66)
+- [packages/engine/src/index.ts:1-116](file://packages/engine/src/index.ts#L1-L116)
 
 **Section sources**
-- [packages/engine/src/index.ts](file://packages/engine/src/index.ts#L1-L116)
+- [packages/engine/src/index.ts:1-116](file://packages/engine/src/index.ts#L1-L116)
 
 ## Performance Considerations
 - Token budgets: Agents configure maxTokens per task; tune these to balance quality and cost.
@@ -856,16 +862,18 @@ Engine_Index --> Constraints
 - Chapter planner failures: ChapterPlanner offers fallback outline generation; verify director objectives and target word counts.
 
 **Section sources**
-- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L46-L95)
-- [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts#L39-L67)
-- [packages/engine/src/memory/vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L30-L75)
-- [packages/engine/src/memory/stateUpdater.ts](file://packages/engine/src/memory/stateUpdater.ts#L94-L248)
-- [packages/engine/src/agents/canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L49-L55)
-- [packages/engine/src/world/characterAgent.ts](file://packages/engine/src/world/characterAgent.ts#L288-L296)
-- [packages/engine/src/constraints/constraintGraph.ts](file://packages/engine/src/constraints/constraintGraph.ts#L229-L244)
+- [packages/engine/src/llm/client.ts:46-95](file://packages/engine/src/llm/client.ts#L46-L95)
+- [apps/cli/src/config/store.ts:39-67](file://apps/cli/src/config/store.ts#L39-L67)
+- [packages/engine/src/memory/vectorStore.ts:30-75](file://packages/engine/src/memory/vectorStore.ts#L30-L75)
+- [packages/engine/src/memory/stateUpdater.ts:94-248](file://packages/engine/src/memory/stateUpdater.ts#L94-L248)
+- [packages/engine/src/agents/canonValidator.ts:49-55](file://packages/engine/src/agents/canonValidator.ts#L49-L55)
+- [packages/engine/src/world/characterAgent.ts:288-296](file://packages/engine/src/world/characterAgent.ts#L288-L296)
+- [packages/engine/src/constraints/constraintGraph.ts:229-244](file://packages/engine/src/constraints/constraintGraph.ts#L229-L244)
 
 ## Conclusion
 The Narrative Operating System engine package implements a comprehensive, extensible architecture for AI-powered story generation. The system now features a sophisticated hybrid approach combining autonomous world simulation with narrative direction, supported by intelligent planning, strict consistency enforcement, and advanced memory management. The addition of vector memory system with semantic search, structured state management with comprehensive character and plot tracking, enhanced constraint validation with dual-mode approaches, and autonomous state updater pipeline enables emergent storytelling with logical coherence, narrative consistency, and rich contextual awareness. By separating concerns into agents, a provider-agnostic LLM client, canonical and vector memory systems, structured state management, world simulation, constraint enforcement, and a pipeline orchestrator, the system supports iterative chapter generation with validation, memory extraction, and state updates. The CLI demonstrates practical usage through generation, validation, state inspection, and memory querying commands, along with persistence and incremental progress tracking. The modular design and environment-driven configuration facilitate easy experimentation with providers and tuning of generation parameters.
+
+**Updated** Enhanced conclusion to reflect the comprehensive README.md documentation and highlight the hierarchical memory system architecture.
 
 ## Appendices
 - Technology stack: TypeScript, OpenAI SDK integration, HNSW-based vector search with hnswlib-node, monorepo orchestration with Turborepo and pnpm workspaces.
@@ -879,8 +887,10 @@ The Narrative Operating System engine package implements a comprehensive, extens
   - World simulation: Autonomous character agents with goal-driven decision making and event resolution.
 
 **Section sources**
-- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L46-L95)
-- [packages/engine/src/memory/vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L125-L168)
-- [packages/engine/src/story/structuredState.ts](file://packages/engine/src/story/structuredState.ts#L155-L179)
-- [turbo.json](file://turbo.json#L1-L19)
-- [pnpm-workspace.yaml](file://pnpm-workspace.yaml#L1-L4)
+- [packages/engine/src/llm/client.ts:46-95](file://packages/engine/src/llm/client.ts#L46-L95)
+- [packages/engine/src/memory/vectorStore.ts:125-168](file://packages/engine/src/memory/vectorStore.ts#L125-L168)
+- [packages/engine/src/story/structuredState.ts:155-179](file://packages/engine/src/story/structuredState.ts#L155-L179)
+- [turbo.json:1-19](file://turbo.json#L1-L19)
+- [pnpm-workspace.yaml:1-4](file://pnpm-workspace.yaml#L1-L4)
+- [packages/engine/README.md:1-55](file://packages/engine/README.md#L1-L55)
+- [packages/engine/package.json:1-44](file://packages/engine/package.json#L1-L44)
