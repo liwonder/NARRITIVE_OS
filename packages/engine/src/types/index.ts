@@ -88,6 +88,30 @@ export interface LLMProviderConfig {
   model?: string;
 }
 
+// Multi-model configuration for different task types
+export interface ModelConfig {
+  name: string;
+  provider: 'openai' | 'deepseek' | string;
+  apiKey: string;
+  baseURL?: string;
+  model: string;
+  purpose: 'reasoning' | 'chat' | 'fast';
+}
+
+export interface MultiModelConfig {
+  models: ModelConfig[];
+  defaultModel: string;
+}
+
+// Task types that can use different models
+export type TaskType = 
+  | 'generation'      // Complex creative writing (use reasoning model)
+  | 'validation'      // Canon validation (use chat model)
+  | 'summarization'   // Chapter summarization (use fast model)
+  | 'extraction'      // Memory/state extraction (use chat model)
+  | 'planning'        // Scene/chapter planning (use reasoning model)
+  | 'default';        // Fallback
+
 // Scene-level generation types (Phase 12)
 export interface Scene {
   id: number;

@@ -103,6 +103,7 @@ export class ChapterWriter {
     const content = await getLLM().complete(prompt, {
       temperature: 0.8,
       maxTokens: 4000,
+      task: 'generation',
     });
 
     const title = this.extractTitle(content) || `Chapter ${chapterNumber}`;
@@ -129,6 +130,7 @@ Continue naturally from the last sentence:`;
     const continuation = await getLLM().complete(prompt, {
       temperature: 0.8,
       maxTokens: 2000,
+      task: 'generation',
     });
 
     return existingContent + '\n\n' + continuation;

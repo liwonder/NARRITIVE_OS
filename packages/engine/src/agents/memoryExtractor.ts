@@ -62,6 +62,7 @@ export class MemoryExtractor {
     const result = await getLLM().completeJSON<ExtractionOutput>(prompt, {
       temperature: 0.3,
       maxTokens: 2000,
+      task: 'extraction',
     });
 
     return result.memories || [];
@@ -87,6 +88,7 @@ Extract 3-5 key memories (events, character moments, world details, plot develop
     const result = await getLLM().completeJSON<ExtractionOutput>(prompt, {
       temperature: 0.3,
       maxTokens: 1000,
+      task: 'extraction',
     });
 
     return result.memories || [];

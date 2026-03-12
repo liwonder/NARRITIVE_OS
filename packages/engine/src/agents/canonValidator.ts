@@ -44,6 +44,7 @@ export class CanonValidator {
     const response = await getLLM().complete(prompt, {
       temperature: 0.1,
       maxTokens: 500,
+      task: 'validation',
     });
 
     try {

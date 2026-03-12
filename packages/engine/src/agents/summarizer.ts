@@ -27,6 +27,7 @@ export class ChapterSummarizer {
     const summary = await getLLM().complete(prompt, {
       temperature: 0.3,
       maxTokens: 200,
+      task: 'summarization',
     });
 
     return {

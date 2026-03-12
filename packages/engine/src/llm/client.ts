@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import type { LLMConfig, LLMProviderConfig } from '../types/index.js';
+import type { LLMConfig, LLMProviderConfig, ModelConfig, TaskType } from '../types/index.js';
 
 export interface LLMProvider {
   complete(prompt: string, config?: Partial<LLMConfig>): Promise<string>;
@@ -36,59 +36,117 @@ class OpenAIProvider implements LLMProvider {
   }
 }
 
+// Task-to-model mapping configuration
+const TASK_MODEL_MAPPING: Record<TaskType, string> = {
+  generation: 'reasoning',   // Use reasoning model for complex creative tasks
+  planning: 'reasoning',     // Use reasoning model for planning
+  validation: 'chat',        // Use chat model for validation
+  summarization: 'fast',     // Use fast model for summarization
+  extraction: 'chat',        // Use chat model for extraction
+  default: 'chat',           // Default to chat model
+};
+
 export class LLMClient {
-  private provider: LLMProvider;
-  private defaultConfig: LLMConfig;
+  private providers: Map<string, LLMProvider> = new Map();
+  private models: Map<string, ModelConfig> = new Map();
+  private defaultModelName: string;
 
-  constructor(providerConfig?: LLMProviderConfig) {
-    const config = providerConfig || this.loadConfig();
-    this.provider = this.createProvider(config);
-    
-    this.defaultConfig = {
-      model: config.model || 'gpt-4o-mini',
-      temperature: 0.7,
-      maxTokens: 4000,
-    };
+  constructor() {
+    this.loadMultiModelConfig();
   }
 
-  private loadConfig(): LLMProviderConfig {
+  private loadMultiModelConfig() {
+    // Check for multi-model configuration in environment
+    const configJson = process.env.LLM_MODELS_CONFIG;
+    
+    if (configJson) {
+      // Multi-model config provided as JSON
+      try {
+        const config = JSON.parse(configJson);
+        for (const model of config.models) {
+          this.models.set(model.name, model);
+          this.providers.set(model.name, new OpenAIProvider(model));
+        }
+        this.defaultModelName = config.defaultModel;
+      } catch (e) {
+        console.warn('Failed to parse LLM_MODELS_CONFIG, falling back to single model config');
+        this.loadSingleModelConfig();
+      }
+    } else {
+      this.loadSingleModelConfig();
+    }
+  }
+
+  private loadSingleModelConfig() {
+    // Backward compatibility: load single model config
     const provider = process.env.LLM_PROVIDER || 'openai';
+    const modelConfig: ModelConfig = {
+      name: 'default',
+      provider,
+      apiKey: provider === 'openai' 
+        ? (process.env.OPENAI_API_KEY || '') 
+        : (process.env.DEEPSEEK_API_KEY || ''),
+      baseURL: provider === 'deepseek' ? 'https://api.deepseek.com' : undefined,
+      model: process.env.LLM_MODEL || (provider === 'deepseek' ? 'deepseek-chat' : 'gpt-4o-mini'),
+      purpose: 'chat',
+    };
     
-    switch (provider) {
-      case 'openai':
-        return {
-          provider: 'openai',
-          apiKey: process.env.OPENAI_API_KEY || '',
-          model: process.env.LLM_MODEL || 'gpt-4o-mini',
-        };
-      case 'deepseek':
-        return {
-          provider: 'deepseek',
-          apiKey: process.env.DEEPSEEK_API_KEY || '',
-          baseURL: 'https://api.deepseek.com',
-          model: process.env.LLM_MODEL || 'deepseek-chat',
-        };
-      default:
-        throw new Error(`Unknown provider: ${provider}`);
+    this.models.set('default', modelConfig);
+    this.providers.set('default', new OpenAIProvider(modelConfig));
+    this.defaultModelName = 'default';
+    
+    // Also add reasoning model if DEEPSEEK_REASONER_API_KEY is set
+    if (process.env.DEEPSEEK_API_KEY) {
+      const reasoningConfig: ModelConfig = {
+        name: 'reasoning',
+        provider: 'deepseek',
+        apiKey: process.env.DEEPSEEK_API_KEY,
+        baseURL: 'https://api.deepseek.com',
+        model: 'deepseek-reasoner',
+        purpose: 'reasoning',
+      };
+      this.models.set('reasoning', reasoningConfig);
+      this.providers.set('reasoning', new OpenAIProvider(reasoningConfig));
     }
   }
 
-  private createProvider(config: LLMProviderConfig): LLMProvider {
-    switch (config.provider) {
-      case 'openai':
-      case 'deepseek':
-        return new OpenAIProvider(config);
-      default:
-        throw new Error(`Unknown provider: ${config.provider}`);
+  private getModelForTask(task: TaskType): ModelConfig {
+    const purpose = TASK_MODEL_MAPPING[task] || 'chat';
+    
+    // Find a model with the matching purpose
+    for (const [name, config] of this.models) {
+      if (config.purpose === purpose) {
+        return config;
+      }
     }
+    
+    // Fall back to default
+    return this.models.get(this.defaultModelName)!;
   }
 
-  async complete(prompt: string, config?: Partial<LLMConfig>): Promise<string> {
-    const finalConfig = { ...this.defaultConfig, ...config };
-    return this.provider.complete(prompt, finalConfig);
+  private getProvider(modelName: string): LLMProvider {
+    const provider = this.providers.get(modelName);
+    if (!provider) {
+      throw new Error(`Model not found: ${modelName}`);
+    }
+    return provider;
   }
 
-  async completeJSON<T>(prompt: string, config?: Partial<LLMConfig>): Promise<T> {
+  async complete(prompt: string, config?: Partial<LLMConfig> & { task?: TaskType }): Promise<string> {
+    const task = config?.task || 'default';
+    const modelConfig = this.getModelForTask(task);
+    const provider = this.getProvider(modelConfig.name);
+    
+    const finalConfig: LLMConfig = {
+      model: modelConfig.model,
+      temperature: config?.temperature ?? 0.7,
+      maxTokens: config?.maxTokens ?? 4000,
+    };
+    
+    return provider.complete(prompt, finalConfig);
+  }
+
+  async completeJSON<T>(prompt: string, config?: Partial<LLMConfig> & { task?: TaskType }): Promise<T> {
     const jsonPrompt = `${prompt}\n\nIMPORTANT: You must respond with valid JSON only. No markdown, no explanations, no thinking process. Start your response with { and end with }.`;
     const response = await this.complete(jsonPrompt, {
       ...config,
@@ -119,6 +177,15 @@ export class LLMClient {
     } catch (error) {
       throw new Error(`Failed to parse JSON response: ${jsonText.substring(0, 200)}`);
     }
+  }
+
+  // Get available models info
+  getAvailableModels(): { name: string; purpose: string; model: string }[] {
+    return Array.from(this.models.entries()).map(([name, config]) => ({
+      name,
+      purpose: config.purpose,
+      model: config.model,
+    }));
   }
 }
 
