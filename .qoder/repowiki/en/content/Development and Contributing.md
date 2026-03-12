@@ -2,6 +2,7 @@
 
 <cite>
 **Referenced Files in This Document**
+- [.gitignore](file://.gitignore)
 - [package.json](file://package.json)
 - [pnpm-workspace.yaml](file://pnpm-workspace.yaml)
 - [turbo.json](file://turbo.json)
@@ -23,11 +24,9 @@
 
 ## Update Summary
 **Changes Made**
-- Added comprehensive installation script documentation for Windows PowerShell
-- Added cross-platform publishing workflow documentation for both Windows PowerShell and Unix-like systems
-- Enhanced development tooling section with platform-specific installation and publishing scripts
-- Updated troubleshooting guide to include platform-specific installation issues
-- Added new sections for automated installation and publishing workflows
+- Added repository organization section documenting the .gitignore pattern for `Narrative_Operating_System/`
+- Updated project structure documentation to include repository organization practices
+- Enhanced development workflow section with repository management best practices
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -37,24 +36,25 @@
 5. [Detailed Component Analysis](#detailed-component-analysis)
 6. [Dependency Analysis](#dependency-analysis)
 7. [Development Tooling and Automation](#development-tooling-and-automation)
-8. [Cross-Platform Installation and Publishing](#cross-platform-installation-and-publishing)
-9. [Performance Considerations](#performance-considerations)
-10. [Troubleshooting Guide](#troubleshooting-guide)
-11. [Contribution Guidelines](#contribution-guidelines)
-12. [Release and Version Management](#release-and-version-management)
-13. [Extensibility Guide](#extensibility-guide)
-14. [Conclusion](#conclusion)
+8. [Repository Organization and Management](#repository-organization-and-management)
+9. [Cross-Platform Installation and Publishing](#cross-platform-installation-and-publishing)
+10. [Performance Considerations](#performance-considerations)
+11. [Troubleshooting Guide](#troubleshooting-guide)
+12. [Contribution Guidelines](#contribution-guidelines)
+13. [Release and Version Management](#release-and-version-management)
+14. [Extensibility Guide](#extensibility-guide)
+15. [Conclusion](#conclusion)
 
 ## Introduction
-This document provides comprehensive development and contributing guidance for the Narrative Operating System (NOS) monorepo. It covers environment setup with PNPM workspaces and Turborepo orchestration, build and development workflows, testing strategies, CI considerations, contribution standards, debugging and profiling techniques, release processes, and extensibility for agents, memory strategies, and LLM providers. The project now includes comprehensive installation scripts for Windows PowerShell and cross-platform publishing workflows for both Windows and Unix-like systems.
+This document provides comprehensive development and contributing guidance for the Narrative Operating System (NOS) monorepo. It covers environment setup with PNPM workspaces and Turborepo orchestration, build and development workflows, testing strategies, CI considerations, contribution standards, debugging and profiling techniques, release processes, and extensibility for agents, memory strategies, and LLM providers. The project now includes comprehensive installation scripts for Windows PowerShell and cross-platform publishing workflows for both Windows and Unix-like systems, along with improved repository organization practices.
 
 ## Project Structure
 The repository is a TypeScript monorepo organized into:
 - apps/cli: A CLI application that orchestrates story creation and generation via the engine package.
 - packages/engine: The core engine responsible for story modeling, LLM orchestration, agent pipeline, and memory management.
-- **New**: Automated installation scripts for Windows PowerShell and cross-platform publishing workflows.
+- **New**: Enhanced repository organization with standardized directory patterns for clean project management.
 
-PNPM workspaces define the package locations, and Turborepo defines shared tasks and caching behavior across the monorepo.
+PNPM workspaces define the package locations, and Turborepo defines shared tasks and caching behavior across the monorepo. The repository follows standardized organization patterns to maintain cleanliness and prevent accidental commits of generated content.
 
 ```mermaid
 graph TB
@@ -62,9 +62,7 @@ subgraph "Monorepo Root"
 ROOT_PKG["Root package.json<br/>scripts: build, dev, lint, test, cli"]
 WS["pnpm-workspace.yaml<br/>packages: apps/*, packages/*"]
 TURBO["turbo.json<br/>tasks: build, dev, lint, test"]
-INSTALL["install.ps1<br/>Windows PowerShell installer"]
-PUBLISH_PS["publish.ps1<br/>Windows PowerShell publisher"]
-PUBLISH_SH["publish.sh<br/>Unix-like shell publisher"]
+GITIGNORE[".gitignore<br/>standardized patterns<br/>Narrative_Operating_System/"]
 end
 subgraph "Apps"
 CLI_PKG["apps/cli/package.json<br/>binary: nos"]
@@ -72,58 +70,55 @@ end
 subgraph "Packages"
 ENG_PKG["packages/engine/package.json<br/>exports: types, agents, pipeline, memory, llm"]
 end
+subgraph "Repository Organization"
+ORG["Standardized Patterns<br/>- Dependencies: node_modules/<br/>- Build outputs: dist/, build/<br/>- Environment: .env*, .env.local<br/>- IDE: .idea/, .vscode/<br/>- OS: .DS_Store, Thumbs.db<br/>- Logs: logs/, *.log<br/>- Testing: coverage/, .nyc_output/<br/>- Turbo: .turbo/<br/>- Cache: .cache/, *.cache<br/>- Temporary: tmp/, temp/, *.tmp<br/>- Project: Narrative_Operating_System/"]
+end
 ROOT_PKG --> CLI_PKG
 ROOT_PKG --> ENG_PKG
 WS --> CLI_PKG
 WS --> ENG_PKG
 TURBO --> CLI_PKG
 TURBO --> ENG_PKG
-INSTALL --> ROOT_PKG
-PUBLISH_PS --> ROOT_PKG
-PUBLISH_SH --> ROOT_PKG
+GITIGNORE --> ORG
 ```
 
 **Diagram sources**
-- [package.json](file://package.json#L1-L17)
-- [pnpm-workspace.yaml](file://pnpm-workspace.yaml#L1-L4)
-- [turbo.json](file://turbo.json#L1-L19)
-- [install.ps1](file://install.ps1#L1-L130)
-- [publish.ps1](file://publish.ps1#L1-L95)
-- [publish.sh](file://publish.sh#L1-L100)
-- [apps/cli/package.json](file://apps/cli/package.json#L1-L50)
-- [packages/engine/package.json](file://packages/engine/package.json#L1-L44)
+- [package.json:1-17](file://package.json#L1-L17)
+- [pnpm-workspace.yaml:1-4](file://pnpm-workspace.yaml#L1-L4)
+- [turbo.json:1-19](file://turbo.json#L1-L19)
+- [.gitignore:1-50](file://.gitignore#L1-L50)
+- [apps/cli/package.json:1-50](file://apps/cli/package.json#L1-L50)
+- [packages/engine/package.json:1-44](file://packages/engine/package.json#L1-L44)
 
 **Section sources**
-- [package.json](file://package.json#L1-L17)
-- [pnpm-workspace.yaml](file://pnpm-workspace.yaml#L1-L4)
-- [turbo.json](file://turbo.json#L1-L19)
-- [install.ps1](file://install.ps1#L1-L130)
-- [publish.ps1](file://publish.ps1#L1-L95)
-- [publish.sh](file://publish.sh#L1-L100)
+- [package.json:1-17](file://package.json#L1-L17)
+- [pnpm-workspace.yaml:1-4](file://pnpm-workspace.yaml#L1-L4)
+- [turbo.json:1-19](file://turbo.json#L1-L19)
+- [.gitignore:1-50](file://.gitignore#L1-L50)
 
 ## Core Components
 - CLI Application: Provides commands to configure, initialize stories, generate chapters, show status, and continue sequences. It depends on the engine package and exposes a binary named nos.
 - Engine Package: Exports types, LLM client, agents (writer, completeness checker, summarizer, canon validator), pipeline for chapter generation, story bible/state utilities, and memory/canon store.
-- **New**: Automated installation and publishing scripts for streamlined development and distribution workflows.
+- **New**: Enhanced repository organization with standardized patterns for clean project management and development workflow optimization.
 
 Key exports and entry points:
-- CLI entry: [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L1-L54)
-- Engine entry: [packages/engine/src/index.ts](file://packages/engine/src/index.ts#L1-L23)
-- Engine types: [packages/engine/src/types/index.ts](file://packages/engine/src/types/index.ts#L1-L90)
-- LLM client: [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L1-L106)
-- Canon store: [packages/engine/src/memory/canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L1-L134)
-- Generation pipeline: [packages/engine/src/pipeline/generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
+- CLI entry: [apps/cli/src/index.ts:1-54](file://apps/cli/src/index.ts#L1-L54)
+- Engine entry: [packages/engine/src/index.ts:1-23](file://packages/engine/src/index.ts#L1-L23)
+- Engine types: [packages/engine/src/types/index.ts:1-90](file://packages/engine/src/types/index.ts#L1-L90)
+- LLM client: [packages/engine/src/llm/client.ts:1-106](file://packages/engine/src/llm/client.ts#L1-L106)
+- Canon store: [packages/engine/src/memory/canonStore.ts:1-134](file://packages/engine/src/memory/canonStore.ts#L1-L134)
+- Generation pipeline: [packages/engine/src/pipeline/generateChapter.ts:1-76](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
 
 **Section sources**
-- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L1-L54)
-- [packages/engine/src/index.ts](file://packages/engine/src/index.ts#L1-L23)
-- [packages/engine/src/types/index.ts](file://packages/engine/src/types/index.ts#L1-L90)
-- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L1-L106)
-- [packages/engine/src/memory/canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L1-L134)
-- [packages/engine/src/pipeline/generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
+- [apps/cli/src/index.ts:1-54](file://apps/cli/src/index.ts#L1-L54)
+- [packages/engine/src/index.ts:1-23](file://packages/engine/src/index.ts#L1-L23)
+- [packages/engine/src/types/index.ts:1-90](file://packages/engine/src/types/index.ts#L1-L90)
+- [packages/engine/src/llm/client.ts:1-106](file://packages/engine/src/llm/client.ts#L1-L106)
+- [packages/engine/src/memory/canonStore.ts:1-134](file://packages/engine/src/memory/canonStore.ts#L1-L134)
+- [packages/engine/src/pipeline/generateChapter.ts:1-76](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
 
 ## Architecture Overview
-The CLI drives story lifecycle commands, delegating to the engine for generation and state management. The engine coordinates agents and memory to produce coherent chapters guided by the story bible and canonical facts. The system now includes automated installation and publishing workflows for seamless development and distribution.
+The CLI drives story lifecycle commands, delegating to the engine for generation and state management. The engine coordinates agents and memory to produce coherent chapters guided by the story bible and canonical facts. The system now includes automated installation and publishing workflows for seamless development and distribution, along with standardized repository organization practices.
 
 ```mermaid
 graph TB
@@ -133,22 +128,25 @@ LLM["LLM Provider (OpenAI/DeepSeek)"]
 STORE["Canon Store"]
 INSTALL["Windows Installer<br/>install.ps1"]
 PUBLISH["Cross-Platform Publisher<br/>publish.ps1 & publish.sh"]
+REPO["Repository Organization<br/>.gitignore patterns<br/>Narrative_Operating_System/"]
 CLI --> ENGINE
 ENGINE --> LLM
 ENGINE --> STORE
 INSTALL --> CLI
 INSTALL --> ENGINE
 PUBLISH --> INSTALL
+REPO --> GITIGNORE[".gitignore<br/>clean repository management"]
 ```
 
 **Diagram sources**
-- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L1-L54)
-- [packages/engine/src/index.ts](file://packages/engine/src/index.ts#L1-L23)
-- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L1-L106)
-- [packages/engine/src/memory/canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L1-L134)
-- [install.ps1](file://install.ps1#L1-L130)
-- [publish.ps1](file://publish.ps1#L1-L95)
-- [publish.sh](file://publish.sh#L1-L100)
+- [apps/cli/src/index.ts:1-54](file://apps/cli/src/index.ts#L1-L54)
+- [packages/engine/src/index.ts:1-23](file://packages/engine/src/index.ts#L1-L23)
+- [packages/engine/src/llm/client.ts:1-106](file://packages/engine/src/llm/client.ts#L1-L106)
+- [packages/engine/src/memory/canonStore.ts:1-134](file://packages/engine/src/memory/canonStore.ts#L1-L134)
+- [install.ps1:1-130](file://install.ps1#L1-L130)
+- [publish.ps1:1-95](file://publish.ps1#L1-L95)
+- [publish.sh:1-100](file://publish.sh#L1-L100)
+- [.gitignore:50-50](file://.gitignore#L50-L50)
 
 ## Detailed Component Analysis
 
@@ -173,11 +171,11 @@ CLI-->>User : "Story created : ID ..."
 ```
 
 **Diagram sources**
-- [apps/cli/src/commands/init.ts](file://apps/cli/src/commands/init.ts#L1-L50)
-- [packages/engine/src/index.ts](file://packages/engine/src/index.ts#L1-L23)
+- [apps/cli/src/commands/init.ts:1-50](file://apps/cli/src/commands/init.ts#L1-L50)
+- [packages/engine/src/index.ts:1-23](file://packages/engine/src/index.ts#L1-L23)
 
 **Section sources**
-- [apps/cli/src/commands/init.ts](file://apps/cli/src/commands/init.ts#L1-L50)
+- [apps/cli/src/commands/init.ts:1-50](file://apps/cli/src/commands/init.ts#L1-L50)
 
 ```mermaid
 sequenceDiagram
@@ -195,11 +193,11 @@ CLI-->>User : "Generated chapter N"
 ```
 
 **Diagram sources**
-- [apps/cli/src/commands/generate.ts](file://apps/cli/src/commands/generate.ts#L1-L55)
-- [packages/engine/src/pipeline/generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
+- [apps/cli/src/commands/generate.ts:1-55](file://apps/cli/src/commands/generate.ts#L1-L55)
+- [packages/engine/src/pipeline/generateChapter.ts:1-76](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
 
 **Section sources**
-- [apps/cli/src/commands/generate.ts](file://apps/cli/src/commands/generate.ts#L1-L55)
+- [apps/cli/src/commands/generate.ts:1-55](file://apps/cli/src/commands/generate.ts#L1-L55)
 
 ### Engine Pipeline
 The generation pipeline composes the writer agent, completeness checks, optional canon validation, and summarization, returning structured results.
@@ -218,14 +216,14 @@ Build --> End(["Return {chapter, summary, violations}"])
 ```
 
 **Diagram sources**
-- [packages/engine/src/pipeline/generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
-- [packages/engine/src/agents/writer.ts](file://packages/engine/src/agents/writer.ts#L1-L146)
-- [packages/engine/src/agents/completeness.ts](file://packages/engine/src/agents/completeness.ts#L1-L200)
-- [packages/engine/src/agents/summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L1-L200)
-- [packages/engine/src/agents/canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L1-L200)
+- [packages/engine/src/pipeline/generateChapter.ts:1-76](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
+- [packages/engine/src/agents/writer.ts:1-146](file://packages/engine/src/agents/writer.ts#L1-L146)
+- [packages/engine/src/agents/completeness.ts:1-200](file://packages/engine/src/agents/completeness.ts#L1-L200)
+- [packages/engine/src/agents/summarizer.ts:1-200](file://packages/engine/src/agents/summarizer.ts#L1-L200)
+- [packages/engine/src/agents/canonValidator.ts:1-200](file://packages/engine/src/agents/canonValidator.ts#L1-L200)
 
 **Section sources**
-- [packages/engine/src/pipeline/generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
+- [packages/engine/src/pipeline/generateChapter.ts:1-76](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
 
 ### LLM Client and Providers
 The LLM client supports configurable providers and models via environment variables. It exposes plain completion and JSON parsing helpers.
@@ -252,10 +250,10 @@ OpenAIProvider ..|> LLMProvider
 ```
 
 **Diagram sources**
-- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L1-L106)
+- [packages/engine/src/llm/client.ts:1-106](file://packages/engine/src/llm/client.ts#L1-L106)
 
 **Section sources**
-- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L1-L106)
+- [packages/engine/src/llm/client.ts:1-106](file://packages/engine/src/llm/client.ts#L1-L106)
 
 ### Memory and Canon Store
 The canon store maintains immutable facts categorized by character/world/plot/timeline, enabling validation and prompt formatting.
@@ -278,10 +276,10 @@ CanonStore "1" o--> "many" CanonFact : "contains"
 ```
 
 **Diagram sources**
-- [packages/engine/src/memory/canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L1-L134)
+- [packages/engine/src/memory/canonStore.ts:1-134](file://packages/engine/src/memory/canonStore.ts#L1-L134)
 
 **Section sources**
-- [packages/engine/src/memory/canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L1-L134)
+- [packages/engine/src/memory/canonStore.ts:1-134](file://packages/engine/src/memory/canonStore.ts#L1-L134)
 
 ### Types and Contracts
 Core data structures define story bibles, characters, plot threads, chapters, summaries, and generation contexts.
@@ -339,10 +337,10 @@ STORY_STATE ||--|| STORY_BIBLE : "tracks"
 ```
 
 **Diagram sources**
-- [packages/engine/src/types/index.ts](file://packages/engine/src/types/index.ts#L1-L90)
+- [packages/engine/src/types/index.ts:1-90](file://packages/engine/src/types/index.ts#L1-L90)
 
 **Section sources**
-- [packages/engine/src/types/index.ts](file://packages/engine/src/types/index.ts#L1-L90)
+- [packages/engine/src/types/index.ts:1-90](file://packages/engine/src/types/index.ts#L1-L90)
 
 ## Dependency Analysis
 - Workspace dependencies:
@@ -363,16 +361,16 @@ Engine --> Zod["zod"]
 ```
 
 **Diagram sources**
-- [package.json](file://package.json#L5-L11)
-- [turbo.json](file://turbo.json#L4-L16)
-- [apps/cli/package.json](file://apps/cli/package.json#L40-L44)
-- [packages/engine/package.json](file://packages/engine/package.json#L34-L38)
+- [package.json:5-11](file://package.json#L5-L11)
+- [turbo.json:4-16](file://turbo.json#L4-L16)
+- [apps/cli/package.json:40-44](file://apps/cli/package.json#L40-L44)
+- [packages/engine/package.json:34-38](file://packages/engine/package.json#L34-L38)
 
 **Section sources**
-- [apps/cli/package.json](file://apps/cli/package.json#L1-L50)
-- [packages/engine/package.json](file://packages/engine/package.json#L1-L44)
-- [package.json](file://package.json#L1-L17)
-- [turbo.json](file://turbo.json#L1-L19)
+- [apps/cli/package.json:1-50](file://apps/cli/package.json#L1-L50)
+- [packages/engine/package.json:1-44](file://packages/engine/package.json#L1-L44)
+- [package.json:1-17](file://package.json#L1-L17)
+- [turbo.json:1-19](file://turbo.json#L1-L19)
 
 ## Development Tooling and Automation
 
@@ -394,7 +392,7 @@ The project now includes comprehensive installation automation for streamlined d
 - Comprehensive success messaging and quick start guide
 
 **Section sources**
-- [install.ps1](file://install.ps1#L1-L130)
+- [install.ps1:1-130](file://install.ps1#L1-L130)
 
 ### Development Environment Setup
 - **Package Manager**: PNPM 9.0.0 with workspace support
@@ -403,9 +401,42 @@ The project now includes comprehensive installation automation for streamlined d
 - **Turborepo**: Version 2.0.0+ for task orchestration
 
 **Section sources**
-- [package.json](file://package.json#L4-L15)
-- [apps/cli/package.json](file://apps/cli/package.json#L37-L39)
-- [packages/engine/package.json](file://packages/engine/package.json#L31-L33)
+- [package.json:4-15](file://package.json#L4-L15)
+- [apps/cli/package.json:37-39](file://apps/cli/package.json#L37-L39)
+- [packages/engine/package.json:31-33](file://packages/engine/package.json#L31-L33)
+
+## Repository Organization and Management
+
+### Standardized .gitignore Patterns
+The repository maintains clean organization through comprehensive .gitignore patterns that prevent accidental commits of generated content and temporary files. The latest update includes the `Narrative_Operating_System/` pattern to standardize project directory naming and prevent conflicts with generated content.
+
+**Standardized Patterns Include:**
+- **Dependencies**: `node_modules/`, `.pnp`, `.pnp.js`
+- **Build Outputs**: `dist/`, `build/`, `*.tsbuildinfo`
+- **Environment Variables**: `.env`, `.env.local`, `.env.*.local`
+- **IDE Files**: `.idea/`, `.vscode/`, `*.swp`, `*.swo`, `*~`
+- **Operating System**: `.DS_Store`, `Thumbs.db`
+- **Logs**: `logs/`, `*.log`, `npm-debug.log*`, `yarn-debug.log*`, `yarn-error.log*`
+- **Testing**: `coverage/`, `.nyc_output/`
+- **Turborepo**: `.turbo/`
+- **Cache**: `.cache/`, `*.cache`
+- **Temporary Files**: `tmp/`, `temp/`, `*.tmp`
+- **Project Organization**: `Narrative_Operating_System/` (new)
+
+**New Pattern Explanation:**
+The `Narrative_Operating_System/` pattern ensures that any directory with this name is ignored by Git, preventing accidental commits of generated content or temporary project files. This pattern helps maintain clean repository state and prevents conflicts with development workflows that might create directories with this naming convention.
+
+**Section sources**
+- [.gitignore:1-50](file://.gitignore#L1-L50)
+
+### Repository Cleanup and Maintenance
+- Regularly review .gitignore patterns to ensure they cover new build artifacts and temporary files
+- Use standardized directory naming conventions to improve repository organization
+- Monitor for accidental commits of generated content and update .gitignore patterns as needed
+- Maintain consistent patterns across all development environments
+
+**Section sources**
+- [.gitignore:50-50](file://.gitignore#L50-L50)
 
 ## Cross-Platform Installation and Publishing
 
@@ -430,10 +461,10 @@ Config --> End(["Installation Complete"])
 ```
 
 **Diagram sources**
-- [install.ps1](file://install.ps1#L10-L130)
+- [install.ps1:10-130](file://install.ps1#L10-L130)
 
 **Section sources**
-- [install.ps1](file://install.ps1#L1-L130)
+- [install.ps1:1-130](file://install.ps1#L1-L130)
 
 ### Cross-Platform Publishing Workflows
 The project supports publishing workflows for both Windows PowerShell and Unix-like systems:
@@ -459,8 +490,8 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
 - User confirmation prompts for safety
 
 **Section sources**
-- [publish.ps1](file://publish.ps1#L1-L95)
-- [publish.sh](file://publish.sh#L1-L100)
+- [publish.ps1:1-95](file://publish.ps1#L1-L95)
+- [publish.sh:1-100](file://publish.sh#L1-L100)
 
 ### Platform-Specific Considerations
 - **Windows Users**: PowerShell scripts provide native Windows integration with colored output and environment variable handling
@@ -469,8 +500,8 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
 - **Environment Requirements**: Both scripts require PNPM 9.0.0+ and Node.js 20.0.0+
 
 **Section sources**
-- [publish.ps1](file://publish.ps1#L1-L95)
-- [publish.sh](file://publish.sh#L1-L100)
+- [publish.ps1:1-95](file://publish.ps1#L1-L95)
+- [publish.sh:1-100](file://publish.sh#L1-L100)
 
 ## Performance Considerations
 - Caching and Dev Persistence:
@@ -481,11 +512,10 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
   - Tune temperature and max tokens per provider to balance quality and cost.
 - Pipeline Iterations:
   - The generation loop continues until completeness or max attempts; adjust maxContinuationAttempts to control latency vs. quality.
-- **New**: Installation and publishing script performance:
-  - Scripts optimize for minimal network requests and efficient dependency resolution.
-  - Parallel processing capabilities in PNPM reduce installation time compared to npm.
-
-[No sources needed since this section provides general guidance]
+- **New**: Repository Organization Performance:
+  - Standardized .gitignore patterns reduce repository size and improve Git operations performance.
+  - Clean repository state reduces merge conflicts and improves development workflow efficiency.
+  - Consistent directory naming conventions improve project discoverability and maintenance.
 
 ## Troubleshooting Guide
 
@@ -502,7 +532,7 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
 
 ### Environment Variables
 - LLM provider selection and credentials are loaded from environment variables. Ensure provider and API keys are set before running tests or generation.
-- **New**: Installation scripts handle environment setup automatically, including pnpm configuration on Windows.
+- **New**: Repository Organization Issues: The `Narrative_Operating_System/` pattern prevents accidental commits of generated content. If you encounter issues with this pattern, verify that your project files are not being placed in directories with this naming convention.
 
 ### Test Setup
 - The test loads a local config file to inject provider and model settings prior to importing engine modules.
@@ -510,33 +540,36 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
 ### Error Handling
 - CLI commands exit with non-zero status on failure; inspect logs for detailed errors.
 - **New**: Installation and publishing scripts provide detailed error messages and recovery suggestions.
+- **New**: Repository organization scripts help maintain clean repository state and prevent common organization issues.
 
 **Section sources**
-- [install.ps1](file://install.ps1#L20-L51)
-- [publish.ps1](file://publish.ps1#L11-L19)
-- [publish.sh](file://publish.sh#L18-L27)
-- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L46-L66)
-- [packages/engine/src/test/simple.test.ts](file://packages/engine/src/test/simple.test.ts#L5-L18)
-- [apps/cli/src/commands/generate.ts](file://apps/cli/src/commands/generate.ts#L50-L53)
+- [install.ps1:20-51](file://install.ps1#L20-L51)
+- [publish.ps1:11-19](file://publish.ps1#L11-L19)
+- [publish.sh:18-27](file://publish.sh#L18-L27)
+- [packages/engine/src/llm/client.ts:46-66](file://packages/engine/src/llm/client.ts#L46-L66)
+- [packages/engine/src/test/simple.test.ts:5-18](file://packages/engine/src/test/simple.test.ts#L5-L18)
+- [apps/cli/src/commands/generate.ts:50-53](file://apps/cli/src/commands/generate.ts#L50-L53)
+- [.gitignore:50-50](file://.gitignore#L50-L50)
 
 ## Contribution Guidelines
 - Development Environment
   - Install PNPM and use workspaces to link packages automatically.
   - Use Turborepo scripts for building, developing, linting, and testing across the monorepo.
   - **New**: Use installation scripts for rapid environment setup on Windows or Unix-like systems.
+  - **New**: Follow standardized repository organization practices using .gitignore patterns.
 - Code Style
   - Follow TypeScript strictness and formatting conventions used in the repository.
 - Commit Messages and PRs
   - Keep commits focused and descriptive.
   - Reference related issues and include a summary of changes.
   - Ensure tests pass locally before opening a pull request.
+  - **New**: Review .gitignore patterns when adding new build artifacts or temporary files.
 - Review Process
   - Request reviews from maintainers; address feedback promptly.
 - **New**: Publishing Contributions
   - Use appropriate publishing scripts for cross-platform compatibility.
   - Follow semantic versioning guidelines when preparing releases.
-
-[No sources needed since this section provides general guidance]
+  - **New**: Ensure repository organization patterns are maintained during releases.
 
 ## Release and Version Management
 
@@ -560,10 +593,11 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
 - **Automated Dependency Updates**: CLI scripts automatically update engine dependency versions.
 - **Consistent Versioning**: Both platforms maintain identical version numbers across packages.
 - **Progress Tracking**: Scripts provide detailed feedback throughout the publishing process.
+- **Repository Organization**: Release process maintains standardized .gitignore patterns for clean distribution.
 
 **Section sources**
-- [publish.ps1](file://publish.ps1#L23-L48)
-- [publish.sh](file://publish.sh#L29-L54)
+- [publish.ps1:23-48](file://publish.ps1#L23-L48)
+- [publish.sh:29-54](file://publish.sh#L29-L54)
 
 ## Extensibility Guide
 
@@ -573,15 +607,15 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
 - Export the new agent from the engine entry point so the CLI and other consumers can use it.
 
 **Section sources**
-- [packages/engine/src/pipeline/generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
-- [packages/engine/src/index.ts](file://packages/engine/src/index.ts#L8-L12)
+- [packages/engine/src/pipeline/generateChapter.ts:1-76](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
+- [packages/engine/src/index.ts:8-12](file://packages/engine/src/index.ts#L8-L12)
 
 ### Extending Memory Strategies
 - Extend the CanonStore API to support new categories or retrieval patterns.
 - Add formatting helpers for prompts and integrate them into agent prompts.
 
 **Section sources**
-- [packages/engine/src/memory/canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L101-L129)
+- [packages/engine/src/memory/canonStore.ts:101-129](file://packages/engine/src/memory/canonStore.ts#L101-L129)
 
 ### Supporting Additional LLM Providers
 - Implement a new provider class conforming to the LLMProvider interface.
@@ -589,9 +623,9 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
 - Add environment variables for credentials and base URLs.
 
 **Section sources**
-- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L4-L6)
-- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L68-L76)
-- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L46-L66)
+- [packages/engine/src/llm/client.ts:4-6](file://packages/engine/src/llm/client.ts#L4-L6)
+- [packages/engine/src/llm/client.ts:68-76](file://packages/engine/src/llm/client.ts#L68-L76)
+- [packages/engine/src/llm/client.ts:46-66](file://packages/engine/src/llm/client.ts#L46-L66)
 
 ## Testing Strategies
 - Unit Tests for the Engine
@@ -602,18 +636,21 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
 - Continuous Integration
   - Configure CI to install PNPM, install dependencies, build, lint, and run tests using Turborepo tasks.
   - Cache node_modules and Turbo cache to speed up jobs.
+  - **New**: CI should respect .gitignore patterns to prevent accidental commits of generated content.
 - **New**: Automated Testing with Installation Scripts
   - Installation scripts can be used to quickly set up test environments on different platforms.
   - Publishing scripts ensure consistent testing environments across development and production.
+  - Repository organization patterns help maintain clean test environments.
 
 **Section sources**
-- [packages/engine/src/test/simple.test.ts](file://packages/engine/src/test/simple.test.ts#L1-L73)
+- [packages/engine/src/test/simple.test.ts:1-73](file://packages/engine/src/test/simple.test.ts#L1-L73)
 
 ## Development Workflow
 - Local Setup
   - Install PNPM and run installation in the monorepo root.
   - Use Turborepo scripts for development and building.
   - **New**: Use installation scripts for rapid environment setup on Windows or Unix-like systems.
+  - **New**: Follow standardized repository organization practices using .gitignore patterns.
 - Running the CLI
   - Build the engine and CLI, then use the CLI binary to manage stories.
 - Debugging
@@ -622,19 +659,22 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
 - Profiling
   - Measure generation latency per chapter and track token usage per provider.
   - Adjust model parameters and prompt sizes to optimize throughput.
+  - **New**: Monitor repository organization impact on development workflow efficiency.
 - **New**: Cross-Platform Development
   - Use platform-appropriate installation and publishing scripts for consistent development experience.
   - Leverage automated scripts for environment setup and cleanup across different operating systems.
+  - **New**: Maintain consistent repository organization patterns across all development environments.
 
 **Section sources**
-- [package.json](file://package.json#L5-L11)
-- [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L1-L54)
-- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts#L18-L28)
-- [install.ps1](file://install.ps1#L1-L130)
+- [package.json:5-11](file://package.json#L5-L11)
+- [apps/cli/src/index.ts:1-54](file://apps/cli/src/index.ts#L1-L54)
+- [packages/engine/src/llm/client.ts:18-28](file://packages/engine/src/llm/client.ts#L18-L28)
+- [install.ps1:1-130](file://install.ps1#L1-L130)
+- [.gitignore:50-50](file://.gitignore#L50-L50)
 
 ## Conclusion
 This guide outlines how to develop, test, and contribute to the Narrative Operating System monorepo. By leveraging PNPM workspaces and Turborepo, you can efficiently manage a multi-package TypeScript codebase. The engine's modular design enables easy extension with new agents, memory strategies, and LLM providers, while the CLI provides a practical interface for iterative development and experimentation.
 
-**New additions** to this guide include comprehensive coverage of the automated installation scripts for Windows PowerShell and cross-platform publishing workflows that streamline development and distribution processes. These tools ensure consistent development experiences across different operating systems while maintaining the flexibility and power of the underlying monorepo architecture.
+**New additions** to this guide include comprehensive coverage of the automated installation scripts for Windows PowerShell and cross-platform publishing workflows that streamline development and distribution processes, along with enhanced repository organization practices. The standardized .gitignore patterns, including the new `Narrative_Operating_System/` pattern, ensure clean repository management and prevent accidental commits of generated content.
 
-The installation scripts provide a complete automated setup experience for Windows users, while the publishing workflows enable consistent releases across both Windows PowerShell and Unix-like shell environments. Together, these tools significantly reduce the barrier to entry for contributors and ensure reliable distribution of the Narrative Operating System across diverse development environments.
+These improvements significantly reduce the barrier to entry for contributors while maintaining reliable distribution of the Narrative Operating System across diverse development environments. The combination of automated tooling and standardized organization practices creates a robust foundation for ongoing development and contribution to the project.
