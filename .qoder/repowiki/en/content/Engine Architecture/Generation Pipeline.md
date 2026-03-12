@@ -3,19 +3,35 @@
 <cite>
 **Referenced Files in This Document**
 - [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts)
+- [index.ts](file://packages/engine/src/types/index.ts)
+- [sceneAssembler.ts](file://packages/engine/src/scene/sceneAssembler.ts)
+- [sceneOutcomeExtractor.ts](file://packages/engine/src/scene/sceneOutcomeExtractor.ts)
+- [scenePlanner.ts](file://packages/engine/src/agents/scenePlanner.ts)
+- [sceneWriter.ts](file://packages/engine/src/agents/sceneWriter.ts)
+- [sceneValidator.ts](file://packages/engine/src/agents/sceneValidator.ts)
 - [writer.ts](file://packages/engine/src/agents/writer.ts)
 - [completeness.ts](file://packages/engine/src/agents/completeness.ts)
 - [summarizer.ts](file://packages/engine/src/agents/summarizer.ts)
 - [canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts)
+- [memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts)
 - [client.ts](file://packages/engine/src/llm/client.ts)
-- [index.ts](file://packages/engine/src/index.ts)
-- [types/index.ts](file://packages/engine/src/types/index.ts)
 - [canonStore.ts](file://packages/engine/src/memory/canonStore.ts)
+- [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts)
+- [memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts)
 - [bible.ts](file://packages/engine/src/story/bible.ts)
 - [state.ts](file://packages/engine/src/story/state.ts)
 - [generate.ts](file://apps/cli/src/commands/generate.ts)
 - [simple.test.ts](file://packages/engine/src/test/simple.test.ts)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Updated to reflect scene-level generation pipeline as the primary approach replacing chapter-level generation
+- Enhanced generateChapter function with dual-mode support (scene-level and legacy chapter-level)
+- Added comprehensive scene-related types and documentation for Scene, ScenePlan, SceneOutput, SceneValidationResult, and SceneOutcome
+- Updated architecture diagrams to show scene-based workflow
+- Revised core components section to include scene-level agents and processors
+- Updated dependency analysis to reflect new scene-level dependencies
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -30,10 +46,10 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document describes the chapter generation pipeline that orchestrates AI-powered story creation. It focuses on the generateChapter function workflow, step-by-step processing stages, and integration with specialized agents. The pipeline architecture covers input validation, context preparation, agent coordination, and output synthesis. It also documents the GenerateChapterOptions interface, result structures, error handling mechanisms, and practical guidance for configuration, performance monitoring, extensibility, and debugging.
+This document describes the generation pipeline that orchestrates AI-powered story creation with a focus on the scene-level generation approach as the primary method. The pipeline now supports dual-mode operation: scene-level generation (Phase 12) as the default approach and legacy chapter-level generation as a fallback option. It covers the generateChapter function workflow, step-by-step processing stages, and integration with specialized agents for both approaches. The pipeline architecture encompasses input validation, context preparation, agent coordination, and output synthesis with comprehensive scene management capabilities.
 
 ## Project Structure
-The generation pipeline resides in the engine package and integrates tightly with story metadata, memory stores, and LLM providers. The CLI demonstrates end-to-end usage, while tests provide minimal reproducible examples.
+The generation pipeline resides in the engine package and integrates tightly with story metadata, memory stores, scene planning, and LLM providers. The CLI demonstrates end-to-end usage, while tests provide minimal reproducible examples. The structure now includes dedicated scene-level components alongside traditional chapter-level agents.
 
 ```mermaid
 graph TB
@@ -43,376 +59,488 @@ B["agents/writer.ts"]
 C["agents/completeness.ts"]
 D["agents/summarizer.ts"]
 E["agents/canonValidator.ts"]
-F["llm/client.ts"]
-G["types/index.ts"]
-H["memory/canonStore.ts"]
-I["story/bible.ts"]
-J["story/state.ts"]
+F["agents/memoryExtractor.ts"]
+G["agents/scenePlanner.ts"]
+H["agents/sceneWriter.ts"]
+I["agents/sceneValidator.ts"]
+J["scene/sceneAssembler.ts"]
+K["scene/sceneOutcomeExtractor.ts"]
+L["llm/client.ts"]
+M["types/index.ts"]
+N["memory/canonStore.ts"]
+O["memory/vectorStore.ts"]
+P["memory/memoryRetriever.ts"]
+Q["story/bible.ts"]
+R["story/state.ts"]
 end
 subgraph "CLI"
-K["apps/cli/src/commands/generate.ts"]
+S["apps/cli/src/commands/generate.ts"]
 end
 subgraph "Tests"
-L["packages/engine/src/test/simple.test.ts"]
+T["packages/engine/src/test/simple.test.ts"]
 end
-K --> A
+S --> A
 A --> B
 A --> C
 A --> D
 A --> E
-B --> F
-C --> F
-D --> F
-E --> F
+A --> F
 A --> G
 A --> H
 A --> I
 A --> J
-L --> A
+A --> K
+B --> L
+C --> L
+D --> L
+E --> L
+F --> L
+G --> L
+H --> L
+I --> L
+J --> L
+K --> L
+A --> M
+A --> N
+A --> O
+A --> P
+A --> Q
+A --> R
+T --> A
 ```
 
 **Diagram sources**
-- [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
-- [writer.ts](file://packages/engine/src/agents/writer.ts#L1-L146)
-- [completeness.ts](file://packages/engine/src/agents/completeness.ts#L1-L56)
-- [summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L1-L64)
-- [canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L1-L59)
-- [client.ts](file://packages/engine/src/llm/client.ts#L1-L106)
-- [types/index.ts](file://packages/engine/src/types/index.ts#L1-L90)
-- [canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L1-L134)
-- [bible.ts](file://packages/engine/src/story/bible.ts#L1-L73)
-- [state.ts](file://packages/engine/src/story/state.ts#L1-L30)
-- [generate.ts](file://apps/cli/src/commands/generate.ts#L1-L55)
-- [simple.test.ts](file://packages/engine/src/test/simple.test.ts#L1-L73)
+- [generateChapter.ts:1-290](file://packages/engine/src/pipeline/generateChapter.ts#L1-L290)
+- [writer.ts](file://packages/engine/src/agents/writer.ts)
+- [completeness.ts](file://packages/engine/src/agents/completeness.ts)
+- [summarizer.ts](file://packages/engine/src/agents/summarizer.ts)
+- [canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts)
+- [memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts)
+- [scenePlanner.ts](file://packages/engine/src/agents/scenePlanner.ts)
+- [sceneWriter.ts](file://packages/engine/src/agents/sceneWriter.ts)
+- [sceneValidator.ts](file://packages/engine/src/agents/sceneValidator.ts)
+- [sceneAssembler.ts](file://packages/engine/src/scene/sceneAssembler.ts)
+- [sceneOutcomeExtractor.ts](file://packages/engine/src/scene/sceneOutcomeExtractor.ts)
+- [client.ts](file://packages/engine/src/llm/client.ts)
+- [types/index.ts:1-125](file://packages/engine/src/types/index.ts#L1-L125)
+- [canonStore.ts](file://packages/engine/src/memory/canonStore.ts)
+- [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts)
+- [memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts)
+- [bible.ts](file://packages/engine/src/story/bible.ts)
+- [state.ts](file://packages/engine/src/story/state.ts)
 
 **Section sources**
-- [index.ts](file://packages/engine/src/index.ts#L1-L23)
-- [generate.ts](file://apps/cli/src/commands/generate.ts#L1-L55)
-- [simple.test.ts](file://packages/engine/src/test/simple.test.ts#L1-L73)
+- [generateChapter.ts:1-290](file://packages/engine/src/pipeline/generateChapter.ts#L1-L290)
+- [index.ts:1-125](file://packages/engine/src/types/index.ts#L1-L125)
 
 ## Core Components
-- generateChapter: Orchestrates the end-to-end generation loop, coordinating writer, completeness checker, optional canon validation, and summarizer.
-- Writer agent: Generates or continues chapter content using a structured prompt with story context and target word count.
-- Completeness checker: Evaluates whether the chapter ends at a natural stopping point.
-- Summarizer: Produces a concise chapter summary and extracts key events.
-- Canon validator: Validates chapter content against stored canonical facts and reports violations.
-- LLM client: Provides unified access to configured LLM providers (OpenAI, DeepSeek) with configurable models and token limits.
-- Types: Defines GenerationContext, Chapter, ChapterSummary, and related structures used across the pipeline.
-- Memory: CanonStore manages canonical facts and formats them for prompts.
-- Story utilities: Create and update story metadata and state.
+The pipeline now operates in dual modes with comprehensive scene-level capabilities:
+
+### Primary Scene-Level Generation Mode
+- **generateChapter**: Orchestrates scene-level generation by default, coordinating scene planning, individual scene generation, validation, assembly, and outcome extraction.
+- **Scene Planner**: Creates detailed scene plans with locations, characters, purposes, and tension levels for each chapter.
+- **Scene Writer**: Generates individual scenes with proper context, previous scene summaries, and canonical constraints.
+- **Scene Validator**: Validates each scene against canonical facts and extracts validation results.
+- **Scene Assembler**: Combines individual scenes into coherent chapter content with proper transitions.
+- **Scene Outcome Extractor**: Extracts key events, character changes, and plot developments from scene outputs.
+
+### Legacy Chapter-Level Generation Mode
+- **Writer Agent**: Generates or continues chapter content using structured prompts with story context and target word count.
+- **Completeness Checker**: Evaluates whether the chapter ends at a natural stopping point.
+- **Summarizer**: Produces concise chapter summaries and extracts key events.
+- **Memory Extractor**: Extracts and stores memories from chapter content into vector store.
+
+### Shared Infrastructure
+- **LLM Client**: Provides unified access to configured LLM providers with configurable models and token limits.
+- **Types**: Defines comprehensive scene-related structures including Scene, ScenePlan, SceneOutput, SceneValidationResult, and SceneOutcome.
+- **Memory Management**: Enhanced with vector store integration for scene memory storage and retrieval.
+- **Story Utilities**: Create and update story metadata and state with scene-level tracking.
 
 **Section sources**
-- [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L8-L76)
-- [writer.ts](file://packages/engine/src/agents/writer.ts#L48-L146)
-- [completeness.ts](file://packages/engine/src/agents/completeness.ts#L30-L56)
-- [summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L17-L64)
-- [canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L31-L59)
-- [client.ts](file://packages/engine/src/llm/client.ts#L31-L106)
-- [types/index.ts](file://packages/engine/src/types/index.ts#L60-L90)
-- [canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L12-L134)
-- [bible.ts](file://packages/engine/src/story/bible.ts#L3-L73)
-- [state.ts](file://packages/engine/src/story/state.ts#L3-L30)
+- [generateChapter.ts:33-57](file://packages/engine/src/pipeline/generateChapter.ts#L33-L57)
+- [generateChapter.ts:63-205](file://packages/engine/src/pipeline/generateChapter.ts#L63-L205)
+- [generateChapter.ts:210-285](file://packages/engine/src/pipeline/generateChapter.ts#L210-L285)
+- [index.ts:91-125](file://packages/engine/src/types/index.ts#L91-L125)
 
 ## Architecture Overview
-The pipeline is a staged workflow that iteratively improves content quality and ensures adherence to story constraints.
+The pipeline now supports two distinct architectural approaches with scene-level generation as the primary method:
 
 ```mermaid
 sequenceDiagram
 participant CLI as "CLI Command"
 participant Engine as "generateChapter"
-participant Writer as "ChapterWriter"
-participant Checker as "CompletenessChecker"
-participant Sum as "ChapterSummarizer"
-participant Canon as "CanonValidator"
+participant Mode as "Mode Selector"
+participant ScenePlan as "ScenePlanner"
+participant SceneGen as "SceneWriter"
+participant SceneVal as "SceneValidator"
+participant Assembler as "SceneAssembler"
+participant Outcome as "OutcomeExtractor"
 participant LLM as "LLMClient"
 CLI->>Engine : "generateChapter(context, options)"
-Engine->>Writer : "write(context, canon?)"
+Engine->>Mode : "Check useSceneLevel flag"
+alt "Scene-level mode (default)"
+Mode->>ScenePlan : "planScenes(context)"
+ScenePlan->>LLM : "complete(prompt, config)"
+LLM-->>ScenePlan : "scenePlan"
+loop "For each scene"
+Engine->>SceneGen : "writeScene(scene, context)"
+SceneGen->>LLM : "complete(prompt, config)"
+LLM-->>SceneGen : "sceneContent"
+Engine->>SceneVal : "validateScene(scene, output)"
+SceneVal->>LLM : "complete(prompt, config)"
+LLM-->>SceneVal : "validationResult"
+SceneVal-->>Engine : "SceneValidationResult"
+end
+Engine->>Assembler : "assembleChapter(scenes)"
+Assembler->>LLM : "complete(prompt, config)"
+LLM-->>Assembler : "assembledContent"
+Engine->>Outcome : "extractSceneOutcome(scenes)"
+Outcome->>LLM : "complete(prompt, config)"
+LLM-->>Outcome : "mergedOutcomes"
+else "Legacy chapter mode"
+Mode->>Engine : "generateChapterLegacy"
+Engine->>Writer : "writer.write(context)"
 Writer->>LLM : "complete(prompt, config)"
 LLM-->>Writer : "content"
-Writer-->>Engine : "WriterOutput"
-loop "Continuation Loop"
-Engine->>Checker : "check(content)"
-alt "Incomplete"
-Engine->>Writer : "continue(existingContent, context)"
-Writer->>LLM : "complete(prompt, config)"
-LLM-->>Writer : "continuation"
-Writer-->>Engine : "extended content"
-else "Complete"
-Engine->>Engine : "break"
 end
-end
-opt "validateCanon"
-Engine->>Canon : "validate(content, canon)"
-Canon->>LLM : "complete(prompt, config)"
-LLM-->>Canon : "JSON result"
-Canon-->>Engine : "violations"
-end
-Engine->>Sum : "summarize(content, chapterNumber)"
-Sum->>LLM : "complete(prompt, config)"
-LLM-->>Sum : "summary"
-Sum-->>Engine : "ChapterSummary"
 Engine-->>CLI : "GenerateChapterResult"
 ```
 
 **Diagram sources**
-- [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L20-L71)
-- [writer.ts](file://packages/engine/src/agents/writer.ts#L55-L117)
-- [completeness.ts](file://packages/engine/src/agents/completeness.ts#L37-L52)
-- [summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L24-L38)
-- [canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L32-L55)
-- [client.ts](file://packages/engine/src/llm/client.ts#L78-L95)
+- [generateChapter.ts:33-57](file://packages/engine/src/pipeline/generateChapter.ts#L33-L57)
+- [generateChapter.ts:63-205](file://packages/engine/src/pipeline/generateChapter.ts#L63-L205)
+- [generateChapter.ts:210-285](file://packages/engine/src/pipeline/generateChapter.ts#L210-L285)
 
 ## Detailed Component Analysis
 
-### GenerateChapter Workflow
-The generateChapter function coordinates the following stages:
-- Input unpacking and defaults: Extracts context and applies default options.
-- Initial writing: Calls the writer to produce the first draft.
-- Continuation loop: Repeatedly checks completeness and continues until satisfied or attempts exhausted.
-- Optional canon validation: Validates against canonical facts and collects violations.
-- Summary generation: Produces a concise chapter summary and key events.
-- Output synthesis: Builds the Chapter result with metadata and timestamps.
+### Dual-Mode GenerateChapter Workflow
+The generateChapter function now supports two distinct generation approaches:
+
+#### Scene-Level Generation (Primary Mode)
+- **Input unpacking and defaults**: Extracts context and applies default scene-level options with useSceneLevel=true.
+- **Scene planning**: Creates detailed scene plans with target scene count and chapter goals.
+- **Individual scene generation**: Generates each scene with proper context, validation, and outcome extraction.
+- **Assembly and validation**: Combines scenes into coherent chapter content and validates against canonical facts.
+- **Outcome synthesis**: Extracts key events and character changes from scene outcomes.
+
+#### Legacy Chapter-Level Generation (Fallback Mode)
+- **Input unpacking and defaults**: Extracts context and applies default chapter-level options.
+- **Initial writing**: Calls the writer to produce the first draft.
+- **Continuation loop**: Repeatedly checks completeness and continues until satisfied or attempts exhausted.
+- **Optional memory extraction**: Extracts and stores memories from chapter content.
+- **Summary generation**: Produces concise chapter summary and key events.
+- **Output synthesis**: Builds the Chapter result with metadata and timestamps.
 
 ```mermaid
 flowchart TD
-Start(["Start generateChapter"]) --> Unpack["Unpack context and options"]
-Unpack --> Write["writer.write(context, canon)"]
-Write --> LoopCheck{"Completeness check"}
-LoopCheck --> |Incomplete| Continue["writer.continue(existing, context)"]
-Continue --> UpdateWC["Update word count"]
-UpdateWC --> LoopCheck
-LoopCheck --> |Complete| CanonCheck{"validateCanon enabled?"}
-CanonCheck --> |Yes| Validate["canonValidator.validate(content, canon)"]
-Validate --> Summarize["summarizer.summarize(content, chapterNumber)"]
-CanonCheck --> |No| Summarize
+Start(["Start generateChapter"]) --> CheckMode{"useSceneLevel enabled?"}
+CheckMode --> |Yes| ScenePlan["planScenes(context)"]
+ScenePlan --> SceneLoop["For each scene in plan"]
+SceneLoop --> WriteScene["writeScene(scene)"]
+WriteScene --> ValidateScene["validateScene(scene)"]
+ValidateScene --> ExtractOutcome["extractSceneOutcome(scene)"]
+ExtractOutcome --> StoreMemory["Store scene memory"]
+StoreMemory --> SceneLoop
+SceneLoop --> |All scenes| Assemble["assembleChapter(scenes)"]
+Assemble --> CanonValidate["canonValidator.validate(content)"]
+CanonValidate --> Summarize["summarizer.summarize(content)"]
 Summarize --> Build["Build Chapter result"]
+CheckMode --> |No| Legacy["generateChapterLegacy(context)"]
+Legacy --> Build
 Build --> End(["Return GenerateChapterResult"])
 ```
 
 **Diagram sources**
-- [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L20-L71)
+- [generateChapter.ts:33-57](file://packages/engine/src/pipeline/generateChapter.ts#L33-L57)
+- [generateChapter.ts:63-205](file://packages/engine/src/pipeline/generateChapter.ts#L63-L205)
+- [generateChapter.ts:210-285](file://packages/engine/src/pipeline/generateChapter.ts#L210-L285)
 
 **Section sources**
-- [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L20-L76)
+- [generateChapter.ts:33-290](file://packages/engine/src/pipeline/generateChapter.ts#L33-L290)
 
-### Writer Agent
+### Scene-Level Generation Components
+
+#### Scene Planner
 Responsibilities:
-- Assemble a structured prompt from StoryBible, StoryState, and optional CanonStore.
-- Infer chapter goal based on story progress.
-- Call LLM to generate initial content and compute word count.
-- Provide continuation capability to extend existing content.
+- Analyze story context and chapter goals to create detailed scene plans.
+- Determine scene locations, characters, purposes, and tension levels.
+- Set target scene count and chapter-specific objectives.
 
 Key behaviors:
-- Prompt templating with placeholders for story metadata, recent summaries, and chapter goal.
-- Extraction of title from content header lines.
-- Temperature and token limits tuned for creative writing.
+- Integrates with story state and previous chapter summaries.
+- Creates structured Scene objects with proper typing.
+- Supports dynamic scene count adjustment based on complexity.
 
-**Section sources**
-- [writer.ts](file://packages/engine/src/agents/writer.ts#L48-L146)
-
-### Completeness Checker
+#### Scene Writer
 Responsibilities:
-- Determine whether the chapter ends at a natural stopping point.
-- Return a binary assessment suitable for loop control.
+- Generate individual scenes with proper context and constraints.
+- Handle scene transitions and narrative continuity.
+- Maintain appropriate word count and scene-specific goals.
 
 Key behaviors:
-- Minimal instruction set to return a single classification token.
-- Normalization to handle minor variations in LLM output.
+- Uses scene purpose, location, and character lists for context.
+- Incorporates previous scene summaries for continuity.
+- Respects scene-specific constraints and canonical facts.
 
-**Section sources**
-- [completeness.ts](file://packages/engine/src/agents/completeness.ts#L30-L56)
-
-### Summarizer
+#### Scene Validator
 Responsibilities:
-- Produce a concise chapter summary under a token budget.
-- Extract key events by scanning sentence boundaries and heuristics.
+- Validate each scene against canonical facts and story consistency.
+- Extract validation results with detailed violation reporting.
+- Maintain scene integrity while allowing creative flexibility.
 
 Key behaviors:
-- Heuristic detection of event-triggering verbs to select representative sentences.
-- Fixed chapter number association for downstream state updates.
+- Parses validation responses with structured result objects.
+- Handles validation failures gracefully with partial acceptance.
+- Provides detailed violation descriptions for debugging.
 
-**Section sources**
-- [summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L17-L64)
-
-### Canon Validator
+#### Scene Assembler
 Responsibilities:
-- Validate chapter content against canonical facts.
-- Report violations as a list of descriptions.
+- Combine individual scenes into coherent chapter content.
+- Handle scene transitions and narrative flow.
+- Maintain proper formatting and structural coherence.
 
 Key behaviors:
-- JSON parsing with fallback to safe defaults when parsing fails.
-- Truncation of long content to limit prompt size.
+- Integrates scene outputs with appropriate transitions.
+- Ensures narrative continuity across scene boundaries.
+- Maintains chapter-level formatting standards.
 
-**Section sources**
-- [canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L31-L59)
-
-### LLM Client
+#### Scene Outcome Extractor
 Responsibilities:
-- Provide a unified interface to configured LLM providers.
-- Support multiple providers with environment-driven configuration.
-- Offer JSON parsing helper with strict validation.
+- Extract key events, character changes, and plot developments.
+- Merge outcomes from multiple scenes into chapter-level insights.
+- Provide structured outcome data for story state updates.
 
 Key behaviors:
-- Provider selection via environment variables.
-- Default configuration with overrides per call.
-- Strict JSON parsing with helpful error messages.
+- Identifies significant plot points and character arcs.
+- Extracts quantitative changes in story elements.
+- Maintains temporal ordering of extracted outcomes.
 
 **Section sources**
-- [client.ts](file://packages/engine/src/llm/client.ts#L31-L106)
+- [generateChapter.ts:84-160](file://packages/engine/src/pipeline/generateChapter.ts#L84-L160)
+- [generateChapter.ts:162-184](file://packages/engine/src/pipeline/generateChapter.ts#L162-L184)
 
-### Types and Data Structures
-Core types used by the pipeline:
-- GenerationContext: Story metadata, state, chapter number, and optional target word count.
-- Chapter: Final chapter entity with computed metadata.
-- ChapterSummary: Summary plus key events extracted from content.
-- WriterOutput: Intermediate output from writer with content, title, and word count.
-- GenerateChapterResult: Aggregated result including chapter, summary, and violations.
-- GenerateChapterOptions: Controls optional canon validation and continuation attempts.
+### Legacy Chapter-Level Components
+The legacy components maintain backward compatibility and serve as fallback options:
+
+#### Writer Agent
+Responsibilities:
+- Assemble structured prompts from StoryBible, StoryState, and optional CanonStore.
+- Infer chapter goals based on story progress.
+- Generate initial content and provide continuation capability.
+
+Key behaviors:
+- Enhanced with memory retrieval integration for context enrichment.
+- Supports word count estimation and target achievement.
+- Provides robust continuation logic for incomplete chapters.
+
+#### Completeness Checker
+Responsibilities:
+- Determine natural stopping points in chapter content.
+- Return binary assessment suitable for loop control.
+- Maintain consistency across different writing styles.
+
+Key behaviors:
+- Minimal instruction set optimized for reliable classification.
+- Normalization handling for varied LLM output formats.
+- Context-aware completeness evaluation.
+
+#### Summarizer
+Responsibilities:
+- Produce concise chapter summaries within token budgets.
+- Extract key events using heuristic sentence boundary detection.
+- Maintain fixed chapter number associations for state updates.
+
+Key behaviors:
+- Event-triggering verb detection for meaningful sentence selection.
+- Character change extraction for story progression tracking.
+- Structured summary format for downstream processing.
+
+#### Memory Extractor
+Responsibilities:
+- Extract meaningful story elements from chapter content.
+- Store memories in vector database with categorization.
+- Support future retrieval and story consistency.
+
+Key behaviors:
+- Semantic memory extraction with relevance scoring.
+- Category assignment for memory organization.
+- Vector embedding generation for similarity search.
 
 **Section sources**
-- [types/index.ts](file://packages/engine/src/types/index.ts#L33-L90)
+- [generateChapter.ts:210-285](file://packages/engine/src/pipeline/generateChapter.ts#L210-L285)
 
-### Memory and Story Utilities
-- CanonStore: Manages canonical facts and formats them for prompts.
-- StoryBible: Creates and enriches story metadata.
-- StoryState: Tracks progress and updates state after each chapter.
+### Enhanced Types and Data Structures
+The pipeline now includes comprehensive scene-level type definitions:
 
-**Section sources**
-- [canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L12-L134)
-- [bible.ts](file://packages/engine/src/story/bible.ts#L3-L73)
-- [state.ts](file://packages/engine/src/story/state.ts#L3-L30)
+#### Scene-Level Types
+- **Scene**: Individual scene representation with location, characters, purpose, and tension.
+- **ScenePlan**: Complete chapter scene plan with scenes array and chapter goals.
+- **SceneOutput**: Generated scene content with summary and word count metrics.
+- **SceneValidationResult**: Structured validation results with violation tracking.
+- **SceneOutcome**: Extracted outcomes including events, character changes, and new information.
 
-### CLI Integration and Example Execution
-The CLI demonstrates end-to-end usage:
-- Loads story data and validates progress.
-- Constructs GenerationContext with target word count.
-- Invokes generateChapter, updates state, and persists results.
-- Prints progress and next steps.
+#### Enhanced Result Structures
+- **GenerateChapterResult**: Extended with memory extraction count and scene-level metadata.
+- **GenerateChapterOptions**: Enhanced with scene-level controls including targetSceneCount and useSceneLevel flags.
 
-**Section sources**
-- [generate.ts](file://apps/cli/src/commands/generate.ts#L4-L54)
-
-### Test Execution Pattern
-The test script demonstrates minimal configuration and execution:
-- Sets environment variables for provider and model.
-- Creates a small story, state, and canonical store.
-- Calls generateChapter and logs results.
+#### Backward Compatibility Types
+- **GenerationContext**: Maintains chapter-level context structure.
+- **Chapter**: Standard chapter entity with computed metadata.
+- **ChapterSummary**: Summary with key events and character changes.
+- **WriterOutput**: Legacy writer output structure.
 
 **Section sources**
-- [simple.test.ts](file://packages/engine/src/test/simple.test.ts#L5-L73)
+- [index.ts:91-125](file://packages/engine/src/types/index.ts#L91-L125)
+- [generateChapter.ts:16-31](file://packages/engine/src/pipeline/generateChapter.ts#L16-L31)
+
+### Memory and Vector Store Integration
+Enhanced memory management supports both scene-level and chapter-level operations:
+
+- **Vector Store**: Provides semantic memory storage with similarity search capabilities.
+- **Memory Retriever**: Enables contextual memory retrieval for scene planning and generation.
+- **Scene Memory Storage**: Stores individual scene summaries and outcomes for future reference.
+- **Memory Extraction**: Extracts meaningful story elements from content for persistent storage.
+
+**Section sources**
+- [generateChapter.ts:77-82](file://packages/engine/src/pipeline/generateChapter.ts#L77-L82)
+- [generateChapter.ts:147-156](file://packages/engine/src/pipeline/generateChapter.ts#L147-L156)
+- [generateChapter.ts:263-280](file://packages/engine/src/pipeline/generateChapter.ts#L263-L280)
 
 ## Dependency Analysis
-The pipeline exhibits clear separation of concerns:
-- generateChapter depends on agents and types.
-- Agents depend on LLM client and shared types.
-- CLI and tests depend on exported APIs from the engine index.
+The pipeline now exhibits enhanced separation of concerns with dual-mode architecture:
 
 ```mermaid
 graph LR
 CLI["CLI generate.ts"] --> API["engine/index.ts exports"]
 API --> Gen["generateChapter.ts"]
-Gen --> W["writer.ts"]
-Gen --> CC["completeness.ts"]
-Gen --> S["summarizer.ts"]
-Gen --> CV["canonValidator.ts"]
-W --> LLM["client.ts"]
+Gen --> SceneMode["Scene-level Mode"]
+Gen --> LegacyMode["Legacy Mode"]
+SceneMode --> SP["scenePlanner.ts"]
+SceneMode --> SW["sceneWriter.ts"]
+SceneMode --> SV["sceneValidator.ts"]
+SceneMode --> SA["sceneAssembler.ts"]
+SceneMode --> SOE["sceneOutcomeExtractor.ts"]
+LegacyMode --> W["writer.ts"]
+LegacyMode --> CC["completeness.ts"]
+LegacyMode --> S["summarizer.ts"]
+LegacyMode --> ME["memoryExtractor.ts"]
+SP --> LLM["client.ts"]
+SW --> LLM
+SV --> LLM
+SA --> LLM
+SOE --> LLM
+W --> LLM
 CC --> LLM
 S --> LLM
-CV --> LLM
+ME --> LLM
 Gen --> Types["types/index.ts"]
 Gen --> Canon["memory/canonStore.ts"]
+Gen --> VS["memory/vectorStore.ts"]
+Gen --> MR["memory/memoryRetriever.ts"]
 Gen --> Story["story/bible.ts"]
 Gen --> State["story/state.ts"]
 ```
 
 **Diagram sources**
-- [index.ts](file://packages/engine/src/index.ts#L1-L23)
-- [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L7)
-- [writer.ts](file://packages/engine/src/agents/writer.ts#L1-L4)
-- [completeness.ts](file://packages/engine/src/agents/completeness.ts#L1-L2)
-- [summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L1-L2)
-- [canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L1-L2)
-- [client.ts](file://packages/engine/src/llm/client.ts#L1-L2)
-- [types/index.ts](file://packages/engine/src/types/index.ts#L1-L90)
-- [canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L1-L2)
-- [bible.ts](file://packages/engine/src/story/bible.ts#L1-L2)
-- [state.ts](file://packages/engine/src/story/state.ts#L1-L2)
-- [generate.ts](file://apps/cli/src/commands/generate.ts#L1-L2)
+- [generateChapter.ts:1-290](file://packages/engine/src/pipeline/generateChapter.ts#L1-L290)
+- [index.ts:1-125](file://packages/engine/src/types/index.ts#L1-L125)
 
 **Section sources**
-- [index.ts](file://packages/engine/src/index.ts#L1-L23)
+- [generateChapter.ts:1-290](file://packages/engine/src/pipeline/generateChapter.ts#L1-L290)
 
 ## Performance Considerations
-- Token budgets: Each agent sets explicit maxTokens to control cost and latency. Tune these per model and use case.
-- Continuation attempts: The loop retries continuation up to a configurable limit. Increase cautiously to avoid excessive LLM calls.
-- Word count estimation: Uses a simple split-and-count heuristic; consider more robust tokenization for precise control.
-- Provider configuration: Environment variables allow switching providers and models. Ensure adequate quotas and network connectivity.
-- Logging: Console logs provide visibility into progress and decisions; consider structured logging for production deployments.
+Enhanced performance considerations for dual-mode operation:
 
-[No sources needed since this section provides general guidance]
+- **Token budgets**: Both scene-level and chapter-level agents set explicit maxTokens to control cost and latency. Scene-level generation may require higher token budgets due to multiple validation steps.
+- **Scene count optimization**: The targetSceneCount parameter allows tuning for complexity and desired narrative granularity.
+- **Memory retrieval efficiency**: Vector store integration enables efficient contextual memory retrieval but requires proper indexing and initialization.
+- **Parallel processing**: Scene-level generation can potentially parallelize independent scene generation while maintaining sequential assembly.
+- **Continuation attempts**: Legacy mode maintains configurable continuation attempts, while scene-level mode uses iterative validation and correction.
+- **Provider configuration**: Environment variables support multiple providers with scene-level prompt engineering optimizations.
+- **Logging and monitoring**: Enhanced logging tracks both scene-level and chapter-level progress with detailed timing information.
 
 ## Troubleshooting Guide
-Common issues and remedies:
-- JSON parsing failures in validators: The validator falls back to safe defaults when JSON parsing fails. Verify prompt formatting and provider response stability.
-- Incomplete chapters: The pipeline continues until completion or attempts are exhausted. Adjust target word count or increase maxContinuationAttempts.
-- Canon violations: Review reported violations and update canonical facts accordingly. Consider disabling validation temporarily for experimentation.
-- Provider misconfiguration: Ensure environment variables for provider and API keys are set correctly. The LLM client throws on unknown providers.
-- CLI errors: The CLI exits on failure; inspect logs and environment configuration.
+Enhanced troubleshooting for dual-mode operation:
+
+### Scene-Level Generation Issues
+- **Scene planning failures**: Verify story state consistency and ensure adequate context for scene planning. Check vector store availability for memory-enhanced planning.
+- **Scene generation problems**: Review scene-specific prompts and ensure canonical facts are properly formatted. Check memory retrieval for contextual enhancement.
+- **Assembly failures**: Validate scene outputs for structural coherence and narrative flow. Ensure proper scene transition handling.
+- **Outcome extraction issues**: Verify scene outcome extraction prompts and handle cases where scenes don't contain expected elements.
+
+### Legacy Chapter-Level Issues
+- **JSON parsing failures**: Legacy validators fall back to safe defaults when JSON parsing fails. Verify prompt formatting and provider response stability.
+- **Incomplete chapters**: The pipeline continues until completion or attempts are exhausted. Adjust target word count or increase maxContinuationAttempts.
+- **Canon violations**: Review reported violations and update canonical facts accordingly. Consider disabling validation temporarily for experimentation.
+
+### Common Dual-Mode Issues
+- **Mode selection confusion**: Verify useSceneLevel flag and targetSceneCount settings. Scene-level mode is default but can be disabled for compatibility.
+- **Memory store configuration**: Ensure vector store is properly initialized before enabling memory retrieval features.
+- **Provider misconfiguration**: Verify environment variables for provider and API keys. The LLM client handles both scene-level and chapter-level prompts.
+- **CLI errors**: The CLI handles both generation modes seamlessly. Check mode-specific configuration options and logging output.
 
 **Section sources**
-- [canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L49-L55)
-- [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L32-L43)
-- [client.ts](file://packages/engine/src/llm/client.ts#L63-L75)
-- [generate.ts](file://apps/cli/src/commands/generate.ts#L50-L53)
+- [generateChapter.ts:44-46](file://packages/engine/src/pipeline/generateChapter.ts#L44-L46)
+- [generateChapter.ts:77-82](file://packages/engine/src/pipeline/generateChapter.ts#L77-L82)
+- [generateChapter.ts:108-112](file://packages/engine/src/pipeline/generateChapter.ts#L108-L112)
+- [generateChapter.ts:218-222](file://packages/engine/src/pipeline/generateChapter.ts#L218-L222)
 
 ## Conclusion
-The generation pipeline composes focused agents around a robust orchestration function. It balances creativity with structure by validating content completeness, optionally enforcing canonical consistency, and synthesizing summaries. The modular design enables easy extension, testing, and debugging, while the CLI and tests demonstrate practical usage patterns.
-
-[No sources needed since this section summarizes without analyzing specific files]
+The generation pipeline now provides a robust dual-mode architecture supporting both scene-level and chapter-level generation approaches. Scene-level generation serves as the primary method with comprehensive planning, individual scene generation, validation, and outcome extraction capabilities. Legacy chapter-level generation maintains backward compatibility while the enhanced type system and memory management provide improved story consistency and contextual awareness. The modular design enables easy extension, testing, and debugging across both generation modes, while the CLI and tests demonstrate practical usage patterns for both approaches.
 
 ## Appendices
 
-### GenerateChapterOptions and Result Structures
-- GenerateChapterOptions
-  - Fields: canon, validateCanon, maxContinuationAttempts
-  - Defaults: validateCanon true, maxContinuationAttempts 3
-- GenerateChapterResult
-  - Fields: chapter, summary, violations
-- GenerationContext
-  - Fields: bible, state, chapterNumber, targetWordCount
-- Chapter, ChapterSummary
-  - Fields: id, storyId, number, title, content, summary, wordCount, generatedAt
+### Enhanced GenerateChapterOptions and Result Structures
+- **GenerateChapterOptions** (Enhanced)
+  - Fields: canon, vectorStore, validateCanon, maxContinuationAttempts, retrieveMemories, useSceneLevel, targetSceneCount
+  - Defaults: validateCanon true, maxContinuationAttempts 3, useSceneLevel true, targetSceneCount 4
+- **GenerateChapterResult** (Enhanced)
+  - Fields: chapter, summary, violations, memoriesExtracted
+  - Additional: memoriesExtracted count for scene-level memory storage
+- **Scene Types** (New)
+  - Scene: id, location, characters, purpose, tension, conflict, type
+  - ScenePlan: scenes array, chapterGoal, targetTension
+  - SceneOutput: content, summary, wordCount
+  - SceneValidationResult: isValid, violations array
+  - SceneOutcome: events, characterChanges, locationChanges, newInformation
 
 **Section sources**
-- [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L14-L18)
-- [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L8-L12)
-- [types/index.ts](file://packages/engine/src/types/index.ts#L60-L90)
+- [generateChapter.ts:23-31](file://packages/engine/src/pipeline/generateChapter.ts#L23-L31)
+- [generateChapter.ts:16-21](file://packages/engine/src/pipeline/generateChapter.ts#L16-L21)
+- [index.ts:91-125](file://packages/engine/src/types/index.ts#L91-L125)
 
 ### Parameter Configuration Examples
-- CLI usage: The CLI constructs GenerationContext with a target word count and passes the loaded CanonStore via options.
-- Test usage: The test script creates a minimal story, state, and canonical store, then invokes generateChapter with options.
+- **Scene-level configuration**: Enable scene-level generation with targetSceneCount=6 for complex chapters requiring more detailed breakdown.
+- **Legacy configuration**: Disable scene-level mode with useSceneLevel=false for compatibility with existing workflows.
+- **Memory integration**: Configure vectorStore for contextual memory retrieval and scene memory storage.
+- **CLI usage**: The CLI supports both modes through configuration flags and automatically selects appropriate generation approach.
 
 **Section sources**
-- [generate.ts](file://apps/cli/src/commands/generate.ts#L21-L26)
-- [simple.test.ts](file://packages/engine/src/test/simple.test.ts#L48-L53)
+- [generateChapter.ts:44-46](file://packages/engine/src/pipeline/generateChapter.ts#L44-L46)
+- [generateChapter.ts:77-82](file://packages/engine/src/pipeline/generateChapter.ts#L77-L82)
+- [generate.ts](file://apps/cli/src/commands/generate.ts)
 
 ### Extensibility and Custom Processing Steps
-- Add new agents: Implement a new agent class with a complete() method and export it from the engine index. Integrate into generateChapter similarly to existing agents.
-- Modify prompts: Update templates in agent files to refine behavior. Ensure JSON expectations are handled consistently.
-- Extend validation: Add new validators by returning structured results compatible with the pipeline’s expectations.
-- State updates: Use updateStoryState to incorporate new metadata derived from summaries or validations.
+- **Add new scene-level agents**: Implement new scene-focused agents with writeScene, validateScene, and extractSceneOutcome methods.
+- **Modify scene planning**: Update scene planner logic to handle new scene types or complexity requirements.
+- **Extend validation**: Add new validation dimensions for scene-specific constraints beyond canonical facts.
+- **Custom outcome extraction**: Develop domain-specific outcome extraction for specialized story elements.
+- **Hybrid approaches**: Combine scene-level and chapter-level techniques for optimal narrative structure.
+- **Memory enhancement**: Extend memory extraction to capture richer contextual information for scene planning.
 
 **Section sources**
-- [index.ts](file://packages/engine/src/index.ts#L8-L22)
-- [state.ts](file://packages/engine/src/story/state.ts#L14-L24)
+- [generateChapter.ts:63-205](file://packages/engine/src/pipeline/generateChapter.ts#L63-L205)
+- [index.ts:91-125](file://packages/engine/src/types/index.ts#L91-L125)
 
 ### Debugging Strategies for Generation Failures
-- Enable verbose logging: Inspect console logs emitted during generation and validation.
-- Validate environment: Confirm provider configuration and API keys.
-- Reduce scope: Use smaller target word counts and fewer continuation attempts to isolate issues.
-- Inspect intermediate outputs: Capture WriterOutput and summary results to identify problematic segments.
-- Fallback parsing: For JSON-dependent agents, rely on safe fallbacks and review raw LLM responses.
+- **Mode diagnostics**: Verify useSceneLevel flag and targetSceneCount settings for appropriate mode selection.
+- **Scene-level debugging**: Monitor individual scene generation, validation, and outcome extraction processes separately.
+- **Memory diagnostics**: Check vector store initialization and memory retrieval for contextual enhancement.
+- **Performance profiling**: Track token usage and generation time for both scene-level and chapter-level approaches.
+- **Backward compatibility**: Test legacy mode for compatibility with existing workflows and data structures.
+- **Error isolation**: Use separate logging channels for scene-level and chapter-level operations to identify failure points.
 
 **Section sources**
-- [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L27-L28)
-- [client.ts](file://packages/engine/src/llm/client.ts#L90-L95)
+- [generateChapter.ts:48-53](file://packages/engine/src/pipeline/generateChapter.ts#L48-L53)
+- [generateChapter.ts:217-222](file://packages/engine/src/pipeline/generateChapter.ts#L217-L222)
+- [generateChapter.ts:101-102](file://packages/engine/src/pipeline/generateChapter.ts#L101-L102)

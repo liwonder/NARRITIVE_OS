@@ -33,10 +33,11 @@
 
 ## Update Summary
 **Changes Made**
-- Added documentation for the new `config --show` command functionality that allows users to display current configuration without interactive setup
-- Updated the config command section to include both interactive and non-interactive modes
-- Enhanced troubleshooting section to cover configuration display scenarios
-- Updated command syntax examples to include the new `--show` flag
+- Updated the init command section to reflect the new interactive prompts system
+- Enhanced the init command documentation to include all interactive fields (title, genre, theme, setting, tone, premise, chapters)
+- Added comprehensive examples showing both interactive and parameter-driven usage
+- Updated troubleshooting section to cover interactive prompt scenarios
+- Enhanced practical examples to demonstrate the new user-friendly workflow
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -51,7 +52,7 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document provides a comprehensive command reference for the Narrative Operating System CLI (nos). It covers command syntax, parameters, flags, usage patterns, and integration points for all nos commands including the newly added 12 commands: bible, clone, delete, export, hint, list, memories, read, regenerate, state, and validate. The system features enhanced structured state persistence, interactive hints system, and comprehensive story management capabilities with automatic initialization and robust error handling for improved reliability and advanced storytelling capabilities.
+This document provides a comprehensive command reference for the Narrative Operating System CLI (nos). It covers command syntax, parameters, flags, usage patterns, and integration points for all nos commands including the newly added 12 commands: bible, clone, delete, export, hint, list, memories, read, regenerate, state, and validate. The system features enhanced structured state persistence, interactive hints system, comprehensive story management capabilities with automatic initialization and robust error handling for improved reliability and advanced storytelling capabilities.
 
 ## Project Structure
 The CLI is implemented as a TypeScript application using Commander for command parsing and Inquirer for interactive configuration. Commands delegate to the engine package for story generation and rely on a local filesystem store under the user's home directory with enhanced structured state management and memory systems.
@@ -105,7 +106,7 @@ CMD_STATE --> STATE_UPDATER["State Updater<br/>packages/engine/src/agents/stateU
 **Diagram sources**
 - [apps/cli/src/index.ts:1-154](file://apps/cli/src/index.ts#L1-L154)
 - [apps/cli/src/commands/config.ts:1-104](file://apps/cli/src/commands/config.ts#L1-L104)
-- [apps/cli/src/commands/init.ts:1-50](file://apps/cli/src/commands/init.ts#L1-L50)
+- [apps/cli/src/commands/init.ts:1-90](file://apps/cli/src/commands/init.ts#L1-L90)
 - [apps/cli/src/commands/generate.ts:1-70](file://apps/cli/src/commands/generate.ts#L1-L70)
 - [apps/cli/src/commands/status.ts:1-55](file://apps/cli/src/commands/status.ts#L1-L55)
 - [apps/cli/src/commands/continue.ts:1-63](file://apps/cli/src/commands/continue.ts#L1-L63)
@@ -129,7 +130,7 @@ CMD_STATE --> STATE_UPDATER["State Updater<br/>packages/engine/src/agents/stateU
 
 **Section sources**
 - [apps/cli/src/index.ts:1-154](file://apps/cli/src/index.ts#L1-L154)
-- [apps/cli/package.json:1-22](file://apps/cli/package.json#L1-L22)
+- [apps/cli/package.json:1-50](file://apps/cli/package.json#L1-L50)
 - [package.json:1-17](file://package.json#L1-L17)
 
 ## Core Components
@@ -138,9 +139,11 @@ CMD_STATE --> STATE_UPDATER["State Updater<br/>packages/engine/src/agents/stateU
 - Engine types define the data structures used across commands (StoryBible, StoryState, Chapter, GenerationContext, StoryStructuredState).
 - **New**: Structured state persistence system automatically initializes and manages character and plot thread states with comprehensive narrative tracking.
 - **New**: Interactive hints system provides contextual guidance and quick tips based on story progress and user context.
+- **New**: Enhanced init command with interactive prompts for story creation, replacing the previous static parameter approach.
 
 Key runtime behaviors:
 - Interactive configuration via inquirer prompts.
+- Interactive story creation via inquirer prompts for title, genre, theme, setting, tone, premise, and target chapters.
 - Local persistence under ~/.narrative-os/{config.json, stories/<id>/} with automatic structured state initialization.
 - Structured state includes character emotional states, locations, relationships, plot thread tensions, and unresolved questions.
 - Memory systems support vector-based narrative recall and semantic search.
@@ -154,6 +157,7 @@ Key runtime behaviors:
 - [packages/engine/src/types/index.ts:1-90](file://packages/engine/src/types/index.ts#L1-L90)
 - [packages/engine/src/story/structuredState.ts:23-85](file://packages/engine/src/story/structuredState.ts#L23-L85)
 - [apps/cli/src/commands/hint.ts:3-47](file://apps/cli/src/commands/hint.ts#L3-L47)
+- [apps/cli/src/commands/init.ts:17-64](file://apps/cli/src/commands/init.ts#L17-L64)
 
 ## Architecture Overview
 The CLI orchestrates story lifecycle operations backed by the engine with enhanced structured state management and comprehensive story management capabilities. Configuration is applied at startup and injected into environment variables for downstream LLM clients, while structured state provides detailed narrative tracking and memory systems enable sophisticated narrative recall.
@@ -162,6 +166,7 @@ The CLI orchestrates story lifecycle operations backed by the engine with enhanc
 sequenceDiagram
 participant User as "User"
 participant CLI as "nos CLI"
+participant Init as "init.ts"
 participant Config as "config.ts"
 participant Store as "store.ts"
 participant Engine as "Engine (types/state/bible/structuredState)"
@@ -172,16 +177,18 @@ Config->>Store : "saveConfig()"
 Store-->>Config : "write ~/.narrative-os/config.json"
 Config-->>User : "Saved provider/model"
 User->>CLI : "nos init [options]"
-CLI->>Engine : "createStoryBible()"
-Engine-->>CLI : "StoryBible"
-CLI->>Engine : "addCharacter()/addPlotThread()"
-Engine-->>CLI : "Updated StoryBible"
-CLI->>Engine : "createStoryState()"
-Engine-->>CLI : "StoryState"
-CLI->>Store : "saveStory(bible,state,chapters,structuredState)"
+CLI->>Init : "initCommand()"
+Init->>Init : "Interactive prompts for title, genre, theme, setting, tone, premise, chapters"
+Init->>Engine : "createStoryBible()"
+Engine-->>Init : "StoryBible"
+Init->>Engine : "addCharacter()"
+Engine-->>Init : "Updated StoryBible"
+Init->>Engine : "createStoryState()"
+Engine-->>Init : "StoryState"
+Init->>Store : "saveStory(bible,state,chapters,structuredState)"
 Store->>Store : "initializeStructuredState()"
-Store-->>CLI : "persist stories/<id> with structured-state.json"
-CLI-->>User : "Story created with ID"
+Store-->>Init : "persist stories/<id> with structured-state.json"
+Init-->>User : "Story created with ID"
 User->>CLI : "nos hint [story-id]"
 CLI->>CLI : "showHint() with context"
 CLI-->>User : "Contextual suggestions"
@@ -196,6 +203,7 @@ CLI-->>User : "Contextual suggestions"
 - [packages/engine/src/story/structuredState.ts:33-85](file://packages/engine/src/story/structuredState.ts#L33-L85)
 - [apps/cli/src/config/store.ts:139-151](file://apps/cli/src/config/store.ts#L139-L151)
 - [apps/cli/src/commands/hint.ts:3-47](file://apps/cli/src/commands/hint.ts#L3-L47)
+- [apps/cli/src/commands/init.ts:17-79](file://apps/cli/src/commands/init.ts#L17-L79)
 
 ## Detailed Component Analysis
 
@@ -243,19 +251,31 @@ Advanced usage
 
 ### Command: nos init
 Purpose
-- Create a new story with predefined defaults and optional overrides. Persist initial state and return the story ID for subsequent operations with automatic structured state initialization.
+- Create a new story with interactive prompts for story creation. The CLI now provides dynamic user input for title, genre, theme, setting, tone, premise, and target chapters, making the initial story setup more intuitive and user-friendly. Persists initial state and returns the story ID for subsequent operations with automatic structured state initialization.
+
+**Updated** Enhanced with interactive prompts replacing static parameters
 
 Syntax
 - nos init [options]
+- nos init (interactive mode)
 
 Options
-- --title <title>
-- --theme <theme>
-- --genre <genre>
-- --setting <setting>
-- --tone <tone>
-- --premise <premise>
-- --chapters <number> (default: 5)
+- --title <title>, -t <title>: Story title (interactive if omitted)
+- --theme <theme>: Story theme (interactive if omitted)
+- --genre <genre>, -g <genre>: Genre (interactive if omitted)
+- --setting <setting>, -s <setting>: Setting (time/place) (interactive if omitted)
+- --tone <tone>: Tone (interactive if omitted)
+- --premise <premise>, -p <premise>: Brief premise/synopsis (interactive if omitted)
+- --chapters <number>, -c <number>: Target chapter count (default: 5, interactive if omitted)
+
+Interactive Prompts
+- **Title**: Required field with validation (non-empty)
+- **Genre**: Selection from predefined genres (Science Fiction, Fantasy, Mystery, Thriller, Romance, Historical Fiction, Horror, Literary Fiction, Other)
+- **Theme**: Free text with default "Redemption"
+- **Setting**: Free text with default "Modern day"
+- **Tone**: Free text with default "Dramatic"
+- **Premise**: Free text with minimum 10 characters validation
+- **Target Chapters**: Number input with min 1, max 50, default 5
 
 Output
 - Prints story metadata and the next command to generate the first chapter.
@@ -267,12 +287,16 @@ Storage
 Exit codes
 - 0 on success; non-zero if initialization fails.
 
-Example
-- nos init --title "Dystopian Noir" --genre "Crime Fiction" --chapters 8
+Interactive Usage Examples
+- **Full interactive mode**: `nos init` (prompts for all fields)
+- **Partial interactive mode**: `nos init --title "My Story"` (prompts for remaining fields)
+- **Parameter-driven mode**: `nos init --title "My Story" --genre "Fantasy" --chapters 8` (no prompts)
+
+**Updated** Added comprehensive interactive prompts system with validation and defaults
 
 **Section sources**
 - [apps/cli/src/index.ts:41-52](file://apps/cli/src/index.ts#L41-L52)
-- [apps/cli/src/commands/init.ts:4-49](file://apps/cli/src/commands/init.ts#L4-L49)
+- [apps/cli/src/commands/init.ts:4-90](file://apps/cli/src/commands/init.ts#L4-L90)
 - [packages/engine/src/story/bible.ts:3-26](file://packages/engine/src/story/bible.ts#L3-L26)
 - [packages/engine/src/story/state.ts:3-12](file://packages/engine/src/story/state.ts#L3-L12)
 - [apps/cli/src/config/store.ts:139-151](file://apps/cli/src/config/store.ts#L139-L151)
@@ -691,7 +715,7 @@ STORE --> GENERATE_PIPELINE["engine/pipeline/generateChapter.ts"]
 **Diagram sources**
 - [apps/cli/src/index.ts:1-154](file://apps/cli/src/index.ts#L1-L154)
 - [apps/cli/src/commands/config.ts:1-104](file://apps/cli/src/commands/config.ts#L1-L104)
-- [apps/cli/src/commands/init.ts:1-50](file://apps/cli/src/commands/init.ts#L1-L50)
+- [apps/cli/src/commands/init.ts:1-90](file://apps/cli/src/commands/init.ts#L1-L90)
 - [apps/cli/src/commands/generate.ts:1-70](file://apps/cli/src/commands/generate.ts#L1-L70)
 - [apps/cli/src/commands/status.ts:1-55](file://apps/cli/src/commands/status.ts#L1-L55)
 - [apps/cli/src/commands/continue.ts:1-63](file://apps/cli/src/commands/continue.ts#L1-L63)
@@ -723,14 +747,16 @@ STORE --> GENERATE_PIPELINE["engine/pipeline/generateChapter.ts"]
 ## Performance Considerations
 - Each nos generate invocation performs disk I/O to load/save story data; batching via nos continue reduces overhead.
 - **Enhanced**: Structured state initialization adds minimal overhead but provides significant narrative tracking benefits.
+- **New**: Interactive prompts via Inquirer add minimal runtime overhead but greatly improve user experience.
 - **New**: Memory operations (vector store loading/searching) have minimal performance impact but can be optimized by caching frequently accessed data.
 - **New**: Validation operations scale with chapter count and constraint complexity; consider running selectively during development.
 - Target word count is fixed for generation; adjust story length via --chapters during init to control total work.
 - Network latency dominates LLM calls; consider rate limits and provider quotas.
 - For large-scale automation, cache configuration and reuse environment variables to avoid repeated file reads.
-- **New**: Structured state serialization/deserialization is lightweight JSON operations that don not significantly impact performance.
+- **New**: Structured state serialization/deserialization is lightweight JSON operations that do not significantly impact performance.
 - **New**: Contextual hints system provides immediate feedback without heavy computation.
 - **New**: Configuration display operation is extremely fast as it only reads from local file system without any interactive prompts.
+- **New**: Interactive prompts are asynchronous and provide immediate feedback, making the CLI feel responsive even with user input.
 
 ## Troubleshooting Guide
 Common issues and resolutions
@@ -740,6 +766,9 @@ Common issues and resolutions
 - Configuration missing
   - Cause: No ~/.narrative-os/config.json.
   - Resolution: Run nos config to set provider, model, and API key.
+- **New**: Interactive prompt failures
+  - Cause: Terminal not supporting interactive input or interrupted prompts.
+  - Resolution: Use parameter-driven mode (e.g., `nos init --title "Story" --genre "Fantasy"`) or fix terminal environment.
 - **New**: Configuration display issues
   - Cause: No configuration file exists or is corrupted.
   - Resolution: Run `nos config --show` to see current configuration status; if empty, run `nos config` to set up.
@@ -783,7 +812,7 @@ Exit codes summary
 - [apps/cli/src/commands/export.ts:7-10](file://apps/cli/src/commands/export.ts#L7-L10)
 
 ## Conclusion
-The nos CLI provides a comprehensive and powerful workflow for creating, generating, managing, and validating stories powered by the Narrative Operating System engine. With the addition of 12 new commands, enhanced structured state persistence, interactive hints system, and sophisticated memory management, it now offers advanced narrative tracking capabilities, comprehensive story management, and intelligent assistance while maintaining both beginner-friendly workflows and advanced automation scenarios.
+The nos CLI provides a comprehensive and powerful workflow for creating, generating, managing, and validating stories powered by the Narrative Operating System engine. With the addition of 12 new commands, enhanced structured state persistence, interactive hints system, sophisticated memory management, and the new interactive init command with dynamic user prompts, it now offers advanced narrative tracking capabilities, comprehensive story management, intelligent assistance, and an intuitive user experience while maintaining both beginner-friendly workflows and advanced automation scenarios.
 
 ## Appendices
 
@@ -930,7 +959,8 @@ Stories are persisted under ~/.narrative-os/stories/<id> with the following file
 Beginner workflows
 - Configure provider and model: nos config
 - **New**: Check configuration: nos config --show
-- Create a story: nos init --title "My Story" --chapters 5
+- **New**: Interactive story creation: nos init (prompts for all fields)
+- **New**: Parameter-driven story creation: nos init --title "My Story" --genre "Fantasy" --chapters 8
 - Generate chapters one-by-one: nos generate <story-id>
 - Check progress: nos status <story-id>
 - **New**: View story bible: nos bible <story-id>
@@ -946,12 +976,29 @@ Power-user techniques
 - **New**: Story management: clone templates with nos clone, export finished works with nos export
 - **New**: Chapter correction: regenerate specific chapters with nos regenerate
 - **New**: Configuration verification: use `nos config --show` in deployment scripts to verify environment setup
+- **New**: Interactive workflow optimization: combine interactive prompts with parameter overrides for partial automation
 
 **Section sources**
 - [PROGRESS.md:126-137](file://PROGRESS.md#L126-L137)
 - [apps/cli/src/commands/continue.ts:22-46](file://apps/cli/src/commands/continue.ts#L22-L46)
 - [packages/engine/src/story/structuredState.ts:181-235](file://packages/engine/src/story/structuredState.ts#L181-L235)
 - [apps/cli/src/commands/hint.ts:25-46](file://apps/cli/src/commands/hint.ts#L25-L46)
+- [apps/cli/src/commands/init.ts:17-79](file://apps/cli/src/commands/init.ts#L17-L79)
+
+### Interactive Prompts System Features
+**New**: The enhanced CLI now provides a comprehensive interactive prompts system for story creation:
+
+- **Dynamic Field Collection**: Users are prompted for title, genre, theme, setting, tone, premise, and target chapters
+- **Input Validation**: Each field includes appropriate validation (required fields, minimum length, numeric ranges)
+- **Default Values**: Intelligent defaults for common fields (e.g., "Redemption" for theme, "Modern day" for setting)
+- **Genre Selection**: Predefined genre choices with user-friendly options
+- **Flexible Input**: Supports both fully interactive mode and partial parameter overrides
+- **Responsive Interface**: Asynchronous prompts provide immediate feedback and graceful cancellation
+
+**Section sources**
+- [apps/cli/src/commands/init.ts:17-79](file://apps/cli/src/commands/init.ts#L17-L79)
+- [apps/cli/src/commands/init.ts:22-35](file://apps/cli/src/commands/init.ts#L22-L35)
+- [apps/cli/src/commands/init.ts:57-64](file://apps/cli/src/commands/init.ts#L57-L64)
 
 ### Structured State Management Features
 **New**: The enhanced CLI now provides sophisticated narrative tracking through structured state management:
@@ -1019,3 +1066,18 @@ Power-user techniques
 **Section sources**
 - [apps/cli/src/commands/config.ts:38-104](file://apps/cli/src/commands/config.ts#L38-L104)
 - [apps/cli/src/index.ts:32-39](file://apps/cli/src/index.ts#L32-L39)
+
+### Enhanced Init Command Workflow
+**New**: The enhanced init command provides multiple interaction modes:
+
+- **Fully Interactive Mode**: `nos init` - prompts for all fields
+- **Partial Interactive Mode**: `nos init --title "Story"` - prompts for remaining fields
+- **Parameter-Driven Mode**: `nos init --title "Story" --genre "Fantasy" --chapters 8` - no prompts
+- **Validation**: Input validation ensures data quality (required fields, minimum lengths, numeric ranges)
+- **Defaults**: Intelligent defaults for common fields reduce user burden
+- **Genre Selection**: Predefined genre choices with user-friendly options
+- **Flexible Integration**: Works seamlessly with automation scripts and CI/CD pipelines
+
+**Section sources**
+- [apps/cli/src/commands/init.ts:17-79](file://apps/cli/src/commands/init.ts#L17-L79)
+- [apps/cli/src/index.ts:42-52](file://apps/cli/src/index.ts#L42-L52)

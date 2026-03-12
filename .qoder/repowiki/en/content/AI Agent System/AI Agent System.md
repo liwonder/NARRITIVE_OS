@@ -2,46 +2,22 @@
 
 <cite>
 **Referenced Files in This Document**
-- [writer.ts](file://packages/engine/src/agents/writer.ts)
-- [completeness.ts](file://packages/engine/src/agents/completeness.ts)
-- [summarizer.ts](file://packages/engine/src/agents/summarizer.ts)
-- [canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts)
-- [chapterPlanner.ts](file://packages/engine/src/agents/chapterPlanner.ts)
-- [storyDirector.ts](file://packages/engine/src/agents/storyDirector.ts)
-- [memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts)
-- [stateUpdater.ts](file://packages/engine/src/agents/stateUpdater.ts)
-- [tensionController.ts](file://packages/engine/src/agents/tensionController.ts)
-- [stateUpdater.ts](file://packages/engine/src/memory/stateUpdater.ts)
-- [constraintGraph.ts](file://packages/engine/src/constraints/constraintGraph.ts)
-- [validator.ts](file://packages/engine/src/constraints/validator.ts)
-- [client.ts](file://packages/engine/src/llm/client.ts)
-- [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts)
+- [scenePlanner.ts](file://packages/engine/src/agents/scenePlanner.ts)
+- [sceneWriter.ts](file://packages/engine/src/agents/sceneWriter.ts)
+- [sceneValidator.ts](file://packages/engine/src/agents/sceneValidator.ts)
+- [sceneAssembler.ts](file://packages/engine/src/scene/sceneAssembler.ts)
+- [sceneOutcomeExtractor.ts](file://packages/engine/src/scene/sceneOutcomeExtractor.ts)
+- [scene-level.test.ts](file://packages/engine/src/test/scene-level.test.ts)
 - [index.ts](file://packages/engine/src/index.ts)
-- [types/index.ts](file://packages/engine/src/types/index.ts)
-- [canonStore.ts](file://packages/engine/src/memory/canonStore.ts)
-- [state.ts](file://packages/engine/src/story/state.ts)
-- [bible.ts](file://packages/engine/src/story/bible.ts)
-- [structuredState.ts](file://packages/engine/src/story/structuredState.ts)
-- [writer.md](file://packages/engine/src/llm/prompts/writer.md)
-- [completeness.md](file://packages/engine/src/llm/prompts/completeness.md)
-- [summarizer.md](file://packages/engine/src/llm/prompts/summarizer.md)
-- [generate.ts](file://apps/cli/src/commands/generate.ts)
-- [index.ts](file://apps/cli/src/index.ts)
-- [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts)
-- [memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts)
-- [state-updater.test.ts](file://packages/engine/src/test/state-updater.test.ts)
-- [vector-memory.test.ts](file://packages/engine/src/test/vector-memory.test.ts)
-- [constraints.test.ts](file://packages/engine/src/test/constraints.test.ts)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Updated to reflect Applied Changes: Enhanced AI agent system with new agents for memory extraction, state updating, and story validation
-- Integrated vector memory system with hierarchical navigable small world (HNSW) indexing
-- Added comprehensive constraint graph system for automatic narrative consistency enforcement
-- Enhanced StateUpdater Pipeline with dual-mode operation (LLM-powered and quick-update)
-- Integrated MemoryExtractor, StateUpdater, and Constraint Graph into the automated storytelling pipeline
-- Added Validator system with dual-mode validation combining graph-based and LLM-based consistency checking
+- Updated to reflect Applied Changes: Added six new scene-level agent modules (ScenePlanner, SceneWriter, SceneValidator, SceneAssembler, SceneOutcomeExtractor) to the AI Agent System
+- These agents work together to create a complete scene-level generation pipeline that replaces the previous chapter-level approach
+- The new pipeline operates at the scene granularity level, providing more granular control over narrative flow and quality
+- Scene-level agents include comprehensive planning, writing, validation, assembly, and outcome extraction capabilities
+- The system now supports both chapter-level and scene-level generation workflows
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -56,1159 +32,529 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document explains the AI Agent System that powers narrative generation. It covers the agent architecture, responsibilities, communication patterns, and coordination mechanisms. It documents prompt engineering approaches, LLM integration patterns, and parameter configuration for each agent. Practical examples illustrate agent interactions, decision-making, and error handling. Guidance is included for customization, performance optimization, debugging, and the relationship between agents and the overall generation pipeline.
+This document explains the AI Agent System that powers narrative generation. The system has evolved to support both chapter-level and scene-level generation workflows, with the new scene-level agents providing granular control over narrative elements. The system covers the agent architecture, responsibilities, communication patterns, and coordination mechanisms. It documents prompt engineering approaches, LLM integration patterns, and parameter configuration for each agent. Practical examples illustrate agent interactions, decision-making, and error handling. Guidance is included for customization, performance optimization, debugging, and the relationship between agents and the overall generation pipeline.
 
-**Updated** The system now includes advanced memory extraction, state updating, and constraint validation capabilities, forming a complete feedback loop for fully autonomous storytelling with automatic consistency maintenance and memory integration.
+**Updated** The system now includes advanced scene-level generation capabilities with dedicated agents for planning, writing, validating, assembling, and extracting outcomes from individual scenes, complementing the existing chapter-level agents.
 
 ## Project Structure
-The engine package implements the AI agents, LLM integration, memory/canon storage, story state management, constraint graphs, and the chapter generation pipeline. The CLI app orchestrates story lifecycle and invokes the pipeline.
+The engine package implements the AI agents, LLM integration, memory/canon storage, story state management, constraint graphs, and both chapter and scene generation pipelines. The CLI app orchestrates story lifecycle and invokes the appropriate pipeline.
 
 ```mermaid
 graph TB
 subgraph "Engine Package"
-STORYDIR["Story Director<br/>storyDirector.ts"]
-CHAPTERPLANNER["Chapter Planner<br/>chapterPlanner.ts"]
-WRITER["Writer Agent<br/>writer.ts"]
-COMPLETENESS["Completeness Agent<br/>completeness.ts"]
-SUMMARIZER["Summarizer Agent<br/>summarizer.ts"]
-CANON["CanonValidator Agent<br/>canonValidator.ts"]
-MEMEXTRACT["MemoryExtractor<br/>memoryExtractor.ts"]
-STATEUPD["StateUpdater<br/>stateUpdater.ts"]
-STATEPIPE["StateUpdater Pipeline<br/>memory/stateUpdater.ts"]
-TENSION["TensionController<br/>tensionController.ts"]
-CONSTRAINT["Constraint Graph<br/>constraints/constraintGraph.ts"]
-VALIDATOR["Validator<br/>constraints/validator.ts"]
-VECTORSTORE["Vector Store<br/>memory/vectorStore.ts"]
-MEMRETRIEVER["Memory Retriever<br/>memory/memoryRetriever.ts"]
-LLM["LLM Client<br/>client.ts"]
-PIPE["Pipeline<br/>generateChapter.ts"]
-TYPES["Types<br/>types/index.ts"]
-MEM["Memory<br/>canonStore.ts"]
-STORY["Story Utils<br/>bible.ts, state.ts, structuredState.ts"]
-PROMPTS["Prompts<br/>writer.md, completeness.md, summarizer.md"]
+SCENEPLANNER["ScenePlanner<br/>scenePlanner.ts"]
+SCENEWRITER["SceneWriter<br/>sceneWriter.ts"]
+SCENEVALIDATOR["SceneValidator<br/>sceneValidator.ts"]
+SCENEASSEMBLER["SceneAssembler<br/>sceneAssembler.ts"]
+SCENEOUTCOME["SceneOutcomeExtractor<br/>sceneOutcomeExtractor.ts"]
+INDEX["Index Export<br/>index.ts"]
+TESTS["Scene-Level Tests<br/>scene-level.test.ts"]
 end
-subgraph "CLI App"
-CLI_CMD["Commands<br/>generate.ts"]
-CLI_ENTRY["CLI Entry<br/>index.ts"]
+subgraph "Integration Points"
+CHAPTERPIPE["Chapter Pipeline<br/>(existing)"]
+CHAPTERPLANNER["Chapter Planner<br/>(existing)"]
+WRITER["Writer Agent<br/>(existing)"]
+STATEUPD["StateUpdater<br/>(existing)"]
 end
-CLI_CMD --> PIPE
-PIPE --> STORYDIR
-PIPE --> CHAPTERPLANNER
-PIPE --> WRITER
-PIPE --> COMPLETENESS
-PIPE --> SUMMARIZER
-PIPE --> CANON
-PIPE --> MEMEXTRACT
-PIPE --> STATEUPD
-PIPE --> TENSION
-WRITER --> LLM
-CHAPTERPLANNER --> LLM
-COMPLETENESS --> LLM
-SUMMARIZER --> LLM
-CANON --> LLM
-MEMEXTRACT --> LLM
-STATEUPD --> LLM
-STATEPIPE --> LLM
-STATEPIPE --> CONSTRAINT
-STATEPIPE --> VECTORSTORE
-STATEPIPE --> MEM
-TENSION --> LLM
-PIPE --> TYPES
-PIPE --> MEM
-PIPE --> VECTORSTORE
-PIPE --> MEMRETRIEVER
-WRITER --> PROMPTS
-CHAPTERPLANNER --> PROMPTS
-SUMMARIZER --> PROMPTS
-COMPLETENESS --> PROMPTS
-CLI_ENTRY --> CLI_CMD
+CHAPTERPIPE --> SCENEPLANNER
+CHAPTERPLANNER --> SCENEPLANNER
+WRITER --> SCENEWRITER
+SCENEPLANNER --> SCENEWRITER
+SCENEWRITER --> SCENEVALIDATOR
+SCENEWRITER --> SCENEASSEMBLER
+SCENEWRITER --> SCENEOUTCOME
+SCENEASSEMBLER --> STATEUPD
+SCENEOUTCOME --> STATEUPD
 ```
 
 **Diagram sources**
-- [index.ts](file://packages/engine/src/index.ts#L1-L116)
-- [client.ts](file://packages/engine/src/llm/client.ts#L1-L106)
-- [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L108)
-- [storyDirector.ts](file://packages/engine/src/agents/storyDirector.ts#L1-L276)
-- [chapterPlanner.ts](file://packages/engine/src/agents/chapterPlanner.ts#L1-L326)
-- [writer.ts](file://packages/engine/src/agents/writer.ts#L1-L146)
-- [completeness.ts](file://packages/engine/src/agents/completeness.ts#L1-L56)
-- [summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L1-L64)
-- [canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L1-L59)
-- [memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L1-L97)
-- [stateUpdater.ts](file://packages/engine/src/agents/stateUpdater.ts#L1-L193)
-- [stateUpdater.ts](file://packages/engine/src/memory/stateUpdater.ts#L1-L435)
-- [tensionController.ts](file://packages/engine/src/agents/tensionController.ts#L1-L252)
-- [constraintGraph.ts](file://packages/engine/src/constraints/constraintGraph.ts#L1-L471)
-- [validator.ts](file://packages/engine/src/constraints/validator.ts#L1-L286)
-- [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L1-L208)
-- [memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts#L1-L200)
-- [canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L1-L134)
-- [bible.ts](file://packages/engine/src/story/bible.ts#L1-L73)
-- [state.ts](file://packages/engine/src/story/state.ts#L1-L30)
-- [structuredState.ts](file://packages/engine/src/story/structuredState.ts#L1-L235)
-- [writer.md](file://packages/engine/src/llm/prompts/writer.md#L1-L38)
-- [completeness.md](file://packages/engine/src/llm/prompts/completeness.md#L1-L26)
-- [summarizer.md](file://packages/engine/src/llm/prompts/summarizer.md#L1-L13)
-- [generate.ts](file://apps/cli/src/commands/generate.ts#L1-L55)
-- [index.ts](file://apps/cli/src/index.ts#L1-L54)
+- [scenePlanner.ts:16-109](file://packages/engine/src/agents/scenePlanner.ts#L16-L109)
+- [sceneWriter.ts:19-111](file://packages/engine/src/agents/sceneWriter.ts#L19-L111)
+- [sceneValidator.ts:14-65](file://packages/engine/src/agents/sceneValidator.ts#L14-L65)
+- [sceneAssembler.ts:14-42](file://packages/engine/src/scene/sceneAssembler.ts#L14-L42)
+- [sceneOutcomeExtractor.ts:14-67](file://packages/engine/src/scene/sceneOutcomeExtractor.ts#L14-L67)
+- [index.ts:15-17](file://packages/engine/src/index.ts#L15-L17)
+- [scene-level.test.ts:22-30](file://packages/engine/src/test/scene-level.test.ts#L22-L30)
 
 **Section sources**
-- [index.ts](file://packages/engine/src/index.ts#L1-L116)
-- [generate.ts](file://apps/cli/src/commands/generate.ts#L1-L55)
-- [index.ts](file://apps/cli/src/index.ts#L1-L54)
+- [index.ts:1-123](file://packages/engine/src/index.ts#L1-L123)
+- [scene-level.test.ts:1-301](file://packages/engine/src/test/scene-level.test.ts#L1-L301)
 
 ## Core Components
-- **Story Director**: Analyzes story state and generates high-level chapter objectives and direction.
-- **Chapter Planner**: Converts story direction into detailed scene-by-scene chapter outlines with tension progression.
-- **Writer Agent**: Creates full chapters using structured prompts and manages continuations until completion.
-- **Completeness Agent**: Validates that a chapter ends at a natural stopping point.
-- **Summarizer Agent**: Produces concise summaries and extracts key events.
-- **CanonValidator Agent**: Ensures narrative consistency against the Story Canon.
-- **MemoryExtractor**: Extracts important narrative facts for future chapters.
-- **StateUpdater**: Tracks and updates story state based on chapter content.
-- **StateUpdater Pipeline**: **Enhanced** Comprehensive post-chapter processing pipeline that integrates memory extraction, constraint graph updates, structured state management, and automatic consistency checking.
-- **Constraint Graph**: **New** Automatic constraint graph that maintains logical consistency across the narrative universe with spatial, knowledge, timeline, and logical constraints.
-- **Validator**: **New** Dual-mode validation system combining graph-based and LLM-based consistency checking with automatic violation detection and suggestions.
-- **Vector Store**: **New** Hierarchical Navigable Small World (HNSW) vector database for semantic memory storage and retrieval.
-- **Memory Retriever**: **New** Intelligent memory retrieval system that contextualizes narrative memories for chapter generation.
-- **TensionController**: Manages narrative tension throughout the story arc.
-- **LLM Client**: Provides unified access to multiple providers with configurable parameters.
-- **Pipeline**: Orchestrates agent interactions, retries, and state updates with integrated memory and constraint systems.
-- **Memory**: Stores and formats Story Canon facts for validation and prompting.
-- **Story Utilities**: Create and manage story metadata and state progression.
+- **ScenePlanner**: Creates detailed scene plans from chapter objectives, managing scene structure, character placement, and tension progression.
+- **SceneWriter**: Generates immersive narrative prose for individual scenes with character focus and location-specific details.
+- **SceneValidator**: Ensures scene quality and consistency against requirements, including character presence, location accuracy, and canon compliance.
+- **SceneAssembler**: Combines individual scene outputs into cohesive chapter content with proper transitions and formatting.
+- **SceneOutcomeExtractor**: Extracts state changes and narrative outcomes from scenes for story state updates and continuity maintenance.
+- **Integrated Index Export**: Exports all new scene-level agents alongside existing chapter-level functionality for seamless integration.
 
-**Updated** The addition of the StateUpdater Pipeline, Constraint Graph, Vector Store, and Validator completes the narrative engine's feedback loop, enabling fully autonomous storytelling with automatic consistency maintenance, memory integration, and intelligent retrieval capabilities.
+**Updated** The addition of six new scene-level agent modules completes the narrative generation system with granular scene control, enabling both chapter-level and scene-level generation workflows with comprehensive quality assurance and state management capabilities.
 
 **Section sources**
-- [storyDirector.ts](file://packages/engine/src/agents/storyDirector.ts#L100-L276)
-- [chapterPlanner.ts](file://packages/engine/src/agents/chapterPlanner.ts#L110-L326)
-- [writer.ts](file://packages/engine/src/agents/writer.ts#L48-L146)
-- [completeness.ts](file://packages/engine/src/agents/completeness.ts#L30-L56)
-- [summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L17-L64)
-- [canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L31-L59)
-- [memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L52-L97)
-- [stateUpdater.ts](file://packages/engine/src/agents/stateUpdater.ts#L85-L193)
-- [stateUpdater.ts](file://packages/engine/src/memory/stateUpdater.ts#L90-L435)
-- [constraintGraph.ts](file://packages/engine/src/constraints/constraintGraph.ts#L29-L471)
-- [validator.ts](file://packages/engine/src/constraints/validator.ts#L73-L286)
-- [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L19-L208)
-- [memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts#L1-L200)
-- [tensionController.ts](file://packages/engine/src/agents/tensionController.ts#L214-L252)
-- [client.ts](file://packages/engine/src/llm/client.ts#L31-L106)
-- [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L26-L108)
-- [canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L101-L129)
-- [bible.ts](file://packages/engine/src/story/bible.ts#L1-L73)
-- [state.ts](file://packages/engine/src/story/state.ts#L1-L30)
-- [structuredState.ts](file://packages/engine/src/story/structuredState.ts#L23-L235)
+- [scenePlanner.ts:12-109](file://packages/engine/src/agents/scenePlanner.ts#L12-L109)
+- [sceneWriter.ts:15-111](file://packages/engine/src/agents/sceneWriter.ts#L15-L111)
+- [sceneValidator.ts:11-65](file://packages/engine/src/agents/sceneValidator.ts#L11-L65)
+- [sceneAssembler.ts:11-42](file://packages/engine/src/scene/sceneAssembler.ts#L11-L42)
+- [sceneOutcomeExtractor.ts:10-67](file://packages/engine/src/scene/sceneOutcomeExtractor.ts#L10-L67)
+- [index.ts:15-17](file://packages/engine/src/index.ts#L15-L17)
 
 ## Architecture Overview
-The system follows a pipeline-driven architecture with enhanced automated planning capabilities and complete feedback loop:
-- The CLI loads a story and constructs a GenerationContext.
-- The Story Director analyzes current story state and generates chapter objectives.
-- The Chapter Planner converts objectives into detailed scene-by-scene outlines with tension progression.
-- The Writer Agent uses the detailed outline to create chapter content with structured scene guidance.
-- The Completeness Agent checks for natural stopping points; if incomplete, the Writer Agent continues the chapter.
-- The CanonValidator optionally validates against the Story Canon.
-- The Summarizer produces a chapter summary.
-- **The StateUpdater Pipeline processes the completed chapter, extracting memories, updating constraint graphs, managing narrative state, and performing consistency validation.**
-- The MemoryExtractor stores important narrative facts for future chapters.
-- The pipeline updates story state and persists all artifacts.
+The system now supports a dual-level generation architecture with scene-level agents working alongside existing chapter-level components:
+
+- **Scene Planning Level**: ScenePlanner creates detailed scene breakdowns from chapter objectives, managing character placement, location assignments, and tension progression.
+- **Scene Execution Level**: SceneWriter generates individual scene content with immersive prose, SceneValidator ensures quality compliance, and SceneAssembler combines scenes into chapters.
+- **Outcome Processing Level**: SceneOutcomeExtractor extracts narrative changes for state updates, working with the existing StateUpdater pipeline.
+- **Integration Layer**: New scene-level agents integrate seamlessly with existing chapter-level components through the centralized index export system.
 
 ```mermaid
 sequenceDiagram
-participant CLI as "CLI"
-participant Pipe as "generateChapter"
-participant Director as "Story Director"
-participant Planner as "Chapter Planner"
-participant Writer as "Writer Agent"
-participant Complete as "Completeness Agent"
-participant Canon as "CanonValidator Agent"
-participant Sum as "Summarizer Agent"
-participant StateUpd as "StateUpdater"
-participant StatePipe as "StateUpdater Pipeline"
-participant MemExt as "MemoryExtractor"
-participant ConstGraph as "Constraint Graph"
-participant Validator as "Validator"
-participant VectorStore as "Vector Store"
-CLI->>Pipe : "generateChapter(context, options)"
-Pipe->>Director : "direct(context)"
-Director-->>Pipe : "DirectorOutput"
-Pipe->>Planner : "plan(context with DirectorOutput)"
-Planner-->>Pipe : "ChapterOutline"
-Pipe->>Writer : "write(context, outline, canon?)"
-Writer-->>Pipe : "WriterOutput"
-loop "Until complete or max attempts"
-Pipe->>Complete : "check(content)"
-alt "Incomplete"
-Pipe->>Writer : "continue(existingContent, context)"
-Writer-->>Pipe : "extended content"
-else "Complete"
-Pipe->>Pipe : "break"
-end
-end
-alt "validateCanon and canon exists"
-Pipe->>Canon : "validate(content, canon)"
-Canon-->>Pipe : "validation result"
-end
-Pipe->>Sum : "summarize(content, chapterNumber)"
-Sum-->>Pipe : "summary"
-Pipe->>StatePipe : "process chapter (extract, update, integrate)"
-StatePipe->>ConstGraph : "update constraint graph"
-StatePipe->>StateUpd : "track narrative changes"
-StatePipe->>VectorStore : "add memories"
-StatePipe->>Validator : "validate consistency"
-StatePipe-->>Pipe : "StateUpdateResult"
-Pipe->>MemExt : "extract(chapter, bible)"
-MemExt-->>Pipe : "Extracted Memories"
-Pipe-->>CLI : "GenerateChapterResult"
+participant Planner as "ScenePlanner"
+participant Writer as "SceneWriter"
+participant Validator as "SceneValidator"
+participant Assembler as "SceneAssembler"
+participant Outcome as "SceneOutcomeExtractor"
+participant State as "StateUpdater"
+Planner->>Writer : "scene plan"
+Writer->>Validator : "scene content"
+Validator-->>Writer : "validation result"
+Writer->>Assembler : "scene output"
+Assembler-->>Writer : "chapter assembly"
+Writer->>Outcome : "scene content"
+Outcome-->>State : "scene outcomes"
+Note over Planner,State : "Scene-level workflow with quality assurance"
 ```
 
-**Updated** The architecture now includes the StateUpdater Pipeline as a central coordinator that processes completed chapters, integrating memory extraction, constraint graph updates, structured state management, and consistency validation into a seamless feedback loop with vector memory integration.
+**Updated** The architecture now includes comprehensive scene-level generation capabilities with quality validation at each step, ensuring high-quality narrative output at the individual scene level while maintaining integration with existing chapter-level workflows.
 
 **Diagram sources**
-- [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L26-L108)
-- [storyDirector.ts](file://packages/engine/src/agents/storyDirector.ts#L100-L276)
-- [chapterPlanner.ts](file://packages/engine/src/agents/chapterPlanner.ts#L110-L326)
-- [writer.ts](file://packages/engine/src/agents/writer.ts#L55-L117)
-- [completeness.ts](file://packages/engine/src/agents/completeness.ts#L37-L52)
-- [canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L32-L55)
-- [summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L24-L38)
-- [stateUpdater.ts](file://packages/engine/src/agents/stateUpdater.ts#L85-L193)
-- [stateUpdater.ts](file://packages/engine/src/memory/stateUpdater.ts#L90-L435)
-- [constraintGraph.ts](file://packages/engine/src/constraints/constraintGraph.ts#L29-L471)
-- [validator.ts](file://packages/engine/src/constraints/validator.ts#L73-L286)
-- [memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L52-L97)
-- [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L66-L93)
+- [scenePlanner.ts:16-109](file://packages/engine/src/agents/scenePlanner.ts#L16-L109)
+- [sceneWriter.ts:19-111](file://packages/engine/src/agents/sceneWriter.ts#L19-L111)
+- [sceneValidator.ts:14-65](file://packages/engine/src/agents/sceneValidator.ts#L14-L65)
+- [sceneAssembler.ts:14-42](file://packages/engine/src/scene/sceneAssembler.ts#L14-L42)
+- [sceneOutcomeExtractor.ts:14-67](file://packages/engine/src/scene/sceneOutcomeExtractor.ts#L14-L67)
 
 ## Detailed Component Analysis
 
-### Story Director Agent
-Responsibilities:
-- Analyze current story state and generate high-level chapter objectives.
-- Determine chapter tone, focus characters, and suggested scenes.
-- Provide structured guidance for the Chapter Planner based on story progression.
-
-Prompt engineering approach:
-- Uses comprehensive story context including themes, character states, and plot threads.
-- Emphasizes story arc positioning and tension management.
-- Generates structured JSON output with prioritized objectives.
-
-LLM integration pattern:
-- Balanced temperature for creative yet focused direction generation.
-- Structured JSON mode for reliable output parsing.
-
-Parameters:
-- Temperature: 0.4 for balanced creativity.
-- Max tokens: 2000 for comprehensive analysis.
-
-Decision-making:
-- Calculates target tension based on story arc position.
-- Prioritizes objectives by importance and story necessity.
-- Adapts tone and focus based on current narrative needs.
-
-**Section sources**
-- [storyDirector.ts](file://packages/engine/src/agents/storyDirector.ts#L100-L276)
-- [tensionController.ts](file://packages/engine/src/agents/tensionController.ts#L28-L149)
-
-### Chapter Planner Agent
+### ScenePlanner Agent
 **New** Responsibilities:
-- Convert high-level chapter objectives into detailed scene-by-scene outlines.
-- Plan progressive tension building from setup to climax.
-- Ensure each scene serves specific narrative objectives.
-- Generate scene transitions and planner notes for writer guidance.
+- Transform chapter objectives into detailed scene breakdowns with specific character assignments and location requirements.
+- Manage scene tension progression from setup to climax, ensuring narrative flow and dramatic arc consistency.
+- Generate scene-specific details including purpose statements, conflict descriptions, and scene types.
+- Provide fallback mechanisms for scene planning when LLM services are unavailable.
 
 Prompt engineering approach:
-- Comprehensive scene planning template with tension progression guidelines.
-- Detailed character and setting requirements for each scene.
-- Word count estimation and scene sequencing logic.
-- JSON structure enforcement for reliable parsing.
+- Comprehensive scene planning template with detailed character and setting requirements.
+- Progressive tension building guidance from 0-10 scale with specific target ranges.
+- Scene type classification (dialogue, action, reveal, investigation, transition) with appropriate guidance.
+- JSON structure enforcement for reliable parsing and validation.
 
 LLM integration pattern:
-- Low temperature (0.4) for consistent scene planning.
-- High token limit (2500) for detailed scene descriptions.
-- JSON mode for structured scene outline generation.
+- Moderate temperature (0.7) for creative yet focused scene planning.
+- High token limit (2000) for detailed scene descriptions and planning context.
+- JSON mode for structured scene plan generation with automatic validation.
 
 Parameters:
-- Temperature: 0.4 for consistent scene planning.
-- Max tokens: 2500 for detailed scene descriptions.
-- Target word count: configurable default of 2500 words.
+- Temperature: 0.7 for balanced creativity in scene planning.
+- Max tokens: 2000 for comprehensive scene detail generation.
+- Target scene count: configurable default of 4 scenes per chapter.
 
 Decision-making:
-- Creates 3-6 scenes per chapter with progressive tension building.
-- Opens with setup scenes, progresses through development scenes, and climaxes in final scene.
-- Balances critical and high-priority objectives across scenes.
-- Generates natural scene transitions and planner notes.
+- Creates 1-6 scenes per chapter based on target scene count with progressive tension building.
+- Assigns characters to scenes based on story requirements and character roles.
+- Ensures each scene has clear purpose, location, and tension level.
+- Generates natural scene transitions and maintains narrative coherence.
 
 Error handling:
-- Provides fallback outline generation without LLM when needed.
-- Validates outline coverage against objectives.
-- Handles malformed JSON gracefully with fallback mechanisms.
+- Provides fallback scene plan generation using story context and character information.
+- Validates scene plan structure and throws descriptive errors for malformed output.
+- Maintains sequential scene numbering and proper scene ID assignment.
 
 Customization tips:
-- Adjust target word count per story needs.
-- Modify scene count based on story complexity.
-- Customize tension progression curves for different genres.
-- Fine-tune objective prioritization for story-specific needs.
+- Adjust target scene count based on story complexity and genre requirements.
+- Modify tension progression curves for different narrative styles and dramatic arcs.
+- Customize scene types and character assignments for specific story needs.
 
 Practical example:
-- Generates detailed scene breakdowns with 2500-word estimates.
-- Creates progressive tension from 20% to 90% across scenes.
-- Ensures critical objectives are covered in opening and closing scenes.
+- Generates detailed scene breakdowns with 4 scenes per chapter.
+- Creates progressive tension from 3-7 across scenes with proper character placement.
+- Ensures critical plot points are covered in opening and closing scenes.
 
 **Section sources**
-- [chapterPlanner.ts](file://packages/engine/src/agents/chapterPlanner.ts#L110-L326)
+- [scenePlanner.ts:12-170](file://packages/engine/src/agents/scenePlanner.ts#L12-L170)
 
-### Writer Agent
-Responsibilities:
-- Assemble a narrative chapter prompt from Story Bible, Canon, recent summaries, and detailed chapter outline.
-- Generate initial chapter content and, if needed, continue from the last sentence to reach a natural stopping point.
-- Extract chapter title and compute word count.
+### SceneWriter Agent
+**New** Responsibilities:
+- Generate immersive narrative prose for individual scenes with character-focused storytelling.
+- Maintain scene-specific focus while contributing to overall chapter narrative flow.
+- Handle scene continuation and quality control for extended narrative sequences.
+- Provide fallback mechanisms for scene generation when LLM services fail.
 
 Prompt engineering approach:
-- Uses a structured template with placeholders for story metadata, characters, recent summaries, chapter outline, and guidelines.
-- The prompt emphasizes narrative craft and targets a specific word count.
-- Integrates detailed scene planning from the Chapter Planner.
+- Scene-specific writing template with character details and context integration.
+- Immersive prose guidelines emphasizing sensory details and narrative engagement.
+- Target tension maintenance with specific tension level guidance (0-10 scale).
+- Scene boundary management to ensure natural continuation to next scene.
 
 LLM integration pattern:
-- Calls the LLM client with tuned temperature and token limits.
-- Provides fallback title extraction if the LLM does not include a title header.
+- Higher temperature (0.8) for creative and engaging narrative generation.
+- Generous token limit (2500) for immersive scene content with proper context.
+- JSON mode for structured scene output with content, summary, and word count.
 
 Parameters:
-- Temperature: balanced creativity for writing.
-- Max tokens: generous allowance for full chapters.
-- Target word count: influences prompt guidance and inferred chapter goal.
+- Temperature: 0.8 for creative and engaging scene writing.
+- Max tokens: 2500 for comprehensive scene content generation.
+- Content validation: minimum 100 characters for quality assurance.
 
 Decision-making:
-- Infers chapter goal based on progress through the story to maintain narrative arc logic.
-- Extracts title heuristically from the first few lines.
-- Uses detailed scene outline to guide narrative structure.
+- Focuses on single scene narrative without rushing to resolve all story elements.
+- Maintains target tension level throughout scene content.
+- Ensures proper scene transitions and narrative flow.
+- Handles scene continuation based on natural ending points.
 
 Error handling:
-- Returns a default title if parsing fails.
-- Continues operation even if title extraction is unsuccessful.
+- Provides fallback scene generation based on scene type and character information.
+- Validates scene content length and quality before returning results.
+- Maintains consistent scene output structure with automatic word count calculation.
 
 Customization tips:
-- Adjust target word count per story needs.
-- Modify writing guidelines in the prompt template for tone or style.
-- Tune temperature for more deterministic or creative outputs.
+- Adjust writing style and tone based on genre and story requirements.
+- Modify tension guidance for different dramatic styles and pacing needs.
+- Customize character focus and dialogue emphasis for character-driven narratives.
 
 Practical example:
-- Initial generation using detailed scene outline guidance.
-- Continuation until a natural ending is achieved with scene structure adherence.
+- Generates immersive scene content with proper character interaction.
+- Maintains 6/10 target tension with appropriate narrative pacing.
+- Ensures natural scene boundaries with proper continuation cues.
 
 **Section sources**
-- [writer.ts](file://packages/engine/src/agents/writer.ts#L48-L146)
-- [writer.md](file://packages/engine/src/llm/prompts/writer.md#L1-L38)
-- [client.ts](file://packages/engine/src/llm/client.ts#L78-L81)
+- [sceneWriter.ts:15-139](file://packages/engine/src/agents/sceneWriter.ts#L15-L139)
 
-### Completeness Agent
-Responsibilities:
-- Determine if a chapter ends at a natural stopping point.
-
-Prompt engineering approach:
-- Defines explicit criteria for completeness and incompleteness.
-- Restricts response to a single word to reduce ambiguity.
-
-LLM integration pattern:
-- Uses low temperature and minimal tokens for deterministic classification.
-
-Parameters:
-- Temperature: very low for strict classification.
-- Max tokens: small to constrain output.
-
-Decision-making:
-- Normalizes response and treats any inclusion of "INCOMPLETE" as incomplete.
-
-Error handling:
-- Returns a reason when classification is inconclusive.
-
-Practical example:
-- Repeatedly checks content after each continuation until "COMPLETE".
-
-**Section sources**
-- [completeness.ts](file://packages/engine/src/agents/completeness.ts#L30-L56)
-- [completeness.md](file://packages/engine/src/llm/prompts/completeness.md#L1-L26)
-- [client.ts](file://packages/engine/src/llm/client.ts#L78-L81)
-
-### Summarizer Agent
-Responsibilities:
-- Produce a concise chapter summary and extract key events.
-
-Prompt engineering approach:
-- Focuses on major events, plot progress, and character changes.
-- Constrains summary length to under 120 tokens.
-
-LLM integration pattern:
-- Moderate temperature and token limit for coherent summarization.
-
-Parameters:
-- Temperature: slightly creative to improve coherence.
-- Max tokens: sufficient for a compact summary.
-
-Decision-making:
-- Extracts key events by scanning sentence-initial keywords.
-
-Error handling:
-- Returns empty character changes map when unavailable.
-
-Practical example:
-- Generates a summary and key events list for downstream state updates.
-
-**Section sources**
-- [summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L17-L64)
-- [summarizer.md](file://packages/engine/src/llm/prompts/summarizer.md#L1-L13)
-- [client.ts](file://packages/engine/src/llm/client.ts#L78-L81)
-
-### CanonValidator Agent
-Responsibilities:
-- Validate chapter content against the Story Canon and report contradictions.
-
-Prompt engineering approach:
-- Explicitly defines categories of contradictions and instructs JSON output.
-- Limits input text length to reduce token usage.
-
-LLM integration pattern:
-- Uses JSON mode via the LLM client to enforce structured output.
-- Parses and validates JSON response.
-
-Parameters:
-- Temperature: low for precise validation.
-- Max tokens: moderate to accommodate JSON.
-
-Decision-making:
-- Returns valid with empty violations when no facts exist.
-- Attempts JSON parsing; defaults to valid if parsing fails.
-
-Error handling:
-- Gracefully handles malformed JSON by treating as valid.
-
-Practical example:
-- Validates against character roles, backgrounds, plot thread statuses, and world rules.
-
-**Section sources**
-- [canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L31-L59)
-- [client.ts](file://packages/engine/src/llm/client.ts#L83-L95)
-- [canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L101-L129)
-
-### MemoryExtractor Agent
+### SceneValidator Agent
 **New** Responsibilities:
-- Extract important narrative facts from chapters for future story continuity.
-- Categorize extracted memories into events, character, world, and plot categories.
-- Generate standalone sentences that capture important story details.
+- Validate scene quality against specific requirements including character presence, location accuracy, and purpose fulfillment.
+- Ensure scene content meets minimum quality standards and narrative coherence.
+- Check for canon compliance and consistency with established story facts.
+- Provide both LLM-powered and quick validation modes for different performance needs.
 
 Prompt engineering approach:
-- Clear categorization guidelines for different memory types.
-- Specific examples of what constitutes important narrative facts.
-- JSON output structure for reliable parsing.
+- Quality control template with specific validation criteria and requirements.
+- Comprehensive validation checklist covering characters, location, purpose, and tension.
+- Canon compliance checking with established story facts and consistency rules.
+- Structured validation result reporting with violation details.
 
 LLM integration pattern:
-- Low temperature (0.3) for consistent memory extraction.
-- Structured JSON mode for reliable output parsing.
+- Low temperature (0.3) for consistent and objective validation assessment.
+- Moderate token limit (1000) for comprehensive validation analysis.
+- JSON mode for structured validation result reporting.
 
 Parameters:
-- Temperature: 0.3 for focused extraction.
-- Max tokens: 2000 for comprehensive memory analysis.
+- Temperature: 0.3 for objective and consistent validation assessment.
+- Max tokens: 1000 for comprehensive validation analysis.
+- Validation modes: LLM-powered and quick validation for performance optimization.
 
 Decision-making:
-- Prioritizes significant events, character development, world details, and plot threads.
-- Ensures extracted memories are specific enough for continuity maintenance.
-- Limits extraction to 5-10 memories per chapter.
+- Performs multi-level validation including content length, character presence, and location accuracy.
+- Checks for narrative purpose fulfillment and tension level appropriateness.
+- Validates against established canon facts and story consistency requirements.
+- Provides detailed violation reporting with specific issue descriptions.
 
 Error handling:
-- Returns empty array when extraction fails.
-- Handles malformed JSON gracefully.
-
-**Section sources**
-- [memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L52-L97)
-
-### StateUpdater Agent
-**New** Responsibilities:
-- Track and update story state based on chapter content and summaries.
-- Monitor character development, plot thread progression, and question resolution.
-- Maintain recent events and unresolved questions for narrative continuity.
-
-Prompt engineering approach:
-- Comprehensive state tracking with character and plot thread analysis.
-- Clear separation of character updates, plot thread changes, and question management.
-- Structured JSON output for reliable state updates.
-
-LLM integration pattern:
-- Low temperature (0.3) for consistent state analysis.
-- Structured JSON mode for reliable state updates.
-
-Parameters:
-- Temperature: 0.3 for focused analysis.
-- Max tokens: 2000 for comprehensive state tracking.
-
-Decision-making:
-- Updates character emotional states, locations, and relationship changes.
-- Advances plot thread status and tension levels.
-- Manages question lifecycle from introduction to resolution.
-
-Error handling:
-- Returns empty updates when analysis fails.
-- Handles malformed JSON gracefully.
-
-**Section sources**
-- [stateUpdater.ts](file://packages/engine/src/agents/stateUpdater.ts#L85-L193)
-
-### StateUpdater Pipeline
-**Enhanced** Responsibilities:
-- **Comprehensive post-chapter processing pipeline** that integrates memory extraction, constraint graph updates, structured state management, and consistency validation.
-- **Automatic constraint graph integration** that updates character locations, knowledge, and events.
-- **Multi-stage processing** including memory extraction, state updates, constraint graph maintenance, recent event tracking, and validation.
-- **Dual-mode operation** supporting both LLM-powered and quick-update modes for testing and production scenarios.
-- **Vector store integration** for semantic memory storage and retrieval.
-- **Automatic consistency checking** through the Validator system.
-
-Prompt engineering approach:
-- **Advanced state extraction** with comprehensive character, plot thread, and world change tracking.
-- **Structured extraction** for character modifications, plot thread updates, new facts, and world changes.
-- **Automatic integration** with constraint graph, vector store, and validation systems.
-
-LLM integration pattern:
-- **Low temperature (0.3)** for consistent state extraction and integration.
-- **High token limits (2000)** for comprehensive state analysis.
-- **Structured JSON mode** for reliable extraction parsing.
-
-Parameters:
-- **Temperature: 0.3** for focused extraction.
-- **Max tokens: 2000** for comprehensive state analysis.
-- **Dual-mode operation** supporting both LLM-powered and quick-update modes.
-
-Decision-making:
-- **Character state updates** including emotional state, location, knowledge, relationships, and goals.
-- **Plot thread management** with status updates, tension adjustments, and summary changes.
-- **Constraint graph integration** including character location updates, knowledge graph expansion, and event registration.
-- **Memory extraction** with automatic vector store integration.
-- **Recent event tracking** maintaining narrative continuity.
-- **Consistency validation** through automatic constraint checking and LLM-based validation.
-
-Error handling:
-- **Quick update mode** for testing and fallback scenarios.
-- **Graceful degradation** when LLM services are unavailable.
-- **Comprehensive validation** of extracted state changes.
-- **Automatic error recovery** through constraint graph validation.
+- Implements quick validation mode for performance-critical scenarios.
+- Provides fallback validation using basic content analysis and character/location checks.
+- Returns structured validation results with comprehensive violation reporting.
 
 Customization tips:
-- **Adjust extraction parameters** based on story complexity and memory requirements.
-- **Configure constraint graph updates** for different narrative universes and rules.
-- **Fine-tune memory extraction** categories and vector store integration.
-- **Optimize for performance** by choosing appropriate update modes.
-- **Customize validation thresholds** for different narrative styles and consistency requirements.
+- Adjust validation thresholds based on story complexity and quality requirements.
+- Customize violation reporting for different narrative styles and consistency needs.
+- Balance LLM-powered validation with quick validation for optimal performance.
 
 Practical example:
-- **Full pipeline execution** processing a completed chapter through memory extraction, constraint graph updates, state management, and validation.
-- **Automatic constraint graph integration** updating character locations and knowledge relationships.
-- **Vector store integration** adding narrative memories for future retrieval.
-- **Dual-mode operation** allowing testing without LLM dependencies.
+- Validates scene content against character requirements and location accuracy.
+- Checks for proper tension level maintenance and narrative purpose fulfillment.
+- Provides detailed violation reporting with specific improvement suggestions.
 
 **Section sources**
-- [stateUpdater.ts](file://packages/engine/src/memory/stateUpdater.ts#L90-L435)
+- [sceneValidator.ts:11-117](file://packages/engine/src/agents/sceneValidator.ts#L11-L117)
 
-### Constraint Graph
-**Enhanced** Responsibilities:
-- **Automatic constraint graph maintenance** that tracks characters, locations, facts, events, and items.
-- **Spatial constraints** preventing impossible character movements and teleportation.
-- **Knowledge constraints** ensuring characters cannot know things they haven't learned.
-- **Timeline constraints** maintaining chronological order of events.
-- **Logical consistency** checking for impossible or contradictory situations.
-- **Automatic graph updates** during state processing and memory integration.
-- **Query capabilities** for character knowledge and location retrieval.
-
-Prompt engineering approach:
-- **Graph construction** with automatic node and edge creation.
-- **Constraint validation** with detailed violation reporting.
-- **Automatic integration** with state updates, memory extraction, and validation.
-
-LLM integration pattern:
-- **Heuristic-based validation** (no LLM required for core graph operations).
-- **Manual constraint checking** for complex logical relationships.
-- **Automatic graph updates** during state processing.
-
-Parameters:
-- **No LLM parameters** needed for core graph operations.
-- **Automatic serialization** and deserialization for persistence.
-- **Efficient adjacency lists** for fast constraint checking.
-
-Decision-making:
-- **Character location tracking** with automatic edge updates.
-- **Knowledge graph expansion** with automatic fact node creation.
-- **Event registration** with participant tracking and timeline validation.
-- **Constraint violation detection** with severity assessment and suggested fixes.
-- **Automatic query processing** for knowledge and location retrieval.
-
-Error handling:
-- **Automatic graph recovery** from inconsistent states.
-- **Detailed violation reporting** with suggested fixes.
-- **Graceful degradation** when constraint violations are detected.
-- **Serialization/deserialization** for persistent constraint storage.
-
-**Section sources**
-- [constraintGraph.ts](file://packages/engine/src/constraints/constraintGraph.ts#L29-L471)
-
-### Validator
-**Enhanced** Responsibilities:
-- **Dual-mode validation** combining graph-based and LLM-based consistency checking.
-- **Graph-based validation** using the constraint graph for spatial, knowledge, timeline, and logical consistency.
-- **LLM-based validation** providing additional semantic consistency checking.
-- **Violation aggregation** combining and deduplicating validation results.
-- **Automatic error suggestion** with actionable fixes for constraint violations.
-- **Comprehensive validation reporting** with severity assessment and detailed explanations.
-
-Prompt engineering approach:
-- **Comprehensive validation prompt** covering all constraint types.
-- **Structured violation reporting** with detailed descriptions and suggested fixes.
-- **Automatic integration** with both constraint graph and LLM validation.
-
-LLM integration pattern:
-- **Low temperature (0.3)** for consistent validation.
-- **Moderate token limits (1500)** for comprehensive validation analysis.
-- **Structured JSON mode** for reliable violation reporting.
-
-Parameters:
-- **Temperature: 0.3** for focused validation.
-- **Max tokens: 1500** for comprehensive validation analysis.
-- **Dual-mode operation** supporting both graph-only and LLM-enhanced validation.
-
-Decision-making:
-- **Graph-based validation** using constraint graph checks.
-- **LLM-based validation** for semantic consistency and nuanced violations.
-- **Violation aggregation** combining and deduplicating results.
-- **Severity assessment** distinguishing between errors and warnings.
-- **Automatic error suggestion** with actionable fixes for constraint violations.
-
-Error handling:
-- **Fallback to graph validation** when LLM validation fails.
-- **Automatic violation deduplication** preventing redundant reports.
-- **Comprehensive error reporting** with suggested fixes.
-- **Graceful degradation** when validation services are unavailable.
-
-**Section sources**
-- [validator.ts](file://packages/engine/src/constraints/validator.ts#L73-L286)
-
-### Vector Store
+### SceneAssembler Agent
 **New** Responsibilities:
-- **Hierarchical Navigable Small World (HNSW) indexing** for efficient semantic memory storage.
-- **Vector embedding generation** using OpenAI text-embedding-3-small model.
-- **Semantic search capabilities** with cosine similarity scoring.
-- **Memory categorization** for event, character, world, and plot memories.
-- **Automatic capacity management** with dynamic resizing and auto-embedding generation.
-- **Persistent storage** with serialization/deserialization for memory preservation.
+- Combine individual scene outputs into cohesive chapter content with proper transitions and formatting.
+- Generate chapter titles and summaries from scene-level information and planning context.
+- Calculate chapter statistics including word count, scene count, and narrative metrics.
+- Maintain narrative flow and structural coherence across multiple scene contributions.
 
 Prompt engineering approach:
-- **Mock embedding generation** for testing without external APIs.
-- **Dynamic index management** for optimal performance scaling.
-- **Category-based filtering** for targeted memory retrieval.
+- Chapter assembly template with scene combination and transition management.
+- Title generation algorithm with descriptive goal extraction and tension-based naming.
+- Summary generation from individual scene summaries with narrative flow enhancement.
+- Formatting guidelines for chapter presentation and readability.
 
 LLM integration pattern:
-- **OpenAI embeddings API** for high-quality vector representations.
-- **Fallback mock embeddings** for testing and offline scenarios.
-- **Auto-resize capability** for growing memory collections.
+- Minimal LLM usage for chapter-level operations (no LLM required for core assembly).
+- Heuristic-based algorithms for title generation and content combination.
+- Structured output formatting for chapter presentation.
 
 Parameters:
-- **Dimension: 1536** for text-embedding-3-small compatibility.
-- **Default capacity: 10000** with automatic resizing.
-- **Cosine similarity** for semantic matching.
-- **Mock embedding mode** controlled by USE_MOCK_EMBEDDINGS environment variable.
+- No LLM parameters needed for core assembly operations.
+- Dynamic title generation based on chapter goals and tension levels.
+- Automatic content formatting with proper scene separation and transitions.
 
 Decision-making:
-- **Automatic embedding generation** using OpenAI API with fallback to mock embeddings.
-- **Dynamic index resizing** to accommodate growing memory collections.
-- **Efficient search algorithms** using HNSW for KNN nearest neighbor search.
-- **Category-based filtering** for targeted memory retrieval.
+- Generates meaningful chapter titles from descriptive chapter goals or tension indicators.
+- Combines scene content with appropriate transitions and paragraph separation.
+- Creates comprehensive chapter summaries from individual scene summaries.
+- Calculates chapter statistics and maintains narrative coherence.
 
 Error handling:
-- **API fallback** to mock embeddings when OpenAI API is unavailable.
-- **Index auto-resize** to prevent capacity exhaustion.
-- **Serialization/deserialization** for persistent memory storage.
-- **Graceful degradation** when vector services are unavailable.
+- Validates scene output structure and throws descriptive errors for malformed input.
+- Handles edge cases in title generation and content combination.
+- Maintains consistent chapter formatting and structural integrity.
+
+Customization tips:
+- Adjust title generation algorithms for different naming conventions and styles.
+- Customize summary generation for different narrative summary preferences.
+- Modify transition handling for different narrative flow and pacing styles.
+
+Practical example:
+- Combines multiple scene outputs into cohesive chapter content.
+- Generates descriptive chapter titles from chapter goals and tension levels.
+- Creates comprehensive chapter summaries with proper narrative flow.
 
 **Section sources**
-- [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L19-L208)
+- [sceneAssembler.ts:11-115](file://packages/engine/src/scene/sceneAssembler.ts#L11-L115)
 
-### Memory Retriever
+### SceneOutcomeExtractor Agent
 **New** Responsibilities:
-- **Intelligent memory retrieval** for contextual chapter generation.
-- **Semantic search integration** with vector store for relevant memory discovery.
-- **Context-aware formatting** for LLM prompts with narrative memories.
-- **Category-based filtering** for targeted memory selection.
-- **Chapter-specific retrieval** for current and recent narrative context.
-- **Prompt formatting** for seamless integration into writing workflows.
+- Extract state changes and narrative outcomes from individual scenes for story state updates.
+- Identify key events, character developments, location changes, and new information revealed.
+- Provide structured outcome data for integration with the existing StateUpdater pipeline.
+- Support both detailed LLM-powered extraction and fallback outcome generation.
 
 Prompt engineering approach:
-- **Contextual memory formatting** for LLM prompts.
-- **Category-based memory selection** for narrative coherence.
-- **Chapter progression awareness** for relevant memory prioritization.
+- Outcome extraction template with specific change identification requirements.
+- Comprehensive change tracking for events, character states, location dynamics, and new information.
+- Structured extraction format with organized outcome categories and data structures.
+- Integration-ready output format for seamless StateUpdater pipeline integration.
 
 LLM integration pattern:
-- **Vector store integration** for semantic memory search.
-- **Memory formatting** for prompt inclusion.
-- **Context-aware retrieval** for chapter-specific needs.
+- Moderate temperature (0.4) for balanced and comprehensive outcome extraction.
+- Moderate token limit (1500) for detailed outcome analysis and change identification.
+- JSON mode for structured outcome extraction with automatic parsing.
 
 Parameters:
-- **Default K: 5** for semantic search results.
-- **Category filtering** for targeted memory selection.
-- **Chapter-aware context** for relevant memory prioritization.
+- Temperature: 0.4 for balanced and comprehensive outcome extraction.
+- Max tokens: 1500 for detailed outcome analysis and change identification.
+- Outcome merging: automatic merging of multiple scene outcomes with duplicate removal.
 
 Decision-making:
-- **Semantic similarity search** using vector store embeddings.
-- **Category-based filtering** for narrative coherence.
-- **Context-aware prioritization** for chapter-specific memory relevance.
-- **Prompt formatting** for seamless LLM integration.
+- Identifies key events that occurred during scene execution.
+- Tracks character changes including emotional states, knowledge acquisition, and status updates.
+- Monitors location changes and character movement patterns.
+- Extracts new information revealed and integrates with existing story knowledge.
 
 Error handling:
-- **Graceful fallback** when vector store is unavailable.
-- **Category filtering** for relevant memory selection.
-- **Chapter-aware context** for memory prioritization.
+- Provides fallback outcome generation with basic scene completion tracking.
+- Implements automatic outcome merging with duplicate removal and data consolidation.
+- Handles malformed extraction output with graceful fallback mechanisms.
+
+Customization tips:
+- Adjust extraction focus based on story complexity and outcome tracking needs.
+- Customize outcome categories for different narrative styles and tracking preferences.
+- Modify merging algorithms for different outcome consolidation strategies.
+
+Practical example:
+- Extracts comprehensive outcomes including key events, character changes, and new information.
+- Generates structured outcome data for StateUpdater pipeline integration.
+- Merges multiple scene outcomes with duplicate removal and data consolidation.
 
 **Section sources**
-- [memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts#L1-L200)
+- [sceneOutcomeExtractor.ts:10-117](file://packages/engine/src/scene/sceneOutcomeExtractor.ts#L10-L117)
 
-### TensionController Agent
-**New** Responsibilities:
-- Calculate target tension levels based on story arc position.
-- Analyze current tension vs target and provide guidance recommendations.
-- Generate tension guidance for writers including scene types and pacing notes.
+### Integration and Export System
+**Updated** The centralized index export system now includes comprehensive scene-level agent exports alongside existing chapter-level functionality.
 
-Prompt engineering approach:
-- Mathematical formula for natural dramatic arc progression.
-- Clear tension analysis with gap assessment and recommended actions.
-- Practical guidance for scene types and pacing adjustments.
-
-LLM integration pattern:
-- Heuristic calculations for tension estimation (no LLM required).
-- Manual guidance generation for writer support.
-
-Parameters:
-- No LLM parameters needed for core calculations.
-- Uses mathematical formulas for tension progression.
-
-Decision-making:
-- Calculates parabolic tension curve: 4 × progress × (1 - progress).
-- Recommends escalation, maintenance, or resolution actions based on tension gaps.
-- Provides genre-appropriate scene type recommendations.
-
-Error handling:
-- Returns neutral guidance when story state is incomplete.
-- Handles edge cases for single-chapter stories.
-
-**Section sources**
-- [tensionController.ts](file://packages/engine/src/agents/tensionController.ts#L28-L252)
-
-### LLM Client and Provider
 Responsibilities:
-- Provide a unified interface to multiple LLM providers.
-- Load configuration from environment variables.
-- Support JSON mode for structured outputs.
+- Export all new scene-level agents (planScenes, writeScene, validateScene, quickValidateScene) with proper typing.
+- Maintain backward compatibility with existing chapter-level agent exports.
+- Provide unified access to both scene-level and chapter-level generation capabilities.
+- Support integration with existing pipeline components and workflows.
+
+Export structure:
+- Scene planning functions: planScenes
+- Scene writing functions: writeScene
+- Scene validation functions: validateScene, quickValidateScene
+- Scene assembly functions: assembleChapter, formatChapterWithHeading
+- Scene outcome functions: extractSceneOutcome, mergeSceneOutcomes
 
 Integration patterns:
-- Supports OpenAI and DeepSeek providers.
-- Exposes complete and completeJSON methods.
-- Merges default and per-call configuration.
-
-Parameters:
-- Model selection via environment.
-- Temperature and maxTokens tuning per agent needs.
-
-Debugging:
-- Logs model usage for traceability.
+- Seamless integration with existing StateUpdater pipeline for outcome processing.
+- Compatibility with existing Chapter Planner and Writer Agent workflows.
+- Support for both synchronous and asynchronous scene-level generation workflows.
+- Unified typing system supporting both scene-level and chapter-level operations.
 
 **Section sources**
-- [client.ts](file://packages/engine/src/llm/client.ts#L31-L106)
-
-### Pipeline: generateChapter
-**Updated** Responsibilities:
-- Orchestrate the end-to-end chapter generation workflow with enhanced planning.
-- Coordinate Story Director and Chapter Planner for detailed scene planning.
-- Manage retries for continuation until completeness.
-- Optionally validate against the Story Canon.
-- Construct the final chapter artifact and summary.
-- Extract and store memories for future chapters.
-- **Process completed chapters through the StateUpdater Pipeline for comprehensive state management.**
-- **Integrate with Constraint Graph and Validator for consistency checking.**
-- **Initialize and manage Vector Store for semantic memory integration.**
-- **Coordinate Memory Retriever for contextual memory retrieval.**
-
-Coordination mechanisms:
-- Streams context to Story Director, then Chapter Planner, then Writer Agent, then Completeness Agent, then optional CanonValidator, then Summarizer, then StateUpdater Pipeline.
-- Updates story state with chapter summaries and narrative changes.
-- Integrates tension guidance and memory extraction throughout the pipeline.
-- **Manages automatic constraint graph updates, validation, and vector store integration throughout the process.**
-- **Coordinates memory retrieval for contextual chapter generation.**
-
-Error handling:
-- Logs attempts and violations.
-- Returns structured result with chapter, summary, violations, and memories extracted.
-- **Handles vector store initialization and memory extraction errors gracefully.**
-- **Manages constraint graph and validation failures with fallback mechanisms.**
-
-**Section sources**
-- [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L26-L108)
-
-### Memory: Canon Store
-Responsibilities:
-- Store and manage Story Canon facts across categories.
-- Format facts for inclusion in prompts.
-
-Operations:
-- Extract from Story Bible.
-- Add/update facts.
-- Retrieve by category or subject/attribute.
-- Format for LLM prompts.
-
-**Section sources**
-- [canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L17-L129)
-
-### Story Utilities
-Responsibilities:
-- Create and update Story Bible metadata.
-- Create and update story state, including chapter summaries and tension calculation.
-- Format structured state for prompt inclusion.
-
-**Section sources**
-- [bible.ts](file://packages/engine/src/story/bible.ts#L1-L73)
-- [state.ts](file://packages/engine/src/story/state.ts#L1-L30)
-- [structuredState.ts](file://packages/engine/src/story/structuredState.ts#L181-L235)
+- [index.ts:15-17](file://packages/engine/src/index.ts#L15-L17)
+- [index.ts:120-123](file://packages/engine/src/index.ts#L120-L123)
 
 ## Dependency Analysis
-**Updated** The agents now include sophisticated interdependencies with the new StateUpdater Pipeline coordinating with Constraint Graph, Validator, Vector Store, and Memory Retriever systems.
+**Updated** The scene-level agents integrate seamlessly with existing chapter-level components while maintaining independence for flexible workflow selection.
 
-The agents depend on the LLM client and share types and memory utilities. The pipeline coordinates agents and integrates with memory, story utilities, constraint graph, vector store, and validation systems.
+The new scene-level agents depend on the LLM client for generation and validation tasks, while core assembly and outcome extraction functions operate independently. Integration with existing StateUpdater pipeline enables comprehensive narrative state management.
 
 ```mermaid
 graph LR
-StoryDir["storyDirector.ts"] --> LLM["client.ts"]
-StoryDir --> Types["types/index.ts"]
-StoryDir --> StructState["structuredState.ts"]
-ChapterPlanner["chapterPlanner.ts"] --> LLM
-ChapterPlanner --> Types
-ChapterPlanner --> StoryDir
-Writer["writer.ts"] --> LLM
-Writer --> Types
-Writer --> CanonFmt["canonStore.ts"]
-Writer --> ChapterPlanner
-Complete["completeness.ts"] --> LLM
-Complete --> Types
-Sum["summarizer.ts"] --> LLM
-Sum --> Types
-Canon["canonValidator.ts"] --> LLM
-Canon --> CanonFmt
-Canon --> Types
-MemExtract["memoryExtractor.ts"] --> LLM
-MemExtract --> Types
-StateUpd["stateUpdater.ts"] --> LLM
-StateUpd --> Types
-StateUpd --> StructState
-StatePipe["memory/stateUpdater.ts"] --> LLM
-StatePipe --> Types
-StatePipe --> CanonFmt
-StatePipe --> ConstraintGraph["constraints/constraintGraph.ts"]
-StatePipe --> VectorStore["memory/vectorStore.ts"]
-StatePipe --> Validator["constraints/validator.ts"]
-Tension["tensionController.ts"] --> Types
-Tension --> StructState
-ConstraintGraph --> Types
-Validator --> LLM
-Validator --> Types
-Validator --> ConstraintGraph
-Validator --> CanonFmt
-VectorStore --> LLM
-VectorStore --> Types
-MemoryRetriever["memory/memoryRetriever.ts"] --> VectorStore
-MemoryRetriever --> Types
-Pipe["generateChapter.ts"] --> StoryDir
-Pipe --> ChapterPlanner
-Pipe --> Writer
-Pipe --> Complete
-Pipe --> Sum
-Pipe --> Canon
-Pipe --> MemExtract
-Pipe --> StateUpd
-Pipe --> StatePipe
-Pipe --> Tension
-Pipe --> Types
-Pipe --> CanonFmt
-Pipe --> VectorStore
-Pipe --> MemoryRetriever
-CLI["generate.ts"] --> Pipe
-CLI --> State["state.ts"]
-CLI --> Types
+SCENEPLANNER["scenePlanner.ts"] --> LLM["client.ts"]
+SCENEWRITER["sceneWriter.ts"] --> LLM
+SCENEVALIDATOR["sceneValidator.ts"] --> LLM
+SCENEASSEMBLER["sceneAssembler.ts"] --> NO_LLM["No LLM Required"]
+SCENEOUTCOME["sceneOutcomeExtractor.ts"] --> LLM
+SCENEASSEMBLER --> STATEUPD["stateUpdater.ts"]
+SCENEOUTCOME --> STATEUPD
+SCENEPLANNER --> SCENEWRITER
+SCENEWRITER --> SCENEVALIDATOR
+SCENEWRITER --> SCENEASSEMBLER
+SCENEWRITER --> SCENEOUTCOME
+INDEX["index.ts"] --> SCENEPLANNER
+INDEX --> SCENEWRITER
+INDEX --> SCENEVALIDATOR
+INDEX --> SCENEASSEMBLER
+INDEX --> SCENEOUTCOME
+TESTS["scene-level.test.ts"] --> SCENEPLANNER
+TESTS --> SCENEWRITER
+TESTS --> SCENEVALIDATOR
+TESTS --> SCENEASSEMBLER
+TESTS --> SCENEOUTCOME
 ```
 
-**Updated** The dependency graph now shows the StateUpdater Pipeline as a central coordinator that integrates with Constraint Graph, Validator, Vector Store, and Memory Retriever systems, managing the complete feedback loop for narrative consistency, memory management, and intelligent retrieval.
+**Updated** The dependency graph shows comprehensive integration of scene-level agents with existing system components, including LLM client integration, StateUpdater pipeline connectivity, and unified export system.
 
 **Diagram sources**
-- [storyDirector.ts](file://packages/engine/src/agents/storyDirector.ts#L1-L31)
-- [chapterPlanner.ts](file://packages/engine/src/agents/chapterPlanner.ts#L1-L33)
-- [writer.ts](file://packages/engine/src/agents/writer.ts#L1-L5)
-- [completeness.ts](file://packages/engine/src/agents/completeness.ts#L1-L2)
-- [summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L1-L2)
-- [canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L1-L2)
-- [memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L1-L4)
-- [stateUpdater.ts](file://packages/engine/src/agents/stateUpdater.ts#L1-L4)
-- [stateUpdater.ts](file://packages/engine/src/memory/stateUpdater.ts#L1-L6)
-- [tensionController.ts](file://packages/engine/src/agents/tensionController.ts#L1-L3)
-- [constraintGraph.ts](file://packages/engine/src/constraints/constraintGraph.ts#L1-L6)
-- [validator.ts](file://packages/engine/src/constraints/validator.ts#L1-L5)
-- [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L1-L3)
-- [memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts#L1-L4)
-- [client.ts](file://packages/engine/src/llm/client.ts#L1-L6)
-- [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L10)
-- [types/index.ts](file://packages/engine/src/types/index.ts#L60-L90)
-- [canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L1-L15)
-- [state.ts](file://packages/engine/src/story/state.ts#L1-L30)
-- [structuredState.ts](file://packages/engine/src/story/structuredState.ts#L1-L31)
-- [generate.ts](file://apps/cli/src/commands/generate.ts#L1-L55)
+- [scenePlanner.ts:1-20](file://packages/engine/src/agents/scenePlanner.ts#L1-L20)
+- [sceneWriter.ts:1-32](file://packages/engine/src/agents/sceneWriter.ts#L1-L32)
+- [sceneValidator.ts:1-18](file://packages/engine/src/agents/sceneValidator.ts#L1-L18)
+- [sceneAssembler.ts:1-10](file://packages/engine/src/scene/sceneAssembler.ts#L1-L10)
+- [sceneOutcomeExtractor.ts:1-10](file://packages/engine/src/scene/sceneOutcomeExtractor.ts#L1-L10)
+- [index.ts:15-17](file://packages/engine/src/index.ts#L15-L17)
+- [scene-level.test.ts:22-30](file://packages/engine/src/test/scene-level.test.ts#L22-L30)
 
 **Section sources**
-- [index.ts](file://packages/engine/src/index.ts#L1-L116)
-- [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L108)
+- [index.ts:1-123](file://packages/engine/src/index.ts#L1-L123)
+- [scene-level.test.ts:1-301](file://packages/engine/src/test/scene-level.test.ts#L1-L301)
 
 ## Performance Considerations
-**Updated** Performance considerations now include the additional computational load of comprehensive state management, constraint graph integration, vector memory operations, and dual-mode validation.
+**Updated** Performance considerations now include the computational overhead of scene-level generation with individual validation and outcome processing.
 
-- **Token budget management**: Set maxTokens per agent to balance quality and cost. Writers and Summarizers can use higher limits; Completeness and CanonValidator use smaller limits. Chapter Planner uses the highest token limit (2500) for detailed scene planning. **StateUpdater Pipeline uses moderate limits (2000) for comprehensive state extraction.**
-- **Temperature tuning**: Lower temperatures for classification and validation; moderate for summarization; balanced for writing; low for focused extraction tasks. **StateUpdater uses 0.3 temperature for consistent state analysis.**
-- **Prompt reuse**: Keep prompts concise and consistent to reduce token usage and improve reproducibility.
-- **Retry strategy**: Limit continuation attempts to avoid runaway token consumption.
-- **Provider selection**: Choose models appropriate for the task; use JSON mode for structured outputs.
-- **Memory formatting**: Limit input sizes for validation (e.g., truncate chapter text) to control costs.
-- **Scene planning efficiency**: Chapter Planner's fallback mechanism reduces LLM dependency for basic scenarios.
-- **Parallel processing**: Consider batching memory extraction and state updates for better throughput.
-- **Constraint graph optimization**: **Use efficient adjacency lists and automatic graph updates to minimize computational overhead.**
-- **State pipeline efficiency**: **Implement dual-mode operation (quick vs LLM-powered) to optimize performance based on requirements.**
-- **Vector store optimization**: **Use HNSW indexing with appropriate capacity management and embedding generation strategies.**
-- **Memory retrieval efficiency**: **Implement category-based filtering and semantic search with optimized K values.**
-- **Validation performance**: **Use dual-mode validation to balance accuracy and speed, with graph-based validation as fallback.**
+- **Token budget management**: SceneWriter uses highest token limit (2500) for immersive content; ScenePlanner uses 2000 for detailed planning; SceneValidator uses 1000 for validation; SceneOutcomeExtractor uses 1500 for comprehensive outcome analysis.
+- **Temperature tuning**: ScenePlanner uses 0.7 for balanced creativity; SceneWriter uses 0.8 for creative engagement; SceneValidator uses 0.3 for objective assessment; SceneOutcomeExtractor uses 0.4 for balanced extraction.
+- **Parallel processing**: Scene-level agents can operate in parallel streams for improved throughput in multi-scene chapters.
+- **Quality validation**: SceneValidator provides both LLM-powered and quick validation modes for performance optimization.
+- **Fallback mechanisms**: All scene-level agents include comprehensive fallback functionality for reliability and reduced LLM dependency.
+- **Memory efficiency**: SceneAssembler and SceneOutcomeExtractor operate without LLM for core operations, reducing computational overhead.
+- **Integration optimization**: Centralized index export system minimizes import overhead and improves module loading performance.
 
 ## Troubleshooting Guide
-**Updated** Troubleshooting guide now includes StateUpdater-specific considerations, constraint graph integration issues, vector store problems, and memory retrieval challenges.
+**Updated** Troubleshooting guide now includes scene-level agent-specific considerations and integration challenges.
 
 Common issues and resolutions:
-- **Incomplete chapters**: Increase max continuation attempts or adjust writing guidelines to encourage natural endings.
-- **JSON parsing failures**: CanonValidator falls back to valid when JSON is invalid; ensure prompts enforce JSON strictly.
-- **Missing titles**: Writer falls back to a default title; verify prompt includes title guidance.
-- **Provider misconfiguration**: Verify environment variables for provider, base URL, and model; the client throws on unknown provider.
-- **Validation overhead**: Disable canon validation when iterating quickly; enable during final checks.
-- **Scene planning failures**: Use Chapter Planner's fallback outline generation when LLM fails.
-- **Outline coverage issues**: Review Chapter Planner validation results and adjust objectives if scenes miss critical priorities.
-- **Tension mismatch**: Check TensionController analysis and adjust story state if target tension differs from narrative needs.
-- **State update failures**: **Verify StateUpdater Pipeline configuration and ensure proper integration with constraint graph, vector store, and validator.**
-- **Constraint graph violations**: **Review constraint graph statistics and check for location, knowledge, timeline, and logical consistency violations.**
-- **Memory extraction issues**: **Ensure vector store is properly initialized and accessible during state updates.**
-- **Vector store failures**: **Check embedding generation API availability and configure mock embeddings for testing.**
-- **Memory retrieval problems**: **Verify vector store initialization and memory categorization for accurate semantic search.**
-- **Dual-mode operation problems**: **Test both quick and LLM-powered modes to identify performance bottlenecks.**
-- **Validation service unavailability**: **Use quick validation mode when LLM validation fails, relying on constraint graph checks.**
+- **Scene planning failures**: Check LLM availability and token limits; verify story context and character information completeness.
+- **Scene writing quality issues**: Adjust SceneWriter temperature and prompt context; verify scene plan quality and character requirements.
+- **Scene validation failures**: Review SceneValidator criteria and violation reports; check for character presence and location accuracy issues.
+- **Assembly errors**: Verify scene output structure and content validity; check for proper scene numbering and transition handling.
+- **Outcome extraction problems**: Review SceneOutcomeExtractor prompt clarity and content quality; verify integration with StateUpdater pipeline.
+- **Integration conflicts**: Ensure proper import/export from centralized index system; verify type compatibility between scene-level and chapter-level components.
+- **Performance bottlenecks**: Implement quick validation mode for performance-critical scenarios; consider parallel scene processing for multi-scene chapters.
+- **Fallback mechanism failures**: Test fallback functionality for all scene-level agents; verify manual validation and assembly capabilities.
 
 Operational logs:
-- Pipeline logs chapter generation steps and counts.
-- LLM client logs model usage for traceability.
-- Chapter Planner logs scene outline generation and validation results.
-- Story Director logs objective generation and priority assessments.
-- **StateUpdater Pipeline logs extraction results, constraint graph updates, memory integration, and validation outcomes.**
-- **Constraint Graph logs node and edge updates with validation results and query performance.**
-- **Validator logs combined graph and LLM validation results with violation details and suggested fixes.**
-- **Vector Store logs embedding generation, memory storage, and search performance metrics.**
-- **Memory Retriever logs semantic search results and memory formatting for prompts.**
+- ScenePlanner logs scene plan generation and validation results.
+- SceneWriter logs scene content generation and quality metrics.
+- SceneValidator logs validation results and violation analysis.
+- SceneAssembler logs chapter assembly and formatting operations.
+- SceneOutcomeExtractor logs outcome extraction and merging operations.
+- Integration system logs show proper export and import of scene-level agents.
 
 **Section sources**
-- [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L27-L53)
-- [client.ts](file://packages/engine/src/llm/client.ts#L63-L75)
-- [writer.ts](file://packages/engine/src/agents/writer.ts#L90-L94)
-- [canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L49-L55)
-- [chapterPlanner.ts](file://packages/engine/src/agents/chapterPlanner.ts#L110-L122)
-- [storyDirector.ts](file://packages/engine/src/agents/storyDirector.ts#L100-L112)
-- [stateUpdater.ts](file://packages/engine/src/memory/stateUpdater.ts#L90-L120)
-- [constraintGraph.ts](file://packages/engine/src/constraints/constraintGraph.ts#L229-L245)
-- [validator.ts](file://packages/engine/src/constraints/validator.ts#L83-L124)
-- [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L125-L148)
-- [memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts#L1-L200)
+- [scene-level.test.ts:94-301](file://packages/engine/src/test/scene-level.test.ts#L94-L301)
 
 ## Conclusion
-**Updated** The AI Agent System now composes specialized agents around a robust pipeline with enhanced automated planning capabilities and complete feedback loop.
+**Updated** The AI Agent System now provides comprehensive narrative generation capabilities at both chapter and scene levels, with six new scene-level agents completing the generation pipeline.
 
-The system includes the Story Director for high-level narrative guidance, the Chapter Planner for detailed scene-by-scene planning, the Writer Agent for chapter creation, the Completeness Agent for structural validation, the Summarizer for narrative synthesis, the CanonValidator for consistency checking, the MemoryExtractor for continuity maintenance, the StateUpdater for narrative tracking, the StateUpdater Pipeline for comprehensive post-chapter processing, the Constraint Graph for automatic consistency enforcement, the Validator for dual-mode validation, the Vector Store for semantic memory management, the Memory Retriever for intelligent memory retrieval, and the TensionController for dramatic arc management.
+The system includes ScenePlanner for detailed scene breakdowns, SceneWriter for immersive narrative generation, SceneValidator for quality assurance, SceneAssembler for chapter composition, and SceneOutcomeExtractor for state management integration. These agents work seamlessly with existing chapter-level components through the centralized index export system, providing flexible workflow selection and comprehensive narrative control.
 
-The LLM client abstracts provider differences and supports structured outputs across all agents. **The new StateUpdater Pipeline, Constraint Graph, Vector Store, and Validator complete the feedback loop, enabling fully autonomous storytelling with automatic consistency maintenance, memory integration, intelligent retrieval, and comprehensive validation.** Together, they form a scalable, debuggable, and customizable generation pipeline suitable for iterative storytelling with significantly expanded automated capabilities and advanced memory management.
+**The new scene-level generation pipeline offers granular control over narrative elements, comprehensive quality validation at the individual scene level, and seamless integration with existing StateUpdater pipeline for automatic story state management.** This dual-level approach enables both high-level chapter planning and detailed scene execution, supporting diverse narrative styles and generation requirements while maintaining system reliability and performance.
 
 ## Appendices
 
-### Agent Responsibilities and Parameters
-**Updated** Enhanced with new agents and expanded parameter sets including StateUpdater Pipeline, Constraint Graph, Validator, Vector Store, and Memory Retriever.
+### Scene-Level Agent Responsibilities and Parameters
+**Updated** Comprehensive parameter sets for all six new scene-level agents with detailed operational specifications.
 
-- **Story Director Agent**
-  - Responsibilities: Analyze story state, generate objectives, determine tone and focus.
-  - Parameters: temperature 0.4, maxTokens 2000.
-- **Chapter Planner Agent**
-  - Responsibilities: Convert objectives to scene outlines, manage tension progression, ensure objective coverage.
-  - Parameters: temperature 0.4, maxTokens 2500, targetWordCount 2500.
-- **Writer Agent**
-  - Responsibilities: Create chapters, infer goals, handle continuations, extract titles, compute word counts.
-  - Parameters: temperature, maxTokens, targetWordCount.
-- **Completeness Agent**
-  - Responsibilities: Classify completeness.
-  - Parameters: temperature, maxTokens.
-- **Summarizer Agent**
-  - Responsibilities: Summarize and extract key events.
-  - Parameters: temperature, maxTokens.
-- **CanonValidator Agent**
-  - Responsibilities: Detect contradictions and return JSON.
-  - Parameters: temperature, maxTokens.
-- **MemoryExtractor Agent**
-  - Responsibilities: Extract narrative memories for continuity.
-  - Parameters: temperature 0.3, maxTokens 2000.
-- **StateUpdater Agent**
-  - Responsibilities: Track narrative changes and update story state.
-  - Parameters: temperature 0.3, maxTokens 2000.
-- **StateUpdater Pipeline**
-  - Responsibilities: **Comprehensive post-chapter processing with memory extraction, constraint graph updates, state management, and validation.**
-  - Parameters: temperature 0.3, maxTokens 2000, **dual-mode operation**.
-- **Constraint Graph**
-  - Responsibilities: **Automatic constraint maintenance with spatial, knowledge, timeline, and logical consistency checking.**
-  - Parameters: **No LLM parameters**, automatic graph operations.
-- **Validator**
-  - Responsibilities: **Dual-mode validation combining graph-based and LLM-based consistency checking with automatic error suggestions.**
-  - Parameters: temperature 0.3, maxTokens 1500, **dual-mode operation**.
-- **Vector Store**
-  - Responsibilities: **Hierarchical Navigable Small World indexing for semantic memory storage and retrieval.**
-  - Parameters: **Dimension 1536, default capacity 10000, cosine similarity, mock embedding mode.**
-- **Memory Retriever**
-  - Responsibilities: **Intelligent memory retrieval for contextual chapter generation with semantic search.**
-  - Parameters: **Default K=5, category filtering, chapter-aware context.**
-- **TensionController Agent**
-  - Responsibilities: Calculate target tension and provide guidance.
-  - Parameters: None (mathematical calculations).
+- **ScenePlanner Agent**
+  - Responsibilities: Create detailed scene plans from chapter objectives, manage character placement and tension progression.
+  - Parameters: temperature 0.7, maxTokens 2000, targetSceneCount 4.
+- **SceneWriter Agent**
+  - Responsibilities: Generate immersive narrative prose for individual scenes with character focus and tension maintenance.
+  - Parameters: temperature 0.8, maxTokens 2500, content validation threshold 100 characters.
+- **SceneValidator Agent**
+  - Responsibilities: Validate scene quality against requirements, check canon compliance, provide structured validation results.
+  - Parameters: temperature 0.3, maxTokens 1000, validation modes (LLM-powered and quick).
+- **SceneAssembler Agent**
+  - Responsibilities: Combine scenes into cohesive chapters, generate titles and summaries, calculate chapter statistics.
+  - Parameters: No LLM parameters needed, dynamic title generation, automatic content formatting.
+- **SceneOutcomeExtractor Agent**
+  - Responsibilities: Extract state changes and outcomes from scenes, identify key events and character developments.
+  - Parameters: temperature 0.4, maxTokens 1500, automatic outcome merging with duplicate removal.
+- **Integration System**
+  - Responsibilities: Export scene-level agents alongside existing chapter-level functionality, maintain backward compatibility.
+  - Parameters: Unified export system, comprehensive typing support, seamless integration with existing pipeline components.
 
 **Section sources**
-- [storyDirector.ts](file://packages/engine/src/agents/storyDirector.ts#L100-L276)
-- [chapterPlanner.ts](file://packages/engine/src/agents/chapterPlanner.ts#L110-L326)
-- [writer.ts](file://packages/engine/src/agents/writer.ts#L55-L94)
-- [completeness.ts](file://packages/engine/src/agents/completeness.ts#L37-L52)
-- [summarizer.ts](file://packages/engine/src/agents/summarizer.ts#L24-L38)
-- [canonValidator.ts](file://packages/engine/src/agents/canonValidator.ts#L32-L55)
-- [memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L52-L97)
-- [stateUpdater.ts](file://packages/engine/src/agents/stateUpdater.ts#L85-L193)
-- [stateUpdater.ts](file://packages/engine/src/memory/stateUpdater.ts#L90-L435)
-- [constraintGraph.ts](file://packages/engine/src/constraints/constraintGraph.ts#L29-L471)
-- [validator.ts](file://packages/engine/src/constraints/validator.ts#L73-L286)
-- [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L19-L208)
-- [memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts#L1-L200)
-- [tensionController.ts](file://packages/engine/src/agents/tensionController.ts#L214-L252)
+- [scenePlanner.ts:16-109](file://packages/engine/src/agents/scenePlanner.ts#L16-L109)
+- [sceneWriter.ts:19-111](file://packages/engine/src/agents/sceneWriter.ts#L19-L111)
+- [sceneValidator.ts:14-65](file://packages/engine/src/agents/sceneValidator.ts#L14-L65)
+- [sceneAssembler.ts:14-42](file://packages/engine/src/scene/sceneAssembler.ts#L14-L42)
+- [sceneOutcomeExtractor.ts:14-67](file://packages/engine/src/scene/sceneOutcomeExtractor.ts#L14-L67)
+- [index.ts:15-17](file://packages/engine/src/index.ts#L15-L17)
 
-### Prompt Engineering Notes
-**Updated** Enhanced with StateUpdater, Constraint Graph, Validator, Vector Store, and Memory Retriever prompt engineering guidance.
-
-- Use explicit criteria and constrained outputs for classification tasks.
-- Provide clear structure and examples for summarization.
-- Enforce JSON output for validation tasks.
-- Keep prompts modular and reusable across agents.
-- Chapter Planner requires detailed scene progression guidelines.
-- Story Director needs comprehensive story context and tension management.
-- Memory extraction requires clear categorization examples.
-- State tracking needs specific change detection patterns.
-- **StateUpdater Pipeline requires comprehensive extraction templates for character, plot thread, and world changes.**
-- **Constraint Graph integration requires automatic node and edge creation templates.**
-- **Validator prompts need comprehensive constraint checking with detailed violation reporting and error suggestions.**
-- **Vector Store prompts need embedding generation and memory categorization guidelines.**
-- **Memory Retriever prompts require semantic search and context-aware formatting.**
-
-**Section sources**
-- [writer.md](file://packages/engine/src/llm/prompts/writer.md#L1-L38)
-- [completeness.md](file://packages/engine/src/llm/prompts/completeness.md#L1-L26)
-- [summarizer.md](file://packages/engine/src/llm/prompts/summarizer.md#L1-L13)
-- [client.ts](file://packages/engine/src/llm/client.ts#L83-L95)
-- [chapterPlanner.ts](file://packages/engine/src/agents/chapterPlanner.ts#L35-L108)
-- [storyDirector.ts](file://packages/engine/src/agents/storyDirector.ts#L33-L98)
-- [memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L14-L50)
-- [stateUpdater.ts](file://packages/engine/src/agents/stateUpdater.ts#L25-L83)
-- [stateUpdater.ts](file://packages/engine/src/memory/stateUpdater.ts#L31-L88)
-- [constraintGraph.ts](file://packages/engine/src/constraints/constraintGraph.ts#L1-L471)
-- [validator.ts](file://packages/engine/src/constraints/validator.ts#L22-L71)
-- [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L125-L148)
-- [memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts#L1-L200)
-
-### CLI Usage Example
-**Updated** Enhanced with new agent integration, StateUpdater Pipeline, Constraint Graph, Vector Store, and Validator.
-
-- Initialize a story and generate chapters iteratively using the CLI command.
-- The CLI constructs GenerationContext and persists state and chapters after each run.
-- The pipeline now coordinates Story Director, Chapter Planner, Writer agents, and **StateUpdater Pipeline** automatically.
-- **Memory extraction, constraint graph updates, state management, and validation occur seamlessly in the background.**
-- **Constraint Graph and Validator provide automatic consistency checking throughout the process.**
-- **Vector Store manages semantic memory storage and retrieval for intelligent chapter generation.**
-- **Memory Retriever provides contextual memory integration for enhanced narrative coherence.**
-
-**Section sources**
-- [generate.ts](file://apps/cli/src/commands/generate.ts#L19-L54)
-- [index.ts](file://apps/cli/src/index.ts#L35-L51)
-
-### StateUpdater Pipeline Testing
-**Enhanced** Comprehensive testing framework for the StateUpdater Pipeline demonstrates complete functionality with vector memory integration and constraint graph validation.
+### Scene-Level Testing Framework
+**Updated** Comprehensive testing framework demonstrating all scene-level agent functionality and integration capabilities.
 
 Key test scenarios include:
-- **Component initialization** with constraint graph, vector store, and canon store setup.
-- **Quick update mode** demonstrating fallback functionality without LLM.
-- **Vector store integration** verifying memory extraction and storage with HNSW indexing.
-- **Constraint graph updates** validating automatic graph maintenance and query capabilities.
-- **Structured state updates** ensuring proper narrative state management.
-- **Multi-chapter simulation** demonstrating scalability and consistency across iterations.
-- **Memory search functionality** verifying semantic retrieval with cosine similarity scoring.
-- **Dual-mode operation** testing both quick and LLM-powered update modes.
-- **Validation integration** demonstrating automatic consistency checking through the Validator system.
+- **Scene planning validation** with proper scene structure, character assignment, and tension progression.
+- **Scene writing quality** with immersive content generation, character focus, and narrative coherence.
+- **Scene validation effectiveness** with comprehensive requirement checking and violation reporting.
+- **Scene assembly functionality** with proper content combination, transition handling, and formatting.
+- **Scene outcome extraction** with comprehensive change tracking and integration readiness.
+- **Integration testing** with centralized export system and compatibility with existing components.
+- **Fallback mechanism validation** across all scene-level agents for reliability and performance optimization.
 
 Test results demonstrate:
-- **Automatic constraint graph updates** with proper node and edge management.
-- **Vector store integration** with memory extraction, HNSW indexing, and semantic search.
-- **Structured state management** with comprehensive character and plot thread updates.
-- **Multi-chapter consistency** maintaining narrative coherence across iterations.
-- **Performance optimization** with dual-mode operation support and capacity management.
-- **Validation integration** with automatic constraint checking and error suggestions.
+- **Scene planning accuracy** with proper tension progression and character placement.
+- **Writing quality** with immersive prose and narrative engagement.
+- **Validation effectiveness** with comprehensive requirement checking and detailed violation reporting.
+- **Assembly reliability** with proper content combination and formatting.
+- **Outcome extraction completeness** with comprehensive change tracking and data organization.
+- **Integration compatibility** with existing system components and workflows.
 
 **Section sources**
-- [state-updater.test.ts](file://packages/engine/src/test/state-updater.test.ts#L1-L251)
+- [scene-level.test.ts:33-301](file://packages/engine/src/test/scene-level.test.ts#L33-L301)
 
-### Vector Store Testing
-**New** Comprehensive testing framework for the Vector Store demonstrates semantic memory capabilities.
+### Integration Patterns and Workflow Examples
+**Updated** Examples of scene-level agent integration with existing chapter-level components and workflow flexibility.
 
-Key test scenarios include:
-- **Vector store initialization** with HNSW indexing and capacity management.
-- **Memory embedding generation** with OpenAI API integration and mock embedding fallback.
-- **Semantic search functionality** with cosine similarity scoring and KNN retrieval.
-- **Category-based filtering** for targeted memory retrieval.
-- **Memory serialization** for persistent storage and retrieval.
-- **Memory extraction integration** demonstrating chapter-to-memory conversion.
+Workflow patterns include:
+- **Scene-first generation**: ScenePlanner → SceneWriter → SceneValidator → SceneAssembler → SceneOutcomeExtractor → StateUpdater
+- **Hybrid approach**: Chapter-level planning with scene-level execution for quality control
+- **Quality assurance pipeline**: Individual scene validation with chapter-level assembly
+- **State management integration**: Outcome extraction feeding directly into StateUpdater pipeline
+- **Performance optimization**: Quick validation mode for rapid iteration and testing
 
-Test results demonstrate:
-- **HNSW indexing** with efficient nearest neighbor search algorithms.
-- **Embedding generation** with automatic API fallback to mock embeddings.
-- **Semantic search** with accurate similarity scoring and result ranking.
-- **Category filtering** for narrative coherence and targeted retrieval.
-- **Persistent storage** with serialization/deserialization for memory preservation.
-- **Integration capabilities** with memory extraction and retrieval workflows.
+Integration benefits:
+- **Flexible workflow selection** between chapter-level and scene-level approaches
+- **Comprehensive quality control** at both scene and chapter levels
+- **Seamless state management** through unified outcome extraction and processing
+- **Performance optimization** through fallback mechanisms and validation modes
+- **Backward compatibility** with existing chapter-level workflows and components
 
 **Section sources**
-- [vector-memory.test.ts](file://packages/engine/src/test/vector-memory.test.ts#L1-L185)
-
-### Constraint Graph Testing
-**New** Comprehensive testing framework for the Constraint Graph demonstrates automatic consistency enforcement.
-
-Key test scenarios include:
-- **Constraint graph creation** with character, location, and event node management.
-- **Knowledge and location queries** for character state retrieval.
-- **Constraint violation detection** for timeline and knowledge consistency.
-- **Automatic graph updates** for character location changes and event registration.
-- **Serialization and deserialization** for persistent constraint storage.
-- **Dual-mode validation** with graph-based and LLM-based consistency checking.
-
-Test results demonstrate:
-- **Automatic node and edge management** with efficient adjacency list operations.
-- **Query capabilities** for character knowledge and location retrieval.
-- **Constraint violation detection** with severity assessment and suggested fixes.
-- **Automatic graph updates** with proper edge management and constraint enforcement.
-- **Persistent storage** with serialization/deserialization for constraint preservation.
-- **Validation integration** with automatic consistency checking and error reporting.
-
-**Section sources**
-- [constraints.test.ts](file://packages/engine/src/test/constraints.test.ts#L1-L264)
+- [scene-level.test.ts:94-301](file://packages/engine/src/test/scene-level.test.ts#L94-L301)
+- [index.ts:15-17](file://packages/engine/src/index.ts#L15-L17)

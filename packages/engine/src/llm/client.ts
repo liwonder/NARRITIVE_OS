@@ -29,8 +29,9 @@ class OpenAIProvider implements LLMProvider {
     const message = response.choices[0]?.message;
     if (!message) return '';
     
-    // For DeepSeek reasoning models, content may be in reasoning_content field
-    const content = (message as any).reasoning_content || message.content || '';
+    // For DeepSeek reasoning models, use content field (reasoning_content contains the thinking process)
+    // We want the actual response, not the reasoning chain
+    const content = message.content || '';
     return content;
   }
 }
@@ -88,17 +89,29 @@ export class LLMClient {
   }
 
   async completeJSON<T>(prompt: string, config?: Partial<LLMConfig>): Promise<T> {
-    const jsonPrompt = `${prompt}\n\nYou must respond with valid JSON only. No markdown, no explanations. Wrap your JSON response in triple backticks if needed.`;
+    const jsonPrompt = `${prompt}\n\nIMPORTANT: You must respond with valid JSON only. No markdown, no explanations, no thinking process. Start your response with { and end with }.`;
     const response = await this.complete(jsonPrompt, {
       ...config,
       temperature: config?.temperature ?? 0.3,
     });
     
-    // Try to extract JSON from markdown code blocks if present
+    // Try to extract JSON from the response
     let jsonText = response.trim();
+    
+    // First, try to find JSON in markdown code blocks
     const codeBlockMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (codeBlockMatch) {
       jsonText = codeBlockMatch[1].trim();
+    } else {
+      // Try to find JSON object/array by looking for first { or [ and matching braces
+      const objectMatch = jsonText.match(/\{[\s\S]*\}/);
+      const arrayMatch = jsonText.match(/\[[\s\S]*\]/);
+      
+      if (objectMatch) {
+        jsonText = objectMatch[0];
+      } else if (arrayMatch) {
+        jsonText = arrayMatch[0];
+      }
     }
     
     try {
