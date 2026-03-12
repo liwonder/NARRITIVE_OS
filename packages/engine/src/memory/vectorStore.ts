@@ -128,33 +128,49 @@ export class VectorStore {
       return this.generateMockEmbedding(text);
     }
 
-    // For embeddings, we need an OpenAI-compatible client
-    // Try to get API key from environment
-    const apiKey = process.env.OPENAI_API_KEY || process.env.DEEPSEEK_API_KEY;
+    // Try to get embedding config from LLM client
+    const { getLLM } = await import('../llm/client.js');
+    const llm = getLLM();
+    const embedConfig = llm.getEmbeddingConfig();
+
+    if (embedConfig) {
+      // Use configured embedding model
+      const { default: OpenAI } = await import('openai');
+      const client = new OpenAI({
+        apiKey: embedConfig.apiKey,
+        baseURL: embedConfig.baseURL,
+      });
+      
+      try {
+        const response = await client.embeddings.create({
+          model: embedConfig.model,
+          input: text,
+        });
+        return response.data[0].embedding;
+      } catch (error) {
+        console.log('  [VectorStore] Embedding API failed, using mock embeddings');
+        return this.generateMockEmbedding(text);
+      }
+    }
+
+    // Fallback: try environment variables
+    const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
-      console.log('  [VectorStore] No API key found, using mock embeddings');
+      console.log('  [VectorStore] No embedding config found, using mock embeddings');
       return this.generateMockEmbedding(text);
     }
 
-    // Determine base URL - use DeepSeek if that's what we have a key for
-    const isDeepSeek = !process.env.OPENAI_API_KEY && !!process.env.DEEPSEEK_API_KEY;
-    const baseURL = isDeepSeek ? 'https://api.deepseek.com' : undefined;
-    
-    // Create a temporary OpenAI client for embeddings
+    // Create OpenAI client for embeddings
     const { default: OpenAI } = await import('openai');
-    const client = new OpenAI({
-      apiKey,
-      baseURL,
-    });
+    const client = new OpenAI({ apiKey });
     
     try {
       const response = await client.embeddings.create({
-        model: isDeepSeek ? 'deepseek-chat' : 'text-embedding-3-small',
+        model: 'text-embedding-3-small',
         input: text,
       });
       return response.data[0].embedding;
     } catch (error) {
-      // Fall back to mock embeddings if the API fails (e.g., DeepSeek doesn't support embeddings)
       console.log('  [VectorStore] Using mock embeddings (API unavailable)');
       return this.generateMockEmbedding(text);
     }

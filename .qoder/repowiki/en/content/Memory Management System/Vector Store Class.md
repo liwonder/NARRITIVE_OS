@@ -14,6 +14,15 @@
 - [state.ts](file://packages/engine/src/story/state.ts)
 </cite>
 
+## Update Summary
+**Changes Made**
+- Enhanced embedding generation system documentation with dual-provider support
+- Added comprehensive API key detection logic coverage
+- Updated provider switching mechanisms documentation
+- Improved error handling and fallback strategy documentation
+- Added mock embedding fallback system details
+- Updated architecture diagrams to reflect new embedding generation flow
+
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
@@ -28,6 +37,8 @@
 ## Introduction
 
 The Vector Store Class is a core component of the Narrative Operating System's memory management system. It provides semantic memory storage and retrieval capabilities using vector embeddings, enabling the AI story generation system to maintain narrative continuity and context across chapters. The Vector Store integrates with the HNSW (Hierarchical Navigable Small World) algorithm for efficient similarity search and supports multiple memory categories including events, characters, world details, and plot elements.
+
+**Updated** Enhanced with dual-provider embedding generation system supporting both OpenAI and DeepSeek APIs with automatic fallback mechanisms.
 
 ## Project Structure
 
@@ -62,13 +73,13 @@ CS --> GC
 ```
 
 **Diagram sources**
-- [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L1-L173)
-- [memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts#L1-L174)
-- [client.ts](file://packages/engine/src/llm/client.ts#L1-L120)
+- [vectorStore.ts:1-221](file://packages/engine/src/memory/vectorStore.ts#L1-L221)
+- [memoryRetriever.ts:1-174](file://packages/engine/src/memory/memoryRetriever.ts#L1-L174)
+- [client.ts:1-200](file://packages/engine/src/llm/client.ts#L1-L200)
 
 **Section sources**
-- [index.ts](file://packages/engine/src/index.ts#L39-L43)
-- [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L1-L173)
+- [index.ts:115-118](file://packages/engine/src/index.ts#L115-L118)
+- [vectorStore.ts:1-221](file://packages/engine/src/memory/vectorStore.ts#L1-L221)
 
 ## Core Components
 
@@ -86,14 +97,16 @@ Maintains story canon facts that serve as ground truth for narrative consistency
 ### MemoryExtractor Agent
 Extracts meaningful narrative elements from generated content for persistent storage.
 
+**Updated** Enhanced embedding generation now supports dual-provider architecture with automatic fallback.
+
 **Section sources**
-- [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L19-L158)
-- [memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts#L18-L169)
-- [canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L1-L134)
+- [vectorStore.ts:19-221](file://packages/engine/src/memory/vectorStore.ts#L19-L221)
+- [memoryRetriever.ts:18-174](file://packages/engine/src/memory/memoryRetriever.ts#L18-L174)
+- [canonStore.ts:1-134](file://packages/engine/src/memory/canonStore.ts#L1-L134)
 
 ## Architecture Overview
 
-The Vector Store architecture follows a layered approach with clear separation of concerns:
+The Vector Store architecture follows a layered approach with clear separation of concerns and enhanced embedding generation capabilities:
 
 ```mermaid
 classDiagram
@@ -111,6 +124,8 @@ class VectorStore {
 +getAllMemories() NarrativeMemory[]
 +serialize() string
 +load(data) Promise~void~
++ensureCapacity(additionalMemories) void
++resizeIndex(newMaxElements) void
 -generateEmbedding(text) Promise~number[]~
 -generateMockEmbedding(text) number[]
 }
@@ -126,27 +141,33 @@ class MemoryRetriever {
 -inferRelevanceReason(memory) string
 }
 class LLMClient {
--LLMProvider provider
--LLMConfig defaultConfig
+-Map~string, LLMProvider~ providers
+-Map~string, ModelConfig~ models
+-string defaultModelName
 +complete(prompt, config) Promise~string~
 +completeJSON~T~(prompt, config) Promise~T~
+-loadMultiModelConfig() void
+-loadSingleModelConfig() void
+-getModelForTask(task) ModelConfig
+-getProvider(modelName) LLMProvider
+-getAvailableModels() Object[]
 }
-class MemoryExtractor {
-+extract(chapter, bible) Promise~ExtractedMemory[]~
-+extractFromSummary(chapterNumber, summary, bible) Promise~ExtractedMemory[]~
+class OpenAIProvider {
+-OpenAI client
++complete(prompt, config) Promise~string~
 }
 VectorStore --> MemoryRetriever : "used by"
 MemoryRetriever --> VectorStore : "depends on"
-VectorStore --> LLMClient : "uses for embeddings"
+VectorStore --> OpenAIProvider : "uses for embeddings"
 MemoryExtractor --> LLMClient : "uses for extraction"
 MemoryExtractor --> VectorStore : "stores memories"
 ```
 
 **Diagram sources**
-- [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L19-L158)
-- [memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts#L18-L169)
-- [client.ts](file://packages/engine/src/llm/client.ts#L38-L119)
-- [memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L52-L97)
+- [vectorStore.ts:19-221](file://packages/engine/src/memory/vectorStore.ts#L19-L221)
+- [memoryRetriever.ts:18-174](file://packages/engine/src/memory/memoryRetriever.ts#L18-L174)
+- [client.ts:49-190](file://packages/engine/src/llm/client.ts#L49-L190)
+- [memoryExtractor.ts:52-97](file://packages/engine/src/agents/memoryExtractor.ts#L52-L97)
 
 ## Detailed Component Analysis
 
@@ -175,41 +196,50 @@ NARRATIVE_MEMORY ||--o{ MEMORY_SEARCH_RESULT : "returns"
 ```
 
 **Diagram sources**
-- [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L4-L17)
+- [vectorStore.ts:4-17](file://packages/engine/src/memory/vectorStore.ts#L4-L17)
 
 #### Core Operations
 
-The VectorStore supports four primary operations:
+The VectorStore supports six primary operations:
 
 1. **Initialization**: Sets up the HNSW index with configurable parameters
 2. **Memory Addition**: Generates embeddings and stores narrative content
 3. **Similarity Search**: Finds semantically similar memories using cosine distance
 4. **Category Filtering**: Retrieves memories filtered by narrative categories
+5. **Capacity Management**: Ensures adequate index capacity with automatic resizing
+6. **Persistence**: Serializes and deserializes memory state
 
-#### Embedding Generation Strategy
+#### Enhanced Embedding Generation Strategy
 
-The system implements a robust fallback mechanism for embedding generation:
+The system implements a sophisticated dual-provider embedding generation system with automatic fallback:
 
 ```mermaid
 flowchart TD
-Start([Embedding Request]) --> CheckEnv{"USE_MOCK_EMBEDDINGS?"}
-CheckEnv --> |Yes| MockEmbedding["Generate Mock Embedding"]
-CheckEnv --> |No| GetLLM["Get LLM Client"]
-GetLLM --> CreateEmbedding["Call OpenAI Embeddings API"]
-CreateEmbedding --> APISuccess{"API Success?"}
+Start([Embedding Request]) --> CheckMock{"USE_MOCK_EMBEDDINGS?"}
+CheckMock --> |Yes| MockEmbedding["Generate Mock Embedding"]
+CheckMock --> |No| CheckAPIKeys{"API Keys Available?"}
+CheckAPIKeys --> |No| Fallback["Use Mock Embedding"]
+CheckAPIKeys --> |Yes| CheckProvider{"Which Provider?"}
+CheckProvider --> |OpenAI| OpenAI["Use OpenAI Embeddings"]
+CheckProvider --> |DeepSeek| DeepSeek["Use DeepSeek Embeddings"]
+OpenAI --> APICall["Call Embeddings API"]
+DeepSeek --> APICall
+APICall --> APISuccess{"API Success?"}
 APISuccess --> |Yes| ReturnEmbedding["Return Real Embedding"]
-APISuccess --> |No| Fallback["Use Mock Embedding"]
+APISuccess --> |No| Fallback
 MockEmbedding --> Normalize["Normalize Vector"]
 Fallback --> Normalize
 Normalize --> ReturnEmbedding
 ReturnEmbedding --> End([Embedding Ready])
 ```
 
+**Updated** New dual-provider architecture with comprehensive API key detection and automatic fallback mechanisms.
+
 **Diagram sources**
-- [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L90-L133)
+- [vectorStore.ts:125-161](file://packages/engine/src/memory/vectorStore.ts#L125-L161)
 
 **Section sources**
-- [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L19-L158)
+- [vectorStore.ts:19-221](file://packages/engine/src/memory/vectorStore.ts#L19-L221)
 
 ### MemoryRetriever Integration
 
@@ -231,11 +261,11 @@ The retriever generates contextual queries that incorporate:
 - Premise and theme elements
 
 **Section sources**
-- [memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts#L18-L169)
+- [memoryRetriever.ts:18-174](file://packages/engine/src/memory/memoryRetriever.ts#L18-L174)
 
-### Persistence and Serialization
+### Enhanced Persistence and Serialization
 
-The Vector Store implements a complete persistence system:
+The Vector Store implements a complete persistence system with capacity management:
 
 ```mermaid
 sequenceDiagram
@@ -255,11 +285,13 @@ VS->>VS : Add Points Back
 VS-->>App : Ready for Use
 ```
 
+**Updated** Enhanced with automatic capacity management during loading and index rebuilding.
+
 **Diagram sources**
-- [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L135-L157)
+- [vectorStore.ts:183-205](file://packages/engine/src/memory/vectorStore.ts#L183-L205)
 
 **Section sources**
-- [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L135-L157)
+- [vectorStore.ts:183-205](file://packages/engine/src/memory/vectorStore.ts#L183-L205)
 
 ## Dependency Analysis
 
@@ -270,6 +302,7 @@ graph LR
 subgraph "External Dependencies"
 HNSW[hnswlib-node]
 OpenAI[OpenAI SDK]
+DeepSeek[DeepSeek API]
 end
 subgraph "Internal Dependencies"
 VS[VectorStore]
@@ -279,7 +312,8 @@ ME[MemoryExtractor]
 Types[Type Definitions]
 end
 VS --> HNSW
-VS --> LLM
+VS --> OpenAI
+VS --> DeepSeek
 MR --> VS
 ME --> LLM
 VS --> Types
@@ -287,10 +321,12 @@ MR --> Types
 ME --> Types
 ```
 
+**Updated** Added DeepSeek API support alongside OpenAI for dual-provider embedding generation.
+
 **Diagram sources**
-- [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L1-L2)
-- [memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts#L1-L3)
-- [client.ts](file://packages/engine/src/llm/client.ts#L1-L2)
+- [vectorStore.ts:1-2](file://packages/engine/src/memory/vectorStore.ts#L1-L2)
+- [memoryRetriever.ts:1-3](file://packages/engine/src/memory/memoryRetriever.ts#L1-L3)
+- [client.ts:1-2](file://packages/engine/src/llm/client.ts#L1-L2)
 
 ### Internal Module Relationships
 
@@ -302,8 +338,8 @@ The Vector Store integrates with several key internal modules:
 4. **Pipeline Integration**: Supports the chapter generation pipeline
 
 **Section sources**
-- [index.ts](file://packages/engine/src/index.ts#L39-L43)
-- [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L26-L103)
+- [index.ts:115-118](file://packages/engine/src/index.ts#L115-L118)
+- [generateChapter.ts:26-103](file://packages/engine/src/pipeline/generateChapter.ts#L26-L103)
 
 ## Performance Considerations
 
@@ -315,11 +351,12 @@ The VectorStore uses HNSW with optimized parameters:
 - **M Parameter**: 16 connections per node for balanced performance
 - **efConstruction**: 200 for quality index construction
 
-### Memory Management
+### Enhanced Memory Management
 
 1. **Embedding Caching**: Embeddings are computed once and stored with memories
 2. **Lazy Loading**: VectorStore instances are created on-demand via factory pattern
-3. **Cleanup Mechanism**: Story-specific stores can be cleared when no longer needed
+3. **Automatic Capacity Management**: Dynamic index resizing with 50% growth factor
+4. **Cleanup Mechanism**: Story-specific stores can be cleared when no longer needed
 
 ### Search Optimization
 
@@ -327,9 +364,11 @@ The VectorStore uses HNSW with optimized parameters:
 2. **Category Filtering**: Pre-filtering reduces search space for specialized queries
 3. **Temporal Constraints**: Automatic filtering prevents accessing future chapter content
 
+**Updated** Added automatic capacity management and enhanced error handling for improved performance.
+
 **Section sources**
-- [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L30-L35)
-- [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L60-L79)
+- [vectorStore.ts:30-35](file://packages/engine/src/memory/vectorStore.ts#L30-L35)
+- [vectorStore.ts:55-75](file://packages/engine/src/memory/vectorStore.ts#L55-L75)
 
 ## Troubleshooting Guide
 
@@ -351,6 +390,12 @@ The VectorStore uses HNSW with optimized parameters:
 **Problem**: Slow search performance with large memory sets
 **Solution**: Optimize KNN parameters and consider index rebuilding
 
+#### Provider Switching Issues
+**Problem**: Incorrect provider selection or API key detection
+**Solution**: Verify environment variables and check provider availability
+
+**Updated** Added troubleshooting guidance for new dual-provider embedding system.
+
 ### Debugging Tools
 
 The system provides comprehensive logging and testing capabilities:
@@ -363,23 +408,30 @@ AddMemories --> SearchTest["Run Similarity Search"]
 SearchTest --> CategoryTest["Test Category Filtering"]
 CategoryTest --> SerializeTest["Test Serialization"]
 SerializeTest --> ExtractTest["Test Memory Extraction"]
-ExtractTest --> Results[Results Analysis]
+ExtractTest --> ProviderTest["Test Provider Switching"]
+ProviderTest --> Results[Results Analysis]
 ```
 
+**Updated** Enhanced testing workflow to include provider switching and embedding generation verification.
+
 **Diagram sources**
-- [vector-memory.test.ts](file://packages/engine/src/test/vector-memory.test.ts#L31-L174)
+- [vector-memory.test.ts:31-244](file://packages/engine/src/test/vector-memory.test.ts#L31-L244)
 
 **Section sources**
-- [vector-memory.test.ts](file://packages/engine/src/test/vector-memory.test.ts#L1-L185)
+- [vector-memory.test.ts:1-244](file://packages/engine/src/test/vector-memory.test.ts#L1-L244)
 
 ## Conclusion
 
 The Vector Store Class represents a sophisticated approach to narrative memory management in AI-powered story generation systems. Its design balances performance, flexibility, and reliability through careful architectural decisions:
 
-1. **Robust Embedding Strategy**: Dual-path embedding generation with automatic fallback
-2. **Efficient Indexing**: HNSW-based similarity search for scalable performance
-3. **Flexible Retrieval**: Multi-dimensional search capabilities with temporal and categorical constraints
-4. **Persistent Architecture**: Complete serialization/deserialization for long-term memory retention
-5. **Integration-Friendly**: Clean APIs that integrate seamlessly with the broader narrative system
+1. **Robust Embedding Strategy**: Dual-path embedding generation with automatic fallback to both OpenAI and DeepSeek providers
+2. **Enhanced Error Handling**: Comprehensive API key detection and provider switching mechanisms
+3. **Efficient Indexing**: HNSW-based similarity search for scalable performance
+4. **Flexible Retrieval**: Multi-dimensional search capabilities with temporal and categorical constraints
+5. **Intelligent Capacity Management**: Automatic index resizing and memory optimization
+6. **Persistent Architecture**: Complete serialization/deserialization for long-term memory retention
+7. **Integration-Friendly**: Clean APIs that integrate seamlessly with the broader narrative system
 
-The implementation demonstrates best practices in memory management for AI applications, providing a solid foundation for advanced narrative generation capabilities while maintaining extensibility for future enhancements.
+**Updated** The enhanced embedding generation system now provides enterprise-grade reliability with automatic provider failover and comprehensive error handling.
+
+The implementation demonstrates best practices in memory management for AI applications, providing a solid foundation for advanced narrative generation capabilities while maintaining extensibility for future enhancements and seamless integration with modern AI service providers.

@@ -43,6 +43,7 @@ const TASK_MODEL_MAPPING: Record<TaskType, string> = {
   validation: 'chat',        // Use chat model for validation
   summarization: 'fast',     // Use fast model for summarization
   extraction: 'chat',        // Use chat model for extraction
+  embedding: 'embedding',    // Use embedding model for embeddings
   default: 'chat',           // Default to chat model
 };
 
@@ -186,6 +187,16 @@ export class LLMClient {
       purpose: config.purpose,
       model: config.model,
     }));
+  }
+
+  // Get embedding model config if available
+  getEmbeddingConfig(): ModelConfig | null {
+    for (const [name, config] of this.models) {
+      if (config.purpose === 'embedding') {
+        return config;
+      }
+    }
+    return null;
   }
 }
 

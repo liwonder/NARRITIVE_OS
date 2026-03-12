@@ -14,6 +14,7 @@
 - [apps/cli/src/index.ts](file://apps/cli/src/index.ts)
 - [apps/cli/src/commands/init.ts](file://apps/cli/src/commands/init.ts)
 - [apps/cli/src/commands/generate.ts](file://apps/cli/src/commands/generate.ts)
+- [apps/cli/src/commands/config.ts](file://apps/cli/src/commands/config.ts)
 - [packages/engine/src/index.ts](file://packages/engine/src/index.ts)
 - [packages/engine/src/types/index.ts](file://packages/engine/src/types/index.ts)
 - [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts)
@@ -24,9 +25,11 @@
 
 ## Update Summary
 **Changes Made**
-- Added repository organization section documenting the .gitignore pattern for `Narrative_Operating_System/`
-- Updated project structure documentation to include repository organization practices
-- Enhanced development workflow section with repository management best practices
+- Enhanced testing infrastructure with improved path handling for local CLI executable
+- Added automatic multi-model configuration loading for LLM providers
+- Improved cross-platform compatibility for configuration and testing
+- Updated version management documentation for new version increments
+- Added comprehensive multi-model configuration support in CLI
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -46,13 +49,13 @@
 15. [Conclusion](#conclusion)
 
 ## Introduction
-This document provides comprehensive development and contributing guidance for the Narrative Operating System (NOS) monorepo. It covers environment setup with PNPM workspaces and Turborepo orchestration, build and development workflows, testing strategies, CI considerations, contribution standards, debugging and profiling techniques, release processes, and extensibility for agents, memory strategies, and LLM providers. The project now includes comprehensive installation scripts for Windows PowerShell and cross-platform publishing workflows for both Windows and Unix-like systems, along with improved repository organization practices.
+This document provides comprehensive development and contributing guidance for the Narrative Operating System (NOS) monorepo. It covers environment setup with PNPM workspaces and Turborepo orchestration, build and development workflows, testing strategies, CI considerations, contribution standards, debugging and profiling techniques, release processes, and extensibility for agents, memory strategies, and LLM providers. The project now includes comprehensive installation scripts for Windows PowerShell and cross-platform publishing workflows for both Windows and Unix-like systems, along with improved repository organization practices and enhanced multi-model LLM configuration capabilities.
 
 ## Project Structure
 The repository is a TypeScript monorepo organized into:
-- apps/cli: A CLI application that orchestrates story creation and generation via the engine package.
-- packages/engine: The core engine responsible for story modeling, LLM orchestration, agent pipeline, and memory management.
-- **New**: Enhanced repository organization with standardized directory patterns for clean project management.
+- apps/cli: A CLI application that orchestrates story creation and generation via the engine package, featuring advanced multi-model configuration support.
+- packages/engine: The core engine responsible for story modeling, LLM orchestration, agent pipeline, and memory management, with enhanced testing infrastructure.
+- **New**: Comprehensive multi-model LLM configuration system supporting both single and multi-model setups with automatic model selection based on task purposes.
 
 PNPM workspaces define the package locations, and Turborepo defines shared tasks and caching behavior across the monorepo. The repository follows standardized organization patterns to maintain cleanliness and prevent accidental commits of generated content.
 
@@ -65,13 +68,13 @@ TURBO["turbo.json<br/>tasks: build, dev, lint, test"]
 GITIGNORE[".gitignore<br/>standardized patterns<br/>Narrative_Operating_System/"]
 end
 subgraph "Apps"
-CLI_PKG["apps/cli/package.json<br/>binary: nos"]
+CLI_PKG["apps/cli/package.json<br/>binary: nos<br/>version: 0.1.8"]
 end
 subgraph "Packages"
-ENG_PKG["packages/engine/package.json<br/>exports: types, agents, pipeline, memory, llm"]
+ENG_PKG["packages/engine/package.json<br/>exports: types, agents, pipeline, memory, llm<br/>version: 0.1.5"]
 end
-subgraph "Repository Organization"
-ORG["Standardized Patterns<br/>- Dependencies: node_modules/<br/>- Build outputs: dist/, build/<br/>- Environment: .env*, .env.local<br/>- IDE: .idea/, .vscode/<br/>- OS: .DS_Store, Thumbs.db<br/>- Logs: logs/, *.log<br/>- Testing: coverage/, .nyc_output/<br/>- Turbo: .turbo/<br/>- Cache: .cache/, *.cache<br/>- Temporary: tmp/, temp/, *.tmp<br/>- Project: Narrative_Operating_System/"]
+subgraph "Enhanced Configuration"
+MULTI_MODEL["Multi-Model Config<br/>- Reasoning Models<br/>- Chat Models<br/>- Embedding Support<br/>- Task-Based Selection"]
 end
 ROOT_PKG --> CLI_PKG
 ROOT_PKG --> ENG_PKG
@@ -79,7 +82,8 @@ WS --> CLI_PKG
 WS --> ENG_PKG
 TURBO --> CLI_PKG
 TURBO --> ENG_PKG
-GITIGNORE --> ORG
+CLI_PKG --> MULTI_MODEL
+ENG_PKG --> MULTI_MODEL
 ```
 
 **Diagram sources**
@@ -88,7 +92,7 @@ GITIGNORE --> ORG
 - [turbo.json:1-19](file://turbo.json#L1-L19)
 - [.gitignore:1-50](file://.gitignore#L1-L50)
 - [apps/cli/package.json:1-50](file://apps/cli/package.json#L1-L50)
-- [packages/engine/package.json:1-44](file://packages/engine/package.json#L1-L44)
+- [packages/engine/package.json:1-46](file://packages/engine/package.json#L1-L46)
 
 **Section sources**
 - [package.json:1-17](file://package.json#L1-L17)
@@ -97,38 +101,39 @@ GITIGNORE --> ORG
 - [.gitignore:1-50](file://.gitignore#L1-L50)
 
 ## Core Components
-- CLI Application: Provides commands to configure, initialize stories, generate chapters, show status, and continue sequences. It depends on the engine package and exposes a binary named nos.
-- Engine Package: Exports types, LLM client, agents (writer, completeness checker, summarizer, canon validator), pipeline for chapter generation, story bible/state utilities, and memory/canon store.
-- **New**: Enhanced repository organization with standardized patterns for clean project management and development workflow optimization.
+- CLI Application: Provides commands to configure, initialize stories, generate chapters, show status, and continue sequences. It depends on the engine package and exposes a binary named nos. Now features advanced multi-model configuration with interactive setup.
+- Engine Package: Exports types, LLM client with multi-model support, agents (writer, completeness checker, summarizer, canon validator), pipeline for chapter generation, story bible/state utilities, and memory/canon store.
+- **New**: Enhanced multi-model LLM configuration system supporting reasoning, chat, and fast models with automatic task-based selection.
 
 Key exports and entry points:
-- CLI entry: [apps/cli/src/index.ts:1-54](file://apps/cli/src/index.ts#L1-L54)
+- CLI entry: [apps/cli/src/index.ts:1-154](file://apps/cli/src/index.ts#L1-L154)
 - Engine entry: [packages/engine/src/index.ts:1-23](file://packages/engine/src/index.ts#L1-L23)
 - Engine types: [packages/engine/src/types/index.ts:1-90](file://packages/engine/src/types/index.ts#L1-L90)
-- LLM client: [packages/engine/src/llm/client.ts:1-106](file://packages/engine/src/llm/client.ts#L1-L106)
+- Enhanced LLM client: [packages/engine/src/llm/client.ts:1-200](file://packages/engine/src/llm/client.ts#L1-L200)
 - Canon store: [packages/engine/src/memory/canonStore.ts:1-134](file://packages/engine/src/memory/canonStore.ts#L1-L134)
 - Generation pipeline: [packages/engine/src/pipeline/generateChapter.ts:1-76](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
 
 **Section sources**
-- [apps/cli/src/index.ts:1-54](file://apps/cli/src/index.ts#L1-L54)
+- [apps/cli/src/index.ts:1-154](file://apps/cli/src/index.ts#L1-L154)
 - [packages/engine/src/index.ts:1-23](file://packages/engine/src/index.ts#L1-L23)
 - [packages/engine/src/types/index.ts:1-90](file://packages/engine/src/types/index.ts#L1-L90)
-- [packages/engine/src/llm/client.ts:1-106](file://packages/engine/src/llm/client.ts#L1-L106)
+- [packages/engine/src/llm/client.ts:1-200](file://packages/engine/src/llm/client.ts#L1-L200)
 - [packages/engine/src/memory/canonStore.ts:1-134](file://packages/engine/src/memory/canonStore.ts#L1-L134)
 - [packages/engine/src/pipeline/generateChapter.ts:1-76](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
 
 ## Architecture Overview
-The CLI drives story lifecycle commands, delegating to the engine for generation and state management. The engine coordinates agents and memory to produce coherent chapters guided by the story bible and canonical facts. The system now includes automated installation and publishing workflows for seamless development and distribution, along with standardized repository organization practices.
+The CLI drives story lifecycle commands, delegating to the engine for generation and state management. The engine coordinates agents and memory to produce coherent chapters guided by the story bible and canonical facts. The system now includes automated installation and publishing workflows for seamless development and distribution, with enhanced multi-model LLM configuration supporting both single and complex multi-model setups.
 
 ```mermaid
 graph TB
-CLI["CLI (apps/cli)<br/>commands: init, generate, status, continue"]
-ENGINE["@narrative-os/engine<br/>types, agents, pipeline, memory, llm"]
-LLM["LLM Provider (OpenAI/DeepSeek)"]
+CLI["CLI (apps/cli)<br/>commands: init, generate, status, continue<br/>version: 0.1.8"]
+ENGINE["@narrative-os/engine<br/>types, agents, pipeline, memory, llm<br/>version: 0.1.5"]
+LLM["Enhanced LLM Client<br/>- Multi-Model Support<br/>- Task-Based Selection<br/>- Automatic Config Loading"]
 STORE["Canon Store"]
 INSTALL["Windows Installer<br/>install.ps1"]
 PUBLISH["Cross-Platform Publisher<br/>publish.ps1 & publish.sh"]
 REPO["Repository Organization<br/>.gitignore patterns<br/>Narrative_Operating_System/"]
+CONFIG["Configuration System<br/>- Home Directory Config<br/>- Multi-Model JSON<br/>- Environment Variables"]
 CLI --> ENGINE
 ENGINE --> LLM
 ENGINE --> STORE
@@ -136,12 +141,13 @@ INSTALL --> CLI
 INSTALL --> ENGINE
 PUBLISH --> INSTALL
 REPO --> GITIGNORE[".gitignore<br/>clean repository management"]
+CONFIG --> LLM
 ```
 
 **Diagram sources**
-- [apps/cli/src/index.ts:1-54](file://apps/cli/src/index.ts#L1-L54)
+- [apps/cli/src/index.ts:1-154](file://apps/cli/src/index.ts#L1-L154)
 - [packages/engine/src/index.ts:1-23](file://packages/engine/src/index.ts#L1-L23)
-- [packages/engine/src/llm/client.ts:1-106](file://packages/engine/src/llm/client.ts#L1-L106)
+- [packages/engine/src/llm/client.ts:1-200](file://packages/engine/src/llm/client.ts#L1-L200)
 - [packages/engine/src/memory/canonStore.ts:1-134](file://packages/engine/src/memory/canonStore.ts#L1-L134)
 - [install.ps1:1-130](file://install.ps1#L1-L130)
 - [publish.ps1:1-95](file://publish.ps1#L1-L95)
@@ -149,6 +155,87 @@ REPO --> GITIGNORE[".gitignore<br/>clean repository management"]
 - [.gitignore:50-50](file://.gitignore#L50-L50)
 
 ## Detailed Component Analysis
+
+### Enhanced CLI Configuration System
+The CLI now features a sophisticated configuration system supporting both single and multi-model setups with interactive setup and automatic environment variable application.
+
+```mermaid
+sequenceDiagram
+participant User as "Developer"
+participant CLI as "CLI Config Command"
+participant ConfigFile as "Home Config File"
+participant LLMClient as "LLM Client"
+User->>CLI : "nos config"
+CLI->>ConfigFile : Check ~/.narrative-os/config.json
+ConfigFile-->>CLI : Config exists?
+alt Multi-Model Config
+CLI->>User : Interactive setup for multiple models
+User->>CLI : Select provider, models, API keys
+CLI->>ConfigFile : Save Multi-Model JSON
+CLI->>LLMClient : applyConfig() sets LLM_MODELS_CONFIG
+else Single-Model Config
+CLI->>User : Interactive setup for single model
+User->>CLI : Select provider, model, API key
+CLI->>ConfigFile : Save Legacy JSON
+CLI->>LLMClient : applyConfig() sets legacy env vars
+end
+LLMClient->>LLMClient : loadMultiModelConfig()
+LLMClient-->>User : Ready for generation
+```
+
+**Diagram sources**
+- [apps/cli/src/commands/config.ts:55-249](file://apps/cli/src/commands/config.ts#L55-L249)
+- [apps/cli/src/index.ts:17-17](file://apps/cli/src/index.ts#L17-L17)
+- [packages/engine/src/llm/client.ts:58-111](file://packages/engine/src/llm/client.ts#L58-L111)
+
+**Section sources**
+- [apps/cli/src/commands/config.ts:1-249](file://apps/cli/src/commands/config.ts#L1-L249)
+- [apps/cli/src/index.ts:17-17](file://apps/cli/src/index.ts#L17-L17)
+- [packages/engine/src/llm/client.ts:58-111](file://packages/engine/src/llm/client.ts#L58-L111)
+
+### Enhanced LLM Client with Multi-Model Support
+The LLM client now supports both single and multi-model configurations with automatic model selection based on task purposes (reasoning, chat, fast).
+
+```mermaid
+classDiagram
+class LLMClient {
++loadMultiModelConfig()
++loadSingleModelConfig()
++getModelForTask(task)
++getProvider(modelName)
++complete(prompt, config)
++completeJSON~T~(prompt, config)
++getAvailableModels()
+}
+class OpenAIProvider {
++complete(prompt, config)
+}
+class ModelConfig {
++string name
++string provider
++string apiKey
++string baseURL
++string model
++string purpose
+}
+class TaskModelMapping {
++generation : "reasoning"
++planning : "reasoning"
++validation : "chat"
++summarization : "fast"
++extraction : "chat"
++default : "chat"
+}
+LLMClient --> ModelConfig : "manages"
+LLMClient --> OpenAIProvider : "uses"
+TaskModelMapping --> LLMClient : "guides selection"
+```
+
+**Diagram sources**
+- [packages/engine/src/llm/client.ts:49-190](file://packages/engine/src/llm/client.ts#L49-L190)
+
+**Section sources**
+- [packages/engine/src/llm/client.ts:1-200](file://packages/engine/src/llm/client.ts#L1-L200)
 
 ### CLI Commands
 - Initialization: Creates a story bible, adds characters, initializes state, and persists the story.
@@ -224,36 +311,6 @@ Build --> End(["Return {chapter, summary, violations}"])
 
 **Section sources**
 - [packages/engine/src/pipeline/generateChapter.ts:1-76](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
-
-### LLM Client and Providers
-The LLM client supports configurable providers and models via environment variables. It exposes plain completion and JSON parsing helpers.
-
-```mermaid
-classDiagram
-class LLMClient {
-+complete(prompt, config) Promise~string~
-+completeJSON~T~(prompt, config) Promise~T~
--loadConfig() LLMProviderConfig
--createProvider(config) LLMProvider
-}
-class LLMProvider {
-<<interface>>
-+complete(prompt, config) Promise~string~
-}
-class OpenAIProvider {
--client OpenAI
-+constructor(config)
-+complete(prompt, config) Promise~string~
-}
-LLMClient --> LLMProvider : "delegates"
-OpenAIProvider ..|> LLMProvider
-```
-
-**Diagram sources**
-- [packages/engine/src/llm/client.ts:1-106](file://packages/engine/src/llm/client.ts#L1-L106)
-
-**Section sources**
-- [packages/engine/src/llm/client.ts:1-106](file://packages/engine/src/llm/client.ts#L1-L106)
 
 ### Memory and Canon Store
 The canon store maintains immutable facts categorized by character/world/plot/timeline, enabling validation and prompt formatting.
@@ -368,7 +425,7 @@ Engine --> Zod["zod"]
 
 **Section sources**
 - [apps/cli/package.json:1-50](file://apps/cli/package.json#L1-L50)
-- [packages/engine/package.json:1-44](file://packages/engine/package.json#L1-L44)
+- [packages/engine/package.json:1-46](file://packages/engine/package.json#L1-L46)
 - [package.json:1-17](file://package.json#L1-L17)
 - [turbo.json:1-19](file://turbo.json#L1-L19)
 
@@ -512,6 +569,10 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
   - Tune temperature and max tokens per provider to balance quality and cost.
 - Pipeline Iterations:
   - The generation loop continues until completeness or max attempts; adjust maxContinuationAttempts to control latency vs. quality.
+- **New**: Enhanced LLM Performance:
+  - Multi-model configuration allows optimal model selection per task type (reasoning for complex tasks, chat for validation, fast for summarization).
+  - Automatic model switching reduces latency and improves cost efficiency.
+  - Task-based model mapping optimizes resource utilization.
 - **New**: Repository Organization Performance:
   - Standardized .gitignore patterns reduce repository size and improve Git operations performance.
   - Clean repository state reduces merge conflicts and improves development workflow efficiency.
@@ -532,15 +593,18 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
 
 ### Environment Variables
 - LLM provider selection and credentials are loaded from environment variables. Ensure provider and API keys are set before running tests or generation.
-- **New**: Repository Organization Issues: The `Narrative_Operating_System/` pattern prevents accidental commits of generated content. If you encounter issues with this pattern, verify that your project files are not being placed in directories with this naming convention.
+- **New**: Multi-Model Configuration: The enhanced configuration system supports both legacy single-model and new multi-model setups with automatic environment variable application.
+- **New**: Configuration File Location: Configuration is stored in `~/.narrative-os/config.json` with support for both JSON formats.
 
 ### Test Setup
-- The test loads a local config file to inject provider and model settings prior to importing engine modules.
+- The test loads a local config file from `~/.narrative-os/config.json` to inject provider and model settings prior to importing engine modules.
+- **New**: Enhanced Path Handling: Tests now properly handle both single and multi-model configurations with automatic model selection.
 
 ### Error Handling
 - CLI commands exit with non-zero status on failure; inspect logs for detailed errors.
 - **New**: Installation and publishing scripts provide detailed error messages and recovery suggestions.
 - **New**: Repository organization scripts help maintain clean repository state and prevent common organization issues.
+- **New**: Multi-Model Configuration Errors: The system provides clear error messages for invalid configuration formats and missing API keys.
 
 **Section sources**
 - [install.ps1:20-51](file://install.ps1#L20-L51)
@@ -549,6 +613,7 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
 - [packages/engine/src/llm/client.ts:46-66](file://packages/engine/src/llm/client.ts#L46-L66)
 - [packages/engine/src/test/simple.test.ts:5-18](file://packages/engine/src/test/simple.test.ts#L5-L18)
 - [apps/cli/src/commands/generate.ts:50-53](file://apps/cli/src/commands/generate.ts#L50-L53)
+- [apps/cli/src/commands/config.ts:60-78](file://apps/cli/src/commands/config.ts#L60-L78)
 - [.gitignore:50-50](file://.gitignore#L50-L50)
 
 ## Contribution Guidelines
@@ -557,6 +622,7 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
   - Use Turborepo scripts for building, developing, linting, and testing across the monorepo.
   - **New**: Use installation scripts for rapid environment setup on Windows or Unix-like systems.
   - **New**: Follow standardized repository organization practices using .gitignore patterns.
+  - **New**: Contribute to multi-model configuration enhancements and testing infrastructure.
 - Code Style
   - Follow TypeScript strictness and formatting conventions used in the repository.
 - Commit Messages and PRs
@@ -564,12 +630,14 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
   - Reference related issues and include a summary of changes.
   - Ensure tests pass locally before opening a pull request.
   - **New**: Review .gitignore patterns when adding new build artifacts or temporary files.
+  - **New**: Test multi-model configuration scenarios and cross-platform compatibility.
 - Review Process
   - Request reviews from maintainers; address feedback promptly.
 - **New**: Publishing Contributions
   - Use appropriate publishing scripts for cross-platform compatibility.
   - Follow semantic versioning guidelines when preparing releases.
   - **New**: Ensure repository organization patterns are maintained during releases.
+  - **New**: Test enhanced LLM configuration and multi-model functionality.
 
 ## Release and Version Management
 
@@ -577,6 +645,7 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
 - **Semantic Versioning**: Follow semver (major.minor.patch) for all releases.
 - **Automated Versioning**: Publishing scripts support automatic version bumping (patch, minor, major).
 - **Dependency Synchronization**: CLI packages automatically update engine dependencies to match release versions.
+- **New**: Version Numbers**: Current versions are 0.1.8 for CLI and 0.1.5 for engine, indicating initial release stability.
 
 ### Publishing Process
 **Windows PowerShell Publishing:**
@@ -594,10 +663,13 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
 - **Consistent Versioning**: Both platforms maintain identical version numbers across packages.
 - **Progress Tracking**: Scripts provide detailed feedback throughout the publishing process.
 - **Repository Organization**: Release process maintains standardized .gitignore patterns for clean distribution.
+- **New**: Multi-Model Configuration Releases: Enhanced configuration system is included in all releases with backward compatibility.
 
 **Section sources**
 - [publish.ps1:23-48](file://publish.ps1#L23-L48)
 - [publish.sh:29-54](file://publish.sh#L29-L54)
+- [apps/cli/package.json:3-3](file://apps/cli/package.json#L3-L3)
+- [packages/engine/package.json:3-3](file://packages/engine/package.json#L3-L3)
 
 ## Extensibility Guide
 
@@ -621,29 +693,45 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
 - Implement a new provider class conforming to the LLMProvider interface.
 - Extend the provider selection logic to handle the new provider and its configuration.
 - Add environment variables for credentials and base URLs.
+- **New**: Multi-Model Support: New providers can be integrated into the multi-model configuration system with proper task-based selection.
 
 **Section sources**
 - [packages/engine/src/llm/client.ts:4-6](file://packages/engine/src/llm/client.ts#L4-L6)
 - [packages/engine/src/llm/client.ts:68-76](file://packages/engine/src/llm/client.ts#L68-L76)
 - [packages/engine/src/llm/client.ts:46-66](file://packages/engine/src/llm/client.ts#L46-L66)
 
+### Enhancing Configuration System
+- Extend the configuration interfaces to support new model types and provider options.
+- Add validation logic for new configuration formats.
+- Update the CLI configuration command to handle new options.
+
+**Section sources**
+- [apps/cli/src/commands/config.ts:8-30](file://apps/cli/src/commands/config.ts#L8-L30)
+- [apps/cli/src/commands/config.ts:51-53](file://apps/cli/src/commands/config.ts#L51-L53)
+
 ## Testing Strategies
 - Unit Tests for the Engine
-  - The engine includes a simple integration-style test that loads a local configuration, constructs a story context, and runs a single chapter generation end-to-end. This serves as a practical smoke test for the pipeline.
+  - The engine includes a comprehensive test suite using Vitest with enhanced multi-model configuration support.
+  - Tests load configuration from `~/.narrative-os/config.json` to inject provider and model settings prior to importing engine modules.
+  - **New**: Enhanced Path Handling: Tests now properly handle both single and multi-model configurations with automatic model selection.
 - Integration Testing Approaches
   - Use the CLI to drive end-to-end flows: initialize a story, generate chapters iteratively, and verify persisted state and outputs.
   - Mock or stub the LLM client for deterministic tests when appropriate.
+  - **New**: Multi-Model Testing: Tests can be configured to use different model types (reasoning, chat, fast) based on task requirements.
 - Continuous Integration
   - Configure CI to install PNPM, install dependencies, build, lint, and run tests using Turborepo tasks.
   - Cache node_modules and Turbo cache to speed up jobs.
   - **New**: CI should respect .gitignore patterns to prevent accidental commits of generated content.
-- **New**: Automated Testing with Installation Scripts
+  - **New**: CI should test both single and multi-model configuration scenarios.
+- **New**: Automated Testing with Enhanced Configuration
   - Installation scripts can be used to quickly set up test environments on different platforms.
   - Publishing scripts ensure consistent testing environments across development and production.
   - Repository organization patterns help maintain clean test environments.
+  - **New**: Multi-Model Configuration Testing: CI should validate both legacy single-model and new multi-model configuration formats.
 
 **Section sources**
-- [packages/engine/src/test/simple.test.ts:1-73](file://packages/engine/src/test/simple.test.ts#L1-L73)
+- [packages/engine/src/test/simple.test.ts:1-64](file://packages/engine/src/test/simple.test.ts#L1-L64)
+- [packages/engine/src/llm/client.ts:58-111](file://packages/engine/src/llm/client.ts#L58-L111)
 
 ## Development Workflow
 - Local Setup
@@ -651,23 +739,29 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
   - Use Turborepo scripts for development and building.
   - **New**: Use installation scripts for rapid environment setup on Windows or Unix-like systems.
   - **New**: Follow standardized repository organization practices using .gitignore patterns.
+  - **New**: Configure multi-model LLM setup using the enhanced CLI configuration system.
 - Running the CLI
   - Build the engine and CLI, then use the CLI binary to manage stories.
+  - **New**: Use `nos config` to set up multi-model configuration with interactive prompts.
 - Debugging
   - Enable verbose logging in the LLM client and pipeline steps.
   - Inspect persisted story state and chapter outputs to isolate issues.
+  - **New**: Debug multi-model configuration issues using `nos config --show` to verify current setup.
 - Profiling
   - Measure generation latency per chapter and track token usage per provider.
   - Adjust model parameters and prompt sizes to optimize throughput.
+  - **New**: Monitor multi-model performance differences between reasoning, chat, and fast models.
+  - **New**: Track cost optimization benefits of task-based model selection.
   - **New**: Monitor repository organization impact on development workflow efficiency.
 - **New**: Cross-Platform Development
   - Use platform-appropriate installation and publishing scripts for consistent development experience.
   - Leverage automated scripts for environment setup and cleanup across different operating systems.
   - **New**: Maintain consistent repository organization patterns across all development environments.
+  - **New**: Test multi-model configuration across different platforms and Node.js versions.
 
 **Section sources**
 - [package.json:5-11](file://package.json#L5-L11)
-- [apps/cli/src/index.ts:1-54](file://apps/cli/src/index.ts#L1-L54)
+- [apps/cli/src/index.ts:1-154](file://apps/cli/src/index.ts#L1-L154)
 - [packages/engine/src/llm/client.ts:18-28](file://packages/engine/src/llm/client.ts#L18-L28)
 - [install.ps1:1-130](file://install.ps1#L1-L130)
 - [.gitignore:50-50](file://.gitignore#L50-L50)
@@ -677,4 +771,8 @@ This guide outlines how to develop, test, and contribute to the Narrative Operat
 
 **New additions** to this guide include comprehensive coverage of the automated installation scripts for Windows PowerShell and cross-platform publishing workflows that streamline development and distribution processes, along with enhanced repository organization practices. The standardized .gitignore patterns, including the new `Narrative_Operating_System/` pattern, ensure clean repository management and prevent accidental commits of generated content.
 
-These improvements significantly reduce the barrier to entry for contributors while maintaining reliable distribution of the Narrative Operating System across diverse development environments. The combination of automated tooling and standardized organization practices creates a robust foundation for ongoing development and contribution to the project.
+**Most significantly**, the enhanced multi-model LLM configuration system provides unprecedented flexibility in model selection and task optimization. The system now supports both single and complex multi-model setups with automatic task-based model selection, enabling optimal performance and cost efficiency across different generation tasks.
+
+These improvements significantly reduce the barrier to entry for contributors while maintaining reliable distribution of the Narrative Operating System across diverse development environments. The combination of automated tooling, enhanced configuration capabilities, and standardized organization practices creates a robust foundation for ongoing development and contribution to the project.
+
+The current version numbers (CLI: 0.1.8, Engine: 0.1.5) indicate a stable initial release with comprehensive multi-model support, making it suitable for production use while maintaining room for future enhancements and optimizations.

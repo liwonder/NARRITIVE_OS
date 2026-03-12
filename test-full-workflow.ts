@@ -30,7 +30,22 @@ function cleanup() {
     if (fs.existsSync(storiesDir)) {
       const entries = fs.readdirSync(storiesDir);
       for (const entry of entries) {
-        if (entry.includes('test') || entry.includes('Test')) {
+        // Remove all stories with "Test" in the title or all stories for clean test
+        const biblePath = path.join(storiesDir, entry, 'bible.json');
+        let shouldRemove = entry.includes('test') || entry.includes('Test');
+        
+        if (fs.existsSync(biblePath)) {
+          try {
+            const bible = JSON.parse(fs.readFileSync(biblePath, 'utf-8'));
+            if (bible.title === TEST_STORY_TITLE) {
+              shouldRemove = true;
+            }
+          } catch (e) {
+            // Ignore read errors
+          }
+        }
+        
+        if (shouldRemove) {
           fs.rmSync(path.join(storiesDir, entry), { recursive: true, force: true });
           console.log(`  Removed: ${entry}`);
         }
@@ -105,7 +120,7 @@ async function main() {
 
   // Step 4: Generate Chapter 1 (generates next chapter automatically)
   console.log('\n✍️  Step 4: Generating Chapter 1...');
-  runCommand(`${CLI_CMD} generate ${storyId}`, { timeout: 600000 }); // 10 min timeout
+  runCommand(`node "${CLI_PATH}" generate ${storyId}`, { timeout: 600000 }); // 10 min timeout
 
   // Step 5: Verify chapter was created
   console.log('\n✅ Step 5: Verifying chapter output...');
@@ -140,7 +155,7 @@ async function main() {
 
   // Step 6: Check memories were extracted
   console.log('\n🧠 Step 6: Checking narrative memories...');
-  runCommand(`${CLI_CMD} memories ${storyId}`, { timeout: 10000 });
+  runCommand(`node "${CLI_PATH}" memories ${storyId}`, { timeout: 10000 });
 
   console.log('\n═══════════════════════════════════════════════════════');
   console.log('  All tests passed! ✅');

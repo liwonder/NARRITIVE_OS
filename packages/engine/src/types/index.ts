@@ -95,7 +95,7 @@ export interface ModelConfig {
   apiKey: string;
   baseURL?: string;
   model: string;
-  purpose: 'reasoning' | 'chat' | 'fast';
+  purpose: 'reasoning' | 'chat' | 'fast' | 'embedding';
 }
 
 export interface MultiModelConfig {
@@ -110,6 +110,7 @@ export type TaskType =
   | 'summarization'   // Chapter summarization (use fast model)
   | 'extraction'      // Memory/state extraction (use chat model)
   | 'planning'        // Scene/chapter planning (use reasoning model)
+  | 'embedding'       // Text embeddings (use embedding model)
   | 'default';        // Fallback
 
 // Scene-level generation types (Phase 12)

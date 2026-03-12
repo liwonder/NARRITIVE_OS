@@ -123,27 +123,56 @@ export async function configCommand(showOnly = false) {
       default: provider === 'deepseek' ? 'deepseek-chat' : 'gpt-4o-mini',
     });
 
+    // Ask for embedding provider (DeepSeek doesn't support embeddings)
+    const useOpenAIEmbeddings = await confirm({
+      message: 'Use OpenAI for embeddings? (DeepSeek does not support embeddings)',
+      default: provider !== 'deepseek',
+    });
+
+    let embeddingConfig: ModelConfig | undefined;
+    
+    if (useOpenAIEmbeddings) {
+      const openAIEmbedKey = await password({
+        message: 'Enter OpenAI API key (for embeddings):',
+        mask: '*',
+      });
+      
+      embeddingConfig = {
+        name: 'embedding',
+        provider: 'openai',
+        apiKey: openAIEmbedKey,
+        model: 'text-embedding-3-small',
+        purpose: 'fast',
+      };
+    }
+
     const baseURL = provider === 'deepseek' ? 'https://api.deepseek.com' : undefined;
 
+    const models: ModelConfig[] = [
+      {
+        name: 'reasoning',
+        provider: provider as 'openai' | 'deepseek',
+        apiKey,
+        baseURL,
+        model: reasoningModel,
+        purpose: 'reasoning',
+      },
+      {
+        name: 'chat',
+        provider: provider as 'openai' | 'deepseek',
+        apiKey,
+        baseURL,
+        model: chatModel,
+        purpose: 'chat',
+      },
+    ];
+
+    if (embeddingConfig) {
+      models.push(embeddingConfig);
+    }
+
     const config: MultiModelConfig = {
-      models: [
-        {
-          name: 'reasoning',
-          provider: provider as 'openai' | 'deepseek',
-          apiKey,
-          baseURL,
-          model: reasoningModel,
-          purpose: 'reasoning',
-        },
-        {
-          name: 'chat',
-          provider: provider as 'openai' | 'deepseek',
-          apiKey,
-          baseURL,
-          model: chatModel,
-          purpose: 'chat',
-        },
-      ],
+      models,
       defaultModel: 'chat',
     };
 
@@ -152,6 +181,11 @@ export async function configCommand(showOnly = false) {
     console.log(`\n✅ Multi-model configuration saved!`);
     console.log(`  Reasoning: ${reasoningModel}`);
     console.log(`  Chat: ${chatModel}`);
+    if (embeddingConfig) {
+      console.log(`  Embeddings: OpenAI (text-embedding-3-small)`);
+    } else {
+      console.log(`  Embeddings: Mock (no API configured)`);
+    }
   } else {
     // Single model configuration (legacy)
     const provider = await select({
