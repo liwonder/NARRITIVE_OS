@@ -1,6 +1,6 @@
 # Narrative OS Implementation Progress
 
-## Current Phase: Phase 10 (Complete)
+## Current Phase: Phase 12 (Complete)
 
 ---
 
@@ -335,4 +335,36 @@ node apps/cli/dist/index.js init --title "Test" --chapters 3
 
 # Generate all chapters
 node apps/cli/dist/index.js continue <story-id>
+```
+
+---
+
+## Phase 12 — Scene-Level Generation ✅ COMPLETE
+
+**Date:** 2026-03-12
+
+### Implemented
+- [x] Scene interface and types (Scene, ScenePlan, SceneOutput, SceneOutcome)
+- [x] ScenePlanner agent - breaks chapters into individual scenes
+- [x] SceneWriter agent - generates immersive prose for single scenes
+- [x] SceneValidator agent - validates scene quality and consistency
+- [x] SceneAssembler - combines scenes into cohesive chapters
+- [x] SceneOutcomeExtractor - extracts state changes from each scene
+- [x] Updated generateChapter pipeline with scene-level generation (default enabled)
+- [x] Legacy chapter-level generation preserved as fallback
+- [x] Memory updates after every scene (not just chapter)
+- [x] Full test coverage for scene-level generation
+
+### Files Created
+- `packages/engine/src/types/index.ts` - Added Scene types
+- `packages/engine/src/agents/scenePlanner.ts` - Scene planning agent
+- `packages/engine/src/agents/sceneWriter.ts` - Scene generation agent
+- `packages/engine/src/agents/sceneValidator.ts` - Scene validation agent
+- `packages/engine/src/scene/sceneAssembler.ts` - Chapter assembly
+- `packages/engine/src/scene/sceneOutcomeExtractor.ts` - Outcome extraction
+- `packages/engine/src/test/scene-level.test.ts` - Test suite
+
+### Pipeline Flow
+```
+Story Director → Chapter Planner → Scene Planner → Scene Generator (loop) → Chapter Assembler → Canon Validator
 ```

@@ -12,6 +12,9 @@ export { ChapterSummarizer, summarizer } from './agents/summarizer.js';
 export { CanonValidator, canonValidator } from './agents/canonValidator.js';
 export { MemoryExtractor, memoryExtractor } from './agents/memoryExtractor.js';
 export { StateUpdater, stateUpdater } from './agents/stateUpdater.js';
+export { planScenes } from './agents/scenePlanner.js';
+export { writeScene } from './agents/sceneWriter.js';
+export { validateScene, quickValidateScene } from './agents/sceneValidator.js';
 export {
   TensionController,
   tensionController,
@@ -113,3 +116,7 @@ export {
 export { createCanonStore, extractCanonFromBible, addFact, formatCanonForPrompt, type CanonStore, type CanonFact } from './memory/canonStore.js';
 export { VectorStore, getVectorStore, clearVectorStore, type NarrativeMemory, type MemorySearchResult } from './memory/vectorStore.js';
 export { MemoryRetriever, createMemoryRetriever, type RetrievalContext, type RetrievedMemory } from './memory/memoryRetriever.js';
+
+// Scene
+export { assembleChapter, formatChapterWithHeading } from './scene/sceneAssembler.js';
+export { extractSceneOutcome, mergeSceneOutcomes } from './scene/sceneOutcomeExtractor.js';

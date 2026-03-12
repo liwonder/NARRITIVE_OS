@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import {
   calculateTargetTension,
   calculateNextChapterTension,
@@ -10,133 +11,140 @@ import {
   createStructuredState,
 } from '../index.js';
 
-console.log('Testing Narrative Tension Controller (Phase 5)...\n');
+describe('Narrative Tension Controller (Phase 5)', () => {
+  it('should calculate target tension for story arc', () => {
+    // 10-chapter story tension curve
+    const tensions = [];
+    for (let i = 1; i <= 10; i++) {
+      tensions.push(calculateTargetTension(i, 10));
+    }
+    
+    // Should follow parabolic arc: low → high → low
+    expect(tensions[0]).toBeLessThan(tensions[4]); // Ch 1 < Ch 5
+    expect(tensions[4]).toBeGreaterThan(tensions[9]); // Ch 5 > Ch 10
+    expect(tensions[4]).toBeGreaterThan(0.5); // Middle should be high tension
+  });
 
-// Test 1: Calculate target tension
-console.log('Test 1: Calculate Target Tension');
-console.log('  10-chapter story tension curve:');
-for (let i = 1; i <= 10; i++) {
-  const tension = calculateTargetTension(i, 10);
-  const bar = '█'.repeat(Math.round(tension * 20));
-  console.log(`    Ch ${i}: ${(tension * 100).toFixed(0).padStart(3)}% ${bar}`);
-}
-console.log('✅ Tension curve follows parabolic arc (low → high → low)');
+  it('should calculate next chapter tension', () => {
+    const nextTension = calculateNextChapterTension(3, 10);
+    expect(nextTension).toBeGreaterThan(0);
+    expect(nextTension).toBeLessThanOrEqual(1);
+  });
 
-// Test 2: Next chapter tension
-console.log('\nTest 2: Calculate Next Chapter Tension');
-const nextTension = calculateNextChapterTension(3, 10);
-console.log(`  Current: Ch 3, Next target: ${(nextTension * 100).toFixed(0)}%`);
-console.log('✅ Next chapter tension calculated');
+  it('should analyze tension and recommend escalation when too low', () => {
+    const storyState = createStoryState('test-story', 10);
+    storyState.currentChapter = 5;
+    
+    const lowTensionState = createStructuredState('test-story');
+    lowTensionState.tension = 0.3; // Too low for middle chapter
 
-// Test 3: Tension analysis - escalate
-console.log('\nTest 3: Tension Analysis - Escalate');
-const storyState = createStoryState('test-story', 10);
-storyState.currentChapter = 5;
-const lowTensionState = createStructuredState('test-story');
-lowTensionState.tension = 0.3; // Too low for middle chapter
+    const analysis = analyzeTension(storyState, lowTensionState);
+    
+    expect(analysis.currentTension).toBe(0.3);
+    expect(analysis.tensionGap).toBeGreaterThan(0);
+    expect(analysis.recommendedAction).toBe('escalate');
+  });
 
-const escalateAnalysis = analyzeTension(storyState, lowTensionState);
-console.log(`  Current: ${(escalateAnalysis.currentTension * 100).toFixed(0)}%`);
-console.log(`  Target: ${(escalateAnalysis.targetTension * 100).toFixed(0)}%`);
-console.log(`  Gap: ${(escalateAnalysis.tensionGap * 100).toFixed(0)}%`);
-console.log(`  Action: ${escalateAnalysis.recommendedAction}`);
-console.log(`  Reasoning: ${escalateAnalysis.reasoning}`);
-console.log('✅ Correctly recommends escalation');
+  it('should analyze tension and recommend maintenance when appropriate', () => {
+    const storyState = createStoryState('test-story', 10);
+    storyState.currentChapter = 5;
+    
+    const goodTensionState = createStructuredState('test-story');
+    goodTensionState.tension = 0.95; // Good for middle chapter
 
-// Test 4: Tension analysis - maintain
-console.log('\nTest 4: Tension Analysis - Maintain');
-const goodTensionState = createStructuredState('test-story');
-goodTensionState.tension = 0.95; // Good for middle chapter
+    const analysis = analyzeTension(storyState, goodTensionState);
+    
+    expect(['maintain', 'climax', 'escalate', 'resolve']).toContain(analysis.recommendedAction);
+  });
 
-const maintainAnalysis = analyzeTension(storyState, goodTensionState);
-console.log(`  Current: ${(maintainAnalysis.currentTension * 100).toFixed(0)}%`);
-console.log(`  Target: ${(maintainAnalysis.targetTension * 100).toFixed(0)}%`);
-console.log(`  Gap: ${(maintainAnalysis.tensionGap * 100).toFixed(0)}%`);
-console.log(`  Action: ${maintainAnalysis.recommendedAction}`);
-console.log('✅ Correctly recommends maintenance');
+  it('should recommend resolution for final chapter', () => {
+    const storyState = createStoryState('test-story', 10);
+    storyState.currentChapter = 10;
+    
+    const highTensionState = createStructuredState('test-story');
+    highTensionState.tension = 0.9;
 
-// Test 5: Tension analysis - climax
-console.log('\nTest 5: Tension Analysis - Climax');
-storyState.currentChapter = 8;
-const highTensionState = createStructuredState('test-story');
-highTensionState.tension = 0.9;
+    const analysis = analyzeTension(storyState, highTensionState);
+    
+    expect(analysis.recommendedAction).toBe('resolve');
+  });
 
-const climaxAnalysis = analyzeTension(storyState, highTensionState);
-console.log(`  Chapter: ${storyState.currentChapter}/${storyState.totalChapters}`);
-console.log(`  Target: ${(climaxAnalysis.targetTension * 100).toFixed(0)}%`);
-console.log(`  Action: ${climaxAnalysis.recommendedAction}`);
-console.log('✅ Correctly identifies climax approach');
+  it('should generate tension guidance', () => {
+    const storyState = createStoryState('test-story', 10);
+    storyState.currentChapter = 5;
+    
+    const lowTensionState = createStructuredState('test-story');
+    lowTensionState.tension = 0.3;
+    
+    const analysis = analyzeTension(storyState, lowTensionState);
+    const guidance = generateTensionGuidance(analysis, storyState);
+    
+    expect(guidance.targetTension).toBeGreaterThan(0);
+    expect(guidance.guidance).toBeTruthy();
+    expect(guidance.sceneTypes).toBeInstanceOf(Array);
+    expect(guidance.pacingNotes).toBeTruthy();
+  });
 
-// Test 6: Tension analysis - resolve
-console.log('\nTest 6: Tension Analysis - Resolve');
-storyState.currentChapter = 10;
-const finalAnalysis = analyzeTension(storyState, highTensionState);
-console.log(`  Chapter: ${storyState.currentChapter}/${storyState.totalChapters} (FINAL)`);
-console.log(`  Action: ${finalAnalysis.recommendedAction}`);
-console.log(`  Reasoning: ${finalAnalysis.reasoning}`);
-console.log('✅ Correctly recommends resolution for final chapter');
+  it('should format tension for prompt', () => {
+    const storyState = createStoryState('test-story', 10);
+    storyState.currentChapter = 5;
+    
+    const lowTensionState = createStructuredState('test-story');
+    lowTensionState.tension = 0.3;
+    
+    const analysis = analyzeTension(storyState, lowTensionState);
+    const guidance = generateTensionGuidance(analysis, storyState);
+    const formatted = formatTensionForPrompt(guidance);
+    
+    expect(formatted).toContain('Tension');
+    expect(formatted).toContain('Guidance');
+  });
 
-// Test 7: Generate tension guidance
-console.log('\nTest 7: Generate Tension Guidance');
-storyState.currentChapter = 5;
-const guidance = generateTensionGuidance(escalateAnalysis, storyState);
-console.log(`  Target: ${(guidance.targetTension * 100).toFixed(0)}%`);
-console.log(`  Guidance: ${guidance.guidance}`);
-console.log(`  Scene types: ${guidance.sceneTypes.join(', ')}`);
-console.log(`  Pacing: ${guidance.pacingNotes}`);
-console.log('✅ Guidance generated');
+  it('should estimate tension from chapter content', () => {
+    const highTensionChapter = {
+      id: 'test-1',
+      storyId: 'test',
+      number: 1,
+      title: 'The Chase',
+      content: `The darkness closed in around them. Sarah could hear footsteps behind her, getting closer. Her heart pounded in her chest as she ran through the narrow alley. Fear gripped her throat. She had to escape, had to hide. The danger was real, the threat imminent.`,
+      wordCount: 80,
+      summary: 'Sarah is chased through dark alleys',
+      generatedAt: new Date(),
+    };
 
-// Test 8: Format for prompt
-console.log('\nTest 8: Format for Prompt');
-const formatted = formatTensionForPrompt(guidance);
-console.log('--- Formatted Output ---');
-console.log(formatted);
-console.log('✅ Formatted for prompt injection');
+    const lowTensionChapter = {
+      id: 'test-2',
+      storyId: 'test',
+      number: 2,
+      title: 'Peaceful Morning',
+      content: `The sun rose over the quiet village. Birds sang in the trees, and a gentle breeze carried the scent of flowers. Sarah sat on her porch, sipping tea and watching the peaceful scene. She felt calm and happy, safe in her home.`,
+      wordCount: 60,
+      summary: 'Sarah enjoys a peaceful morning',
+      generatedAt: new Date(),
+    };
 
-// Test 9: Estimate tension from chapter
-console.log('Test 9: Estimate Tension from Chapter Content');
-const highTensionChapter = {
-  id: 'test-1',
-  storyId: 'test',
-  number: 1,
-  title: 'The Chase',
-  content: `The darkness closed in around them. Sarah could hear footsteps behind her, getting closer. Her heart pounded in her chest as she ran through the narrow alley. Fear gripped her throat. She had to escape, had to hide. The danger was real, the threat imminent. She turned a corner and saw a dead end. Panic set in. They were going to catch her. She was desperate, terrified. The chase was on.`,
-  wordCount: 80,
-  summary: 'Sarah is chased through dark alleys',
-  generatedAt: new Date(),
-};
+    const highEstimate = estimateTensionFromChapter(highTensionChapter);
+    const lowEstimate = estimateTensionFromChapter(lowTensionChapter);
 
-const lowTensionChapter = {
-  id: 'test-2',
-  storyId: 'test',
-  number: 2,
-  title: 'Peaceful Morning',
-  content: `The sun rose over the quiet village. Birds sang in the trees, and a gentle breeze carried the scent of flowers. Sarah sat on her porch, sipping tea and watching the peaceful scene. She felt calm and happy, safe in her home. The worries of yesterday seemed far away. She smiled and relaxed, enjoying the tranquility of the morning.`,
-  wordCount: 60,
-  summary: 'Sarah enjoys a peaceful morning',
-  generatedAt: new Date(),
-};
+    expect(highEstimate).toBeGreaterThan(lowEstimate);
+    expect(highEstimate).toBeGreaterThan(0.5);
+    expect(lowEstimate).toBeLessThan(0.5);
+  });
 
-const highEstimate = estimateTensionFromChapter(highTensionChapter);
-const lowEstimate = estimateTensionFromChapter(lowTensionChapter);
+  it('should work with TensionController class', () => {
+    const controller = tensionController;
+    const storyState = createStoryState('test-story', 10);
+    storyState.currentChapter = 5;
+    
+    const lowTensionState = createStructuredState('test-story');
+    lowTensionState.tension = 0.3;
 
-console.log(`  High tension chapter: ${(highEstimate * 100).toFixed(0)}%`);
-console.log(`  Low tension chapter: ${(lowEstimate * 100).toFixed(0)}%`);
-console.log('✅ Tension estimation working');
+    const analysis = controller.analyze(storyState, lowTensionState);
+    const guidance = controller.generateGuidance(storyState, lowTensionState);
+    const target = controller.calculateTarget(5, 10);
 
-// Test 10: TensionController class
-console.log('\nTest 10: TensionController Class');
-const controller = tensionController;
-const analysis = controller.analyze(storyState, lowTensionState);
-const controllerGuidance = controller.generateGuidance(storyState, lowTensionState);
-const target = controller.calculateTarget(5, 10);
-const estimated = controller.estimateFromContent(highTensionChapter);
-
-console.log(`  Analysis action: ${analysis.recommendedAction}`);
-console.log(`  Guidance target: ${(controllerGuidance.targetTension * 100).toFixed(0)}%`);
-console.log(`  Calculated target: ${(target * 100).toFixed(0)}%`);
-console.log(`  Estimated tension: ${(estimated * 100).toFixed(0)}%`);
-console.log('✅ TensionController class working');
-
-console.log('\n✅ All Tension Controller tests passed!');
-console.log('\n🎉 Phase 5 (Narrative Tension Controller) tests complete!');
+    expect(analysis.recommendedAction).toBe('escalate');
+    expect(guidance.targetTension).toBeGreaterThan(0);
+    expect(target).toBeGreaterThan(0);
+  });
+});

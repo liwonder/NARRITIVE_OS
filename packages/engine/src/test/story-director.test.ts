@@ -1,8 +1,8 @@
+// Load config BEFORE importing engine
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 
-// Load config BEFORE importing engine
 const configPath = join(homedir(), '.narrative-os', 'config.json');
 if (existsSync(configPath)) {
   const config = JSON.parse(readFileSync(configPath, 'utf-8'));
@@ -16,6 +16,7 @@ if (existsSync(configPath)) {
   console.log(`Loaded config: ${config.provider} / deepseek-chat`);
 }
 
+import { describe, it, expect } from 'vitest';
 import {
   storyDirector,
   createStoryBible,
@@ -33,100 +34,97 @@ import {
   type ChapterSummary,
 } from '../index.js';
 
-console.log('Testing Story Director Agent (Phase 6)...\n');
+describe('Story Director Agent (Phase 6)', () => {
+  const createTestSetup = () => {
+    let bible = createStoryBible(
+      '李白传奇',
+      '诗人寻找人生真谛',
+      'historical-fiction',
+      '唐朝长安及各地',
+      '豪放浪漫',
+      '诗人李白离开长安，游历天下，寻找人生真谛',
+      10
+    );
 
-// Setup test story
-let bible = createStoryBible(
-  '李白传奇',
-  '诗人寻找人生真谛',
-  'historical-fiction',
-  '唐朝长安及各地',
-  '豪放浪漫',
-  '诗人李白离开长安，游历天下，寻找人生真谛',
-  10
-);
+    bible = addCharacter(bible, '李白', 'protagonist', ['豪放', '浪漫', '不羁'], ['寻找人生真谛', '成为伟大诗人']);
+    bible = addCharacter(bible, '杜甫', 'supporting', ['沉郁', '忧国忧民'], ['记录时代变迁']);
+    bible = addCharacter(bible, '孟浩然', 'supporting', ['隐逸', '淡泊'], ['归隐山林']);
 
-bible = addCharacter(bible, '李白', 'protagonist', ['豪放', '浪漫', '不羁'], ['寻找人生真谛', '成为伟大诗人']);
-bible = addCharacter(bible, '杜甫', 'supporting', ['沉郁', '忧国忧民'], ['记录时代变迁']);
-bible = addCharacter(bible, '孟浩然', 'supporting', ['隐逸', '淡泊'], ['归隐山林']);
+    bible = addPlotThread(bible, '诗人之旅', '李白从长安出发，游历天下');
+    bible = addPlotThread(bible, '宫廷召唤', '唐玄宗召李白入宫的阴谋');
+    bible = addPlotThread(bible, '友情之路', '李白与杜甫、孟浩然的交往');
 
-bible = addPlotThread(bible, '诗人之旅', '李白从长安出发，游历天下');
-bible = addPlotThread(bible, '宫廷召唤', '唐玄宗召李白入宫的阴谋');
-bible = addPlotThread(bible, '友情之路', '李白与杜甫、孟浩然的交往');
+    const storyState = createStoryState('test-story', 10);
+    storyState.currentChapter = 3;
 
-const storyState = createStoryState('test-story', 10);
-storyState.currentChapter = 3;
+    let structuredState = createStructuredState('test-story');
+    structuredState = initializeCharactersFromBible(structuredState, bible);
+    structuredState = initializePlotThreadsFromBible(structuredState, bible);
 
-let structuredState = createStructuredState('test-story');
-structuredState = initializeCharactersFromBible(structuredState, bible);
-structuredState = initializePlotThreadsFromBible(structuredState, bible);
+    const threadIds = Object.keys(structuredState.plotThreads);
+    if (threadIds[0]) {
+      structuredState = updatePlotThread(structuredState, threadIds[0], { status: 'active', tension: 0.6 }, 3);
+    }
+    if (threadIds[1]) {
+      structuredState = updatePlotThread(structuredState, threadIds[1], { status: 'escalating', tension: 0.4 }, 3);
+    }
 
-// Activate some plot threads
-const threadIds = Object.keys(structuredState.plotThreads);
-if (threadIds[0]) {
-  structuredState = updatePlotThread(structuredState, threadIds[0], { status: 'active', tension: 0.6 }, 3);
-}
-if (threadIds[1]) {
-  structuredState = updatePlotThread(structuredState, threadIds[1], { status: 'escalating', tension: 0.4 }, 3);
-}
+    structuredState = addRecentEvent(structuredState, '李白告别长安');
+    structuredState = addRecentEvent(structuredState, '夜宿黄鹤楼');
+    structuredState = addRecentEvent(structuredState, '遇见孟浩然');
 
-// Add recent events
-structuredState = addRecentEvent(structuredState, '李白告别长安');
-structuredState = addRecentEvent(structuredState, '夜宿黄鹤楼');
-structuredState = addRecentEvent(structuredState, '遇见孟浩然');
+    structuredState = addUnresolvedQuestion(structuredState, '李白会接受宫廷召唤吗？');
+    structuredState = addUnresolvedQuestion(structuredState, '杜甫何时与李白相遇？');
 
-// Add questions
-structuredState = addUnresolvedQuestion(structuredState, '李白会接受宫廷召唤吗？');
-structuredState = addUnresolvedQuestion(structuredState, '杜甫何时与李白相遇？');
+    const tensionAnalysis = analyzeTension(storyState, structuredState);
+    const tensionGuidance = generateTensionGuidance(tensionAnalysis, storyState);
 
-// Create tension guidance
-const tensionAnalysis = analyzeTension(storyState, structuredState);
-const tensionGuidance = generateTensionGuidance(tensionAnalysis, storyState);
+    const previousSummaries: ChapterSummary[] = [
+      {
+        chapterNumber: 1,
+        summary: '李白离开长安，踏上诗人之旅',
+        keyEvents: ['告别长安', '独自上路'],
+        characterChanges: { '李白': '从迷茫到坚定' },
+      },
+      {
+        chapterNumber: 2,
+        summary: '李白夜宿黄鹤楼，思考人生',
+        keyEvents: ['夜宿黄鹤楼', '写诗抒怀'],
+        characterChanges: { '李白': '更加坚定诗人之路' },
+      },
+      {
+        chapterNumber: 3,
+        summary: '李白遇见孟浩然，结为知己',
+        keyEvents: ['遇见孟浩然', '饮酒论诗'],
+        characterChanges: { '李白': '找到知音', '孟浩然': '欣赏李白才华' },
+      },
+    ];
 
-// Create previous summaries
-const previousSummaries: ChapterSummary[] = [
-  {
-    chapterNumber: 1,
-    summary: '李白离开长安，踏上诗人之旅',
-    keyEvents: ['告别长安', '独自上路'],
-    characterChanges: { '李白': '从迷茫到坚定' },
-  },
-  {
-    chapterNumber: 2,
-    summary: '李白夜宿黄鹤楼，思考人生',
-    keyEvents: ['夜宿黄鹤楼', '写诗抒怀'],
-    characterChanges: { '李白': '更加坚定诗人之路' },
-  },
-  {
-    chapterNumber: 3,
-    summary: '李白遇见孟浩然，结为知己',
-    keyEvents: ['遇见孟浩然', '饮酒论诗'],
-    characterChanges: { '李白': '找到知音', '孟浩然': '欣赏李白才华' },
-  },
-];
+    return { bible, storyState, structuredState, tensionGuidance, previousSummaries };
+  };
 
-// Test 1: Fallback objectives
-console.log('Test 1: Fallback Objectives (No LLM)');
-const fallbackOutput = storyDirector.generateFallbackObjectives(storyState, structuredState);
-console.log(`  Chapter: ${fallbackOutput.chapterNumber}`);
-console.log(`  Goal: ${fallbackOutput.overallGoal}`);
-console.log(`  Objectives: ${fallbackOutput.objectives.length}`);
-console.log(`  Focus: ${fallbackOutput.focusCharacters.join(', ')}`);
-console.log('✅ Fallback objectives generated');
+  it('should generate fallback objectives', () => {
+    const { storyState, structuredState } = createTestSetup();
+    const fallbackOutput = storyDirector.generateFallbackObjectives(storyState, structuredState);
 
-// Test 2: Format for prompt
-console.log('\nTest 2: Format for Prompt');
-const formatted = storyDirector.formatForPrompt(fallbackOutput);
-console.log('--- Formatted Output ---');
-console.log(formatted.substring(0, 600));
-console.log('...');
-console.log('✅ Formatted for writer prompt');
+    expect(fallbackOutput.chapterNumber).toBeGreaterThan(0);
+    expect(fallbackOutput.overallGoal).toBeTruthy();
+    expect(fallbackOutput.objectives.length).toBeGreaterThan(0);
+    expect(fallbackOutput.focusCharacters.length).toBeGreaterThan(0);
+  });
 
-// Test 3: Director with LLM
-console.log('\nTest 3: Story Director with LLM');
+  it('should format output for prompt', () => {
+    const { storyState, structuredState } = createTestSetup();
+    const fallbackOutput = storyDirector.generateFallbackObjectives(storyState, structuredState);
+    const formatted = storyDirector.formatForPrompt(fallbackOutput);
 
-async function runDirectorTest() {
-  try {
+    expect(formatted).toContain('Chapter');
+    expect(formatted).toContain('Objectives');
+  });
+
+  it('should generate chapter plan with LLM', async () => {
+    const { bible, storyState, structuredState, tensionGuidance, previousSummaries } = createTestSetup();
+
     const directorOutput = await storyDirector.direct({
       bible,
       state: storyState,
@@ -134,54 +132,31 @@ async function runDirectorTest() {
       tensionGuidance,
       previousSummaries,
     });
-    
-    console.log('✅ Director generated chapter plan');
-    console.log(`  Chapter: ${directorOutput.chapterNumber}`);
-    console.log(`  Goal: ${directorOutput.overallGoal}`);
-    console.log(`  Tone: ${directorOutput.tone}`);
-    console.log(`  Objectives: ${directorOutput.objectives.length}`);
-    
-    for (const obj of directorOutput.objectives) {
-      const emoji = { critical: '🔴', high: '🟠', medium: '🟡', low: '🟢' }[obj.priority];
-      console.log(`    ${emoji} [${obj.type}] ${obj.description}`);
-    }
-    
-    console.log(`  Focus Characters: ${directorOutput.focusCharacters.join(', ')}`);
-    console.log(`  Suggested Scenes: ${directorOutput.suggestedScenes.length}`);
-    
-    // Test 4: Format LLM output
-    console.log('\nTest 4: Format LLM Output for Prompt');
-    const llmFormatted = storyDirector.formatForPrompt(directorOutput);
-    console.log('--- Formatted LLM Output ---');
-    console.log(llmFormatted.substring(0, 800));
-    console.log('...');
-    console.log('✅ LLM output formatted');
-    
-  } catch (error) {
-    console.log('⚠️ Director LLM test failed:', error instanceof Error ? error.message : String(error));
-  }
-}
 
-runDirectorTest().then(() => {
-  // Test 5: Different story phases
-  console.log('\nTest 5: Different Story Phases');
+    expect(directorOutput.chapterNumber).toBeGreaterThan(0);
+    expect(directorOutput.overallGoal).toBeTruthy();
+    expect(directorOutput.tone).toBeTruthy();
+    expect(directorOutput.objectives.length).toBeGreaterThan(0);
+    expect(directorOutput.focusCharacters.length).toBeGreaterThan(0);
+    expect(directorOutput.suggestedScenes.length).toBeGreaterThan(0);
+  }, 60000);
 
-  // Early phase
-  storyState.currentChapter = 1;
-  const earlyFallback = storyDirector.generateFallbackObjectives(storyState, structuredState);
-  console.log(`  Early (Ch 1): ${earlyFallback.objectives.length} objectives, tone: ${earlyFallback.tone}`);
+  it('should adapt objectives to different story phases', () => {
+    const { storyState, structuredState } = createTestSetup();
 
-  // Middle phase
-  storyState.currentChapter = 5;
-  const middleFallback = storyDirector.generateFallbackObjectives(storyState, structuredState);
-  console.log(`  Middle (Ch 5): ${middleFallback.objectives.length} objectives, tone: ${middleFallback.tone}`);
+    // Early phase
+    storyState.currentChapter = 1;
+    const earlyFallback = storyDirector.generateFallbackObjectives(storyState, structuredState);
+    expect(earlyFallback.objectives.length).toBeGreaterThan(0);
 
-  // Late phase
-  storyState.currentChapter = 9;
-  const lateFallback = storyDirector.generateFallbackObjectives(storyState, structuredState);
-  console.log(`  Late (Ch 9): ${lateFallback.objectives.length} objectives, tone: ${lateFallback.tone}`);
-  console.log('✅ Objectives adapt to story phase');
+    // Middle phase
+    storyState.currentChapter = 5;
+    const middleFallback = storyDirector.generateFallbackObjectives(storyState, structuredState);
+    expect(middleFallback.objectives.length).toBeGreaterThan(0);
 
-  console.log('\n✅ All Story Director tests passed!');
-  console.log('\n🎉 Phase 6 (Story Director Agent) tests complete!');
+    // Late phase
+    storyState.currentChapter = 9;
+    const lateFallback = storyDirector.generateFallbackObjectives(storyState, structuredState);
+    expect(lateFallback.objectives.length).toBeGreaterThan(0);
+  });
 });

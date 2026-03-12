@@ -87,3 +87,38 @@ export interface LLMProviderConfig {
   baseURL?: string;
   model?: string;
 }
+
+// Scene-level generation types (Phase 12)
+export interface Scene {
+  id: number;
+  location: string;
+  characters: string[];
+  purpose: string;
+  tension: number;
+  conflict?: string;
+  type?: 'dialogue' | 'action' | 'reveal' | 'investigation' | 'transition';
+}
+
+export interface ScenePlan {
+  scenes: Scene[];
+  chapterGoal: string;
+  targetTension: number;
+}
+
+export interface SceneOutput {
+  content: string;
+  summary: string;
+  wordCount: number;
+}
+
+export interface SceneValidationResult {
+  isValid: boolean;
+  violations: string[];
+}
+
+export interface SceneOutcome {
+  events: string[];
+  characterChanges: Record<string, string>;
+  locationChanges: Record<string, string>;
+  newInformation: string[];
+}

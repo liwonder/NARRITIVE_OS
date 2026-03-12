@@ -3,7 +3,12 @@ import { completenessChecker } from '../agents/completeness.js';
 import { summarizer } from '../agents/summarizer.js';
 import { canonValidator } from '../agents/canonValidator.js';
 import { memoryExtractor } from '../agents/memoryExtractor.js';
-import type { GenerationContext, Chapter, ChapterSummary } from '../types/index.js';
+import { planScenes } from '../agents/scenePlanner.js';
+import { writeScene } from '../agents/sceneWriter.js';
+import { validateScene } from '../agents/sceneValidator.js';
+import { assembleChapter } from '../scene/sceneAssembler.js';
+import { extractSceneOutcome, mergeSceneOutcomes } from '../scene/sceneOutcomeExtractor.js';
+import type { GenerationContext, Chapter, ChapterSummary, SceneOutput, SceneOutcome } from '../types/index.js';
 import type { CanonStore } from '../memory/canonStore.js';
 import type { VectorStore } from '../memory/vectorStore.js';
 import { createMemoryRetriever, MemoryRetriever } from '../memory/memoryRetriever.js';
@@ -21,6 +26,8 @@ export interface GenerateChapterOptions {
   validateCanon?: boolean;
   maxContinuationAttempts?: number;
   retrieveMemories?: boolean;
+  useSceneLevel?: boolean; // Enable scene-by-scene generation (Phase 12)
+  targetSceneCount?: number;
 }
 
 export async function generateChapter(
@@ -28,9 +35,184 @@ export async function generateChapter(
   options: GenerateChapterOptions = {}
 ): Promise<GenerateChapterResult> {
   const { bible, state, chapterNumber } = context;
-  const { canon, vectorStore, validateCanon = true, maxContinuationAttempts = 3, retrieveMemories = true } = options;
+  const { 
+    canon, 
+    vectorStore, 
+    validateCanon = true, 
+    maxContinuationAttempts = 3, 
+    retrieveMemories = true,
+    useSceneLevel = true, // Default to scene-level generation
+    targetSceneCount = 4
+  } = options;
 
   console.log(`Generating Chapter ${chapterNumber}...`);
+
+  // Use scene-level generation if enabled
+  if (useSceneLevel) {
+    return generateChapterSceneLevel(context, options);
+  }
+
+  // Legacy chapter-level generation
+  return generateChapterLegacy(context, options);
+}
+
+/**
+ * Scene-level chapter generation (Phase 12)
+ * Breaks chapter into scenes, generates each individually, then assembles
+ */
+async function generateChapterSceneLevel(
+  context: GenerationContext,
+  options: GenerateChapterOptions
+): Promise<GenerateChapterResult> {
+  const { bible, state, chapterNumber } = context;
+  const { 
+    canon, 
+    vectorStore, 
+    validateCanon = true,
+    targetSceneCount = 4
+  } = options;
+
+  console.log(`  Using scene-level generation (${targetSceneCount} scenes)...`);
+
+  // Initialize memory retriever if vector store provided
+  let memoryRetriever: MemoryRetriever | undefined;
+  if (vectorStore) {
+    await vectorStore.initialize();
+    memoryRetriever = createMemoryRetriever(vectorStore);
+  }
+
+  // Step 1: Plan scenes for this chapter
+  console.log('  Planning scenes...');
+  const previousSummary = state.chapterSummaries[state.chapterSummaries.length - 1]?.summary;
+  const scenePlan = await planScenes({
+    bible,
+    state,
+    chapterNumber,
+    previousChapterSummary: previousSummary,
+    targetSceneCount
+  });
+  console.log(`  Planned ${scenePlan.scenes.length} scenes`);
+
+  // Step 2: Generate each scene
+  const sceneOutputs: SceneOutput[] = [];
+  const sceneOutcomes: SceneOutcome[] = [];
+  let previousSceneSummary: string | undefined;
+
+  for (const scene of scenePlan.scenes) {
+    console.log(`  Generating scene ${scene.id}/${scenePlan.scenes.length}...`);
+
+    // Get canon facts for validation
+    const canonFacts = canon ? canon.facts.map((f: { subject: string; attribute: string; value: string }) => `${f.subject} ${f.attribute}: ${f.value}`) : [];
+
+    // Get relevant memories
+    let relevantMemories: string[] = [];
+    if (memoryRetriever && vectorStore) {
+      const results = await vectorStore.searchSimilar(scene.purpose, 5);
+      relevantMemories = results.map((r: { memory: { content: string } }) => r.memory.content);
+    }
+
+    // Generate the scene
+    let sceneOutput = await writeScene({
+      scene,
+      bible,
+      state,
+      chapterNumber,
+      previousSceneSummary,
+      canonFacts,
+      relevantMemories
+    });
+
+    // Validate the scene
+    if (validateCanon && canon) {
+      const validation = await validateScene({
+        scene,
+        sceneOutput,
+        bible,
+        canonFacts
+      });
+
+      if (!validation.isValid) {
+        console.log(`    ⚠️  Scene validation issues: ${validation.violations.join(', ')}`);
+      }
+    }
+
+    // Extract outcomes from scene
+    const outcome = await extractSceneOutcome({
+      scene,
+      sceneOutput,
+      bible
+    });
+    sceneOutcomes.push(outcome);
+
+    // Store scene memory
+    if (vectorStore) {
+      await vectorStore.addMemory({
+        storyId: bible.id,
+        chapterNumber,
+        content: `Scene ${scene.id}: ${sceneOutput.summary}`,
+        category: 'plot',
+        timestamp: new Date(),
+      });
+    }
+
+    sceneOutputs.push(sceneOutput);
+    previousSceneSummary = sceneOutput.summary;
+  }
+
+  // Step 3: Assemble scenes into chapter
+  console.log('  Assembling chapter...');
+  const assembled = assembleChapter(sceneOutputs, scenePlan, chapterNumber);
+
+  // Step 4: Validate full chapter
+  let violations: string[] = [];
+  if (validateCanon && canon) {
+    console.log('  Validating chapter...');
+    const validation = await canonValidator.validate(assembled.content, canon);
+    violations = validation.violations;
+    if (violations.length > 0) {
+      console.log(`  ⚠️  Canon violations detected: ${violations.length}`);
+    }
+  }
+
+  // Step 5: Create chapter summary from merged outcomes
+  const mergedOutcome = mergeSceneOutcomes(sceneOutcomes);
+  const summary: ChapterSummary = {
+    chapterNumber,
+    summary: assembled.summary,
+    keyEvents: mergedOutcome.events.slice(0, 5),
+    characterChanges: mergedOutcome.characterChanges
+  };
+
+  const chapter: Chapter = {
+    id: generateId(),
+    storyId: bible.id,
+    number: chapterNumber,
+    title: assembled.title,
+    content: assembled.content,
+    summary: summary.summary,
+    wordCount: assembled.wordCount,
+    generatedAt: new Date(),
+  };
+
+  console.log(`  Generated: ${assembled.wordCount} words (${assembled.sceneCount} scenes)`);
+
+  return { 
+    chapter, 
+    summary, 
+    violations, 
+    memoriesExtracted: sceneOutputs.length 
+  };
+}
+
+/**
+ * Legacy chapter-level generation (pre-Phase 12)
+ */
+async function generateChapterLegacy(
+  context: GenerationContext,
+  options: GenerateChapterOptions
+): Promise<GenerateChapterResult> {
+  const { bible, state, chapterNumber } = context;
+  const { canon, vectorStore, validateCanon = true, maxContinuationAttempts = 3, retrieveMemories = true } = options;
 
   // Initialize memory retriever if vector store provided
   let memoryRetriever: MemoryRetriever | undefined;
