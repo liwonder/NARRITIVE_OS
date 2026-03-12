@@ -1,5 +1,6 @@
 import { createStoryBible, addCharacter, createStoryState } from '@narrative-os/engine';
 import { saveStory } from '../config/store.js';
+import { input, select, number } from '@inquirer/prompts';
 
 export async function initCommand(options: {
   title?: string;
@@ -10,40 +11,76 @@ export async function initCommand(options: {
   premise?: string;
   chapters?: string;
 }) {
-  console.log('Creating new story...\n');
+  console.log('🎭 Creating new story...\n');
 
-  const title = options.title || 'Untitled Story';
-  const theme = options.theme || 'Redemption';
-  const genre = options.genre || 'Science Fiction';
-  const setting = options.setting || 'Neo-Tokyo 2145';
-  const tone = options.tone || 'Dark, philosophical';
-  const premise = options.premise || 'A detective discovers a conspiracy that challenges everything she knows about reality.';
-  const targetChapters = parseInt(options.chapters || '5');
+  // Prompt for required fields if not provided via CLI
+  const title = options.title || await input({
+    message: 'Story title:',
+    validate: (value) => value.trim().length > 0 || 'Title is required'
+  });
+
+  const genre = options.genre || await select({
+    message: 'Genre:',
+    choices: [
+      { name: 'Science Fiction', value: 'Science Fiction' },
+      { name: 'Fantasy', value: 'Fantasy' },
+      { name: 'Mystery', value: 'Mystery' },
+      { name: 'Thriller', value: 'Thriller' },
+      { name: 'Romance', value: 'Romance' },
+      { name: 'Historical Fiction', value: 'Historical Fiction' },
+      { name: 'Horror', value: 'Horror' },
+      { name: 'Literary Fiction', value: 'Literary Fiction' },
+      { name: 'Other', value: 'Other' }
+    ]
+  });
+
+  const theme = options.theme || await input({
+    message: 'Theme (e.g., Redemption, Love, Betrayal):',
+    default: 'Redemption'
+  });
+
+  const setting = options.setting || await input({
+    message: 'Setting (time/place):',
+    default: 'Modern day'
+  });
+
+  const tone = options.tone || await input({
+    message: 'Tone (e.g., Dark, Lighthearted, Suspenseful):',
+    default: 'Dramatic'
+  });
+
+  const premise = options.premise || await input({
+    message: 'Brief premise/synopsis:',
+    validate: (value) => value.trim().length > 10 || 'Please provide a more detailed premise (at least 10 characters)'
+  });
+
+  const targetChapters = options.chapters 
+    ? parseInt(options.chapters)
+    : await number({
+        message: 'Target number of chapters:',
+        default: 5,
+        min: 1,
+        max: 50
+      }) || 5;
 
   let bible = createStoryBible(title, theme, genre, setting, tone, premise, targetChapters);
 
+  // Add a placeholder protagonist (user can add more characters later)
   bible = addCharacter(
     bible,
-    'Mira Kade',
+    'Protagonist',
     'protagonist',
-    ['determined', 'cynical', 'brilliant'],
-    ['uncover the truth', 'protect her sister']
-  );
-
-  bible = addCharacter(
-    bible,
-    'The Architect',
-    'antagonist',
-    ['charismatic', 'ruthless', 'visionary'],
-    ['reshape society', 'eliminate obstacles']
+    ['brave', 'determined'],
+    ['achieve their goal']
   );
 
   const state = createStoryState(bible.id, targetChapters);
 
   saveStory(bible, state, []);
 
-  console.log(`\n✅ Story created: ${title}`);
+  console.log(`\n✅ Story created: "${title}"`);
   console.log(`   ID: ${bible.id}`);
+  console.log(`   Genre: ${genre}`);
   console.log(`   Target chapters: ${targetChapters}`);
   console.log(`\n💡 Next steps:`);
   console.log(`   • Generate Chapter 1:  nos generate ${bible.id}`);
