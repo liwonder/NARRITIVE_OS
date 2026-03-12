@@ -3,17 +3,25 @@
 <cite>
 **Referenced Files in This Document**
 - [memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts)
+- [client.ts](file://packages/engine/src/llm/client.ts)
+- [index.ts](file://packages/engine/src/types/index.ts)
 - [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts)
 - [memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts)
-- [client.ts](file://packages/engine/src/llm/client.ts)
 - [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts)
 - [index.ts](file://packages/engine/src/index.ts)
-- [index.ts](file://packages/engine/src/types/index.ts)
 - [bible.ts](file://packages/engine/src/story/bible.ts)
 - [state.ts](file://packages/engine/src/story/state.ts)
 - [summarizer.ts](file://packages/engine/src/agents/summarizer.ts)
 - [writer.ts](file://packages/engine/src/agents/writer.ts)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Updated MemoryExtractor implementation section to reflect task-specific model selection
+- Enhanced LLM Client architecture section to document the new task-based model routing
+- Added new section on Task-Based Model Selection explaining the extraction task configuration
+- Updated dependency analysis to include the new TaskType interface
+- Revised performance considerations to account for optimized model selection
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -21,15 +29,18 @@
 3. [Core Components](#core-components)
 4. [Architecture Overview](#architecture-overview)
 5. [Detailed Component Analysis](#detailed-component-analysis)
-6. [Dependency Analysis](#dependency-analysis)
-7. [Performance Considerations](#performance-considerations)
-8. [Troubleshooting Guide](#troubleshooting-guide)
-9. [Conclusion](#conclusion)
+6. [Task-Based Model Selection](#task-based-model-selection)
+7. [Dependency Analysis](#dependency-analysis)
+8. [Performance Considerations](#performance-considerations)
+9. [Troubleshooting Guide](#troubleshooting-guide)
+10. [Conclusion](#conclusion)
 
 ## Introduction
 The Memory Extractor Agent is a core component of the Narrative Operating System that automatically identifies and extracts narrative memories from generated chapters. It serves as the bridge between creative writing and persistent storytelling knowledge, enabling the system to maintain continuity, track character development, and preserve world-building details across the entire story arc.
 
 The agent operates by analyzing chapter content and extracting structured facts categorized into four fundamental narrative types: events, character moments, world details, and plot developments. These extracted memories are then stored in a vector-based memory system that enables semantic search and retrieval for future writing contexts.
+
+**Enhanced** The Memory Extractor now utilizes task-specific model selection, ensuring that memory extraction operations use chat models optimized for structured data extraction rather than default model configurations.
 
 ## Project Structure
 The Memory Extractor Agent is part of a larger narrative generation ecosystem organized into distinct functional domains:
@@ -57,6 +68,7 @@ GC[GenerateChapter]
 end
 subgraph "LLM Integration"
 LLM[LLMClient]
+TT[TaskType]
 end
 end
 subgraph "External Dependencies"
@@ -71,17 +83,17 @@ GC --> ME
 GC --> VS
 W --> MR
 MR --> VS
+LLM --> TT
 ```
 
 **Diagram sources**
-- [memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L1-L97)
-- [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L1-L173)
-- [memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts#L1-L174)
-- [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L108)
+- [memoryExtractor.ts:1-99](file://packages/engine/src/agents/memoryExtractor.ts#L1-L99)
+- [client.ts:39-47](file://packages/engine/src/llm/client.ts#L39-L47)
+- [index.ts:107-113](file://packages/engine/src/types/index.ts#L107-L113)
 
 **Section sources**
-- [index.ts](file://packages/engine/src/index.ts#L1-L43)
-- [memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L1-L97)
+- [index.ts:1-43](file://packages/engine/src/index.ts#L1-L43)
+- [memoryExtractor.ts:1-99](file://packages/engine/src/agents/memoryExtractor.ts#L1-L99)
 
 ## Core Components
 
@@ -96,6 +108,39 @@ The extraction process follows a systematic approach:
 - Structured JSON output parsing with validation
 - Category assignment for semantic organization
 - Temperature-controlled creativity vs. consistency
+- **Task-specific model selection** for optimized extraction performance
+
+### Enhanced LLM Client Architecture
+The LLM Client now implements a sophisticated task-based model routing system:
+
+```mermaid
+flowchart TD
+Start([Task Request]) --> TaskCheck{"Task Type?"}
+TaskCheck --> |extraction| ExtractModel["Select 'chat' model for extraction"]
+TaskCheck --> |generation| GenModel["Select 'reasoning' model for generation"]
+TaskCheck --> |validation| ValModel["Select 'chat' model for validation"]
+TaskCheck --> |summarization| SumModel["Select 'fast' model for summarization"]
+TaskCheck --> |planning| PlanModel["Select 'reasoning' model for planning"]
+TaskCheck --> |default| DefModel["Select default 'chat' model"]
+ExtractModel --> ModelLookup["Find model with purpose='chat'"]
+GenModel --> ReasoningLookup["Find model with purpose='reasoning'"]
+ValModel --> ChatLookup["Find model with purpose='chat'"]
+SumModel --> FastLookup["Find model with purpose='fast'"]
+PlanModel --> ReasoningLookup
+DefModel --> ChatLookup
+ModelLookup --> Provider["Get LLM Provider"]
+ReasoningLookup --> Provider
+ChatLookup --> Provider
+FastLookup --> Provider
+Provider --> Execute[Execute Completion]
+Execute --> Response[Return Response]
+```
+
+**Diagram sources**
+- [client.ts:39-47](file://packages/engine/src/llm/client.ts#L39-L47)
+- [client.ts:113-125](file://packages/engine/src/llm/client.ts#L113-L125)
+
+The task-based routing ensures that extraction operations use chat models optimized for structured data extraction, while other operations use models suited to their specific requirements.
 
 ### VectorStore System
 The VectorStore provides persistent memory storage with advanced semantic search capabilities:
@@ -112,9 +157,10 @@ The MemoryRetriever enables contextual memory access:
 - Prompt formatting for seamless integration with writing agents
 
 **Section sources**
-- [memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L52-L97)
-- [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L19-L173)
-- [memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts#L18-L174)
+- [memoryExtractor.ts:52-99](file://packages/engine/src/agents/memoryExtractor.ts#L52-L99)
+- [client.ts:39-47](file://packages/engine/src/llm/client.ts#L39-L47)
+- [vectorStore.ts:19-208](file://packages/engine/src/memory/vectorStore.ts#L19-L208)
+- [memoryRetriever.ts:18-174](file://packages/engine/src/memory/memoryRetriever.ts#L18-L174)
 
 ## Architecture Overview
 
@@ -126,7 +172,10 @@ participant LLM as LLMClient
 participant VS as VectorStore
 participant MR as MemoryRetriever
 GC->>ME : extract(chapter, bible)
-ME->>LLM : completeJSON(prompt)
+ME->>LLM : completeJSON(prompt, {task : 'extraction'})
+Note over LLM : Task-based model routing
+LLM->>LLM : getModelForTask('extraction')
+LLM->>LLM : Select 'chat' model
 LLM-->>ME : JSON extraction
 ME-->>GC : ExtractedMemory[]
 loop For each memory
@@ -143,13 +192,12 @@ MR-->>GC : retrieved memories
 ```
 
 **Diagram sources**
-- [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L26-L103)
-- [memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L52-L97)
-- [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L37-L58)
-- [memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts#L25-L41)
+- [generateChapter.ts:26-103](file://packages/engine/src/pipeline/generateChapter.ts#L26-L103)
+- [memoryExtractor.ts:62-66](file://packages/engine/src/agents/memoryExtractor.ts#L62-L66)
+- [client.ts:113-125](file://packages/engine/src/llm/client.ts#L113-L125)
 
-The architecture demonstrates a clean separation of concerns:
-- **Extraction Layer**: Converts narrative content to structured memories
+The architecture demonstrates a clean separation of concerns with enhanced task-specific model selection:
+- **Extraction Layer**: Converts narrative content to structured memories using optimized chat models
 - **Storage Layer**: Provides persistent, searchable memory with embeddings
 - **Retrieval Layer**: Enables contextual memory access for writing agents
 - **Integration Layer**: Seamlessly connects all components in the generation pipeline
@@ -170,6 +218,7 @@ class MemoryExtractor {
 class LLMClient {
 +complete(prompt, config) Promise~string~
 +completeJSON(prompt, config) Promise~T~
++getModelForTask(task) ModelConfig
 -provider LLMProvider
 -defaultConfig LLMConfig
 }
@@ -177,19 +226,31 @@ class ExtractedMemory {
 +content string
 +category NarrativeMemory~category~
 }
-MemoryExtractor --> LLMClient : uses
+class TaskType {
+<<enumeration>>
+generation
+validation
+summarization
+extraction
+planning
+default
+}
+MemoryExtractor --> LLMClient : uses with task : 'extraction'
 MemoryExtractor --> ExtractedMemory : produces
+LLMClient --> TaskType : routes by task
 ```
 
 **Diagram sources**
-- [memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L52-L97)
-- [client.ts](file://packages/engine/src/llm/client.ts#L31-L96)
+- [memoryExtractor.ts:52-99](file://packages/engine/src/agents/memoryExtractor.ts#L52-L99)
+- [client.ts:149-180](file://packages/engine/src/llm/client.ts#L149-L180)
+- [index.ts:107-113](file://packages/engine/src/types/index.ts#L107-L113)
 
-The MemoryExtractor employs sophisticated prompt engineering techniques:
+The MemoryExtractor employs sophisticated prompt engineering techniques with enhanced task-specific model selection:
 - **Context Injection**: Story Bible details (title, genre, setting) are embedded into prompts
 - **Task Specification**: Clear extraction guidelines with specific categories and quantities
 - **Output Control**: JSON-only responses with temperature optimization for consistency
 - **Content Management**: Intelligent truncation to prevent token limit issues
+- **Model Optimization**: Automatic selection of chat models optimized for structured extraction
 
 ### VectorStore Memory Management
 
@@ -209,8 +270,8 @@ Error --> Complete
 ```
 
 **Diagram sources**
-- [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L37-L58)
-- [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L90-L133)
+- [vectorStore.ts:125-148](file://packages/engine/src/memory/vectorStore.ts#L125-L148)
+- [vectorStore.ts:90-133](file://packages/engine/src/memory/vectorStore.ts#L90-L133)
 
 The VectorStore implements robust error handling and fallback mechanisms:
 - **API Resilience**: Automatic fallback to mock embeddings when OpenAI API is unavailable
@@ -235,8 +296,8 @@ Category --> |No| Contextual
 ```
 
 **Diagram sources**
-- [memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts#L25-L41)
-- [memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts#L60-L73)
+- [memoryRetriever.ts:25-41](file://packages/engine/src/memory/memoryRetriever.ts#L25-L41)
+- [memoryRetriever.ts:60-73](file://packages/engine/src/memory/memoryRetriever.ts#L60-L73)
 
 The retrieval system prioritizes relevance and context:
 - **Temporal Filtering**: Prevents access to future chapter memories
@@ -245,9 +306,53 @@ The retrieval system prioritizes relevance and context:
 - **Prompt Formatting**: Converts retrieved memories into writer-friendly format
 
 **Section sources**
-- [memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L14-L50)
-- [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L30-L35)
-- [memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts#L104-L115)
+- [memoryExtractor.ts:14-50](file://packages/engine/src/agents/memoryExtractor.ts#L14-L50)
+- [client.ts:39-47](file://packages/engine/src/llm/client.ts#L39-L47)
+- [vectorStore.ts:30-35](file://packages/engine/src/memory/vectorStore.ts#L30-L35)
+- [memoryRetriever.ts:104-115](file://packages/engine/src/memory/memoryRetriever.ts#L104-L115)
+
+## Task-Based Model Selection
+
+The Memory Extractor now benefits from a sophisticated task-based model selection system that ensures optimal model usage for different operations:
+
+### Task Type Configuration
+The system defines six distinct task types, each mapped to specific model purposes:
+
+```mermaid
+graph LR
+subgraph "Task Types"
+Generation["generation"] --> Reasoning["reasoning model"]
+Planning["planning"] --> Reasoning
+Validation["validation"] --> Chat["chat model"]
+Summarization["summarization"] --> Fast["fast model"]
+Extraction["extraction"] --> Chat
+Default["default"] --> Chat
+end
+```
+
+**Diagram sources**
+- [client.ts:39-47](file://packages/engine/src/llm/client.ts#L39-L47)
+
+### Model Purpose Mapping
+Each task type is associated with a specific model purpose:
+- **generation**: Complex creative writing requiring reasoning capabilities
+- **planning**: Scene/chapter planning with logical reasoning
+- **validation**: Canon validation using chat models
+- **summarization**: Fast text processing for chapter summaries
+- **extraction**: Structured data extraction using optimized chat models
+- **default**: Fallback to chat models
+
+### Implementation Details
+The task-based selection occurs in the `getModelForTask` method:
+1. **Task Resolution**: Determines the appropriate model purpose based on the task type
+2. **Model Matching**: Searches through configured models to find one with matching purpose
+3. **Fallback Handling**: Falls back to default model if no matching purpose is found
+4. **Provider Selection**: Returns the corresponding LLM provider for the selected model
+
+**Section sources**
+- [client.ts:39-47](file://packages/engine/src/llm/client.ts#L39-L47)
+- [client.ts:113-125](file://packages/engine/src/llm/client.ts#L113-L125)
+- [index.ts:107-113](file://packages/engine/src/types/index.ts#L107-L113)
 
 ## Dependency Analysis
 
@@ -269,8 +374,10 @@ VS[VectorStore]
 MR[MemoryRetriever]
 LLM[LLMClient]
 GEN[GenerateChapter]
+TT[TaskType]
 end
 ME --> LLM
+ME --> TT
 VS --> HNSWLIB
 VS --> OPENAI
 MR --> VS
@@ -279,31 +386,42 @@ GEN --> VS
 GEN --> MR
 LLM --> OPENAI
 LLM --> ZOD
+LLM --> TT
 ```
 
 **Diagram sources**
-- [package.json](file://packages/engine/package.json#L11-L16)
-- [memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L1-L3)
-- [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L1-L2)
+- [package.json:11-16](file://packages/engine/package.json#L11-L16)
+- [memoryExtractor.ts:1-3](file://packages/engine/src/agents/memoryExtractor.ts#L1-L3)
+- [client.ts:1-2](file://packages/engine/src/llm/client.ts#L1-L2)
+- [index.ts:107-113](file://packages/engine/src/types/index.ts#L107-L113)
 
-The dependency structure reveals a modular architecture with clear boundaries:
+The dependency structure reveals a modular architecture with clear boundaries and enhanced task-based routing:
 - **Storage Dependencies**: HNSW library for efficient vector indexing
 - **LLM Dependencies**: OpenAI SDK for embeddings and completion services
 - **Validation Dependencies**: Zod for runtime type safety
+- **Task Dependencies**: TaskType enumeration for model routing
 - **Internal Coupling**: Minimal cross-module dependencies for maintainability
 
 **Section sources**
-- [package.json](file://packages/engine/package.json#L1-L22)
-- [index.ts](file://packages/engine/src/index.ts#L1-L43)
+- [package.json:1-22](file://packages/engine/package.json#L1-L22)
+- [index.ts:1-43](file://packages/engine/src/index.ts#L1-L43)
 
 ## Performance Considerations
 
 ### Memory Extraction Efficiency
-The MemoryExtractor optimizes for both quality and performance:
+The MemoryExtractor optimizes for both quality and performance with enhanced model selection:
 - **Content Truncation**: Limits chapter content to 8000 characters to prevent token overflow
 - **Temperature Control**: Maintains temperature 0.3 for consistent, factual extraction
 - **Batch Processing**: Supports summary-based extraction for improved throughput
 - **JSON Validation**: Built-in response parsing reduces downstream errors
+- **Task-Specific Models**: Uses optimized chat models for structured extraction operations
+
+### Enhanced Model Selection Performance
+The task-based model selection system provides several performance benefits:
+- **Optimized Model Choice**: Ensures extraction operations use models specifically tuned for structured data
+- **Reduced Token Usage**: Chat models optimized for extraction typically use fewer tokens than general-purpose models
+- **Faster Response Times**: Purpose-specific models respond more efficiently to extraction prompts
+- **Improved Accuracy**: Specialized models produce more accurate structured extraction results
 
 ### Vector Storage Optimization
 The VectorStore implements several performance enhancements:
@@ -327,6 +445,7 @@ Memory retrieval achieves optimal performance through:
 - **Symptom**: JSON parsing errors during extraction
 - **Cause**: LLM response format inconsistencies
 - **Solution**: Verify prompt template integrity and adjust temperature settings
+- **Updated**: Ensure task: 'extraction' parameter is properly passed to maintain model optimization
 
 **Vector Store Initialization Errors**
 - **Symptom**: "VectorStore not initialized" errors
@@ -343,15 +462,23 @@ Memory retrieval achieves optimal performance through:
 - **Cause**: Large index sizes or insufficient memory allocation
 - **Solution**: Optimize HNSW parameters and consider index rebuilding
 
+**Task-Based Model Selection Issues**
+- **Symptom**: Extraction operations not using optimized models
+- **Cause**: Missing or incorrect task parameter configuration
+- **Solution**: Verify that `task: 'extraction'` is included in LLM configuration for memory extraction operations
+
 **Section sources**
-- [memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts#L62-L68)
-- [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L38-L40)
-- [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts#L102-L113)
+- [memoryExtractor.ts:62-68](file://packages/engine/src/agents/memoryExtractor.ts#L62-L68)
+- [client.ts:113-125](file://packages/engine/src/llm/client.ts#L113-L125)
+- [vectorStore.ts:38-40](file://packages/engine/src/memory/vectorStore.ts#L38-L40)
+- [vectorStore.ts:102-113](file://packages/engine/src/memory/vectorStore.ts#L102-L113)
 
 ## Conclusion
 
 The Memory Extractor Agent represents a sophisticated solution for automated narrative knowledge management. Its integration with the broader Narrative Operating System creates a self-improving storytelling engine capable of maintaining consistency, tracking development, and preserving creative insights across extended narratives.
 
-The agent's strength lies in its balanced approach to creativity and consistency, leveraging structured extraction techniques while maintaining the flexibility needed for artistic expression. The combination of semantic memory storage, intelligent retrieval, and seamless pipeline integration establishes a foundation for scalable, high-quality automated storytelling.
+**Enhanced** The recent addition of task-specific model selection significantly improves the agent's performance and accuracy by ensuring that memory extraction operations use chat models optimized for structured data extraction. This enhancement maintains the agent's balanced approach to creativity and consistency while leveraging specialized models for improved extraction quality.
 
-Future enhancements could include advanced memory reasoning, cross-story knowledge transfer, and adaptive extraction strategies based on narrative complexity and genre requirements.
+The agent's strength lies in its intelligent model selection, sophisticated prompt engineering, and seamless integration with the broader narrative ecosystem. The combination of semantic memory storage, intelligent retrieval, and task-optimized extraction establishes a foundation for scalable, high-quality automated storytelling.
+
+Future enhancements could include advanced memory reasoning, cross-story knowledge transfer, adaptive extraction strategies based on narrative complexity and genre requirements, and dynamic model selection based on extraction quality metrics.

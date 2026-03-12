@@ -128,15 +128,28 @@ export class VectorStore {
       return this.generateMockEmbedding(text);
     }
 
-    const llm = getLLM();
-    const openai = (llm as any).provider;
+    // For embeddings, we need an OpenAI-compatible client
+    // Try to get API key from environment
+    const apiKey = process.env.OPENAI_API_KEY || process.env.DEEPSEEK_API_KEY;
+    if (!apiKey) {
+      console.log('  [VectorStore] No API key found, using mock embeddings');
+      return this.generateMockEmbedding(text);
+    }
+
+    // Determine base URL - use DeepSeek if that's what we have a key for
+    const isDeepSeek = !process.env.OPENAI_API_KEY && !!process.env.DEEPSEEK_API_KEY;
+    const baseURL = isDeepSeek ? 'https://api.deepseek.com' : undefined;
     
-    // Access the underlying OpenAI client for embeddings
-    const client = (openai as any).client;
+    // Create a temporary OpenAI client for embeddings
+    const { default: OpenAI } = await import('openai');
+    const client = new OpenAI({
+      apiKey,
+      baseURL,
+    });
     
     try {
       const response = await client.embeddings.create({
-        model: 'text-embedding-3-small',
+        model: isDeepSeek ? 'deepseek-chat' : 'text-embedding-3-small',
         input: text,
       });
       return response.data[0].embedding;

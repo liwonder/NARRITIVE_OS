@@ -21,8 +21,8 @@ importers:
         specifier: ^8.3.0
         version: 8.3.0(@types/node@20.19.37)
       '@narrative-os/engine':
-        specifier: 0.1.0
-        version: 0.1.0
+        specifier: 0.1.3
+        version: 0.1.3
       commander:
         specifier: ^12.0.0
         version: 12.1.0
@@ -337,8 +337,8 @@ packages:
   '@jridgewell/sourcemap-codec@1.5.5':
     resolution: {integrity: sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og==}
 
-  '@narrative-os/engine@0.1.0':
-    resolution: {integrity: sha512-ETLDbyP150NcrNgTnK8S18VzEH8AQ2rYWvXKB7JKTiG6S9pL0MWjocPQcT8d8uEAdU5ZVAMCXeHhz9CjecpZrQ==}
+  '@narrative-os/engine@0.1.3':
+    resolution: {integrity: sha512-1JMGe1+voTSIXgFPgA5A6Q8w/M1AHc/68w0AW/Q7uBG69avVWDdqBEfs6X7y9LKhKGheXNme7T7wP1yvMPwUpQ==}
     engines: {node: '>=20.0.0'}
 
   '@rollup/rollup-android-arm-eabi@4.59.0':
@@ -1216,7 +1216,7 @@ snapshots:
 
   '@jridgewell/sourcemap-codec@1.5.5': {}
 
-  '@narrative-os/engine@0.1.0':
+  '@narrative-os/engine@0.1.3':
     dependencies:
       hnswlib-node: 3.0.0
       openai: 4.104.0(zod@3.25.76)

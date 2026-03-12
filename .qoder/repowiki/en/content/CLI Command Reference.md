@@ -26,6 +26,7 @@
 - [packages/engine/src/story/structuredState.ts](file://packages/engine/src/story/structuredState.ts)
 - [packages/engine/src/agents/stateUpdater.ts](file://packages/engine/src/agents/stateUpdater.ts)
 - [packages/engine/src/pipeline/generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts)
+- [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts)
 - [apps/cli/package.json](file://apps/cli/package.json)
 - [package.json](file://package.json)
 - [PROGRESS.md](file://PROGRESS.md)
@@ -33,11 +34,11 @@
 
 ## Update Summary
 **Changes Made**
-- Updated the init command section to reflect the new interactive prompts system
-- Enhanced the init command documentation to include all interactive fields (title, genre, theme, setting, tone, premise, chapters)
-- Added comprehensive examples showing both interactive and parameter-driven usage
-- Updated troubleshooting section to cover interactive prompt scenarios
-- Enhanced practical examples to demonstrate the new user-friendly workflow
+- Enhanced the config command section to reflect the new multi-model configuration system with reasoning and chat model support
+- Added comprehensive documentation for the new multi-model setup with backward compatibility
+- Updated configuration display to show model purpose indicators (reasoning, chat, fast)
+- Enhanced troubleshooting section to cover multi-model configuration scenarios
+- Added practical examples demonstrating both single-model and multi-model workflows
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -89,7 +90,6 @@ CMD_BIBLE --> STORE
 CMD_STATE --> STORE
 CMD_MEMORIES --> STORE
 CMD_VALIDATE --> STORE
-CMD_REGENERATE --> STORE
 CMD_INIT --> ENGINE_TYPES["Engine Types<br/>packages/engine/src/types/index.ts"]
 CMD_GENERATE --> ENGINE_TYPES
 CMD_CONTINUE --> ENGINE_TYPES
@@ -101,11 +101,12 @@ CMD_GENERATE --> STORY_STATE["Story State<br/>packages/engine/src/story/state.ts
 CMD_CONTINUE --> STORY_STATE
 CMD_STATE --> STRUCTURED_STATE["Structured State<br/>packages/engine/src/story/structuredState.ts"]
 CMD_STATE --> STATE_UPDATER["State Updater<br/>packages/engine/src/agents/stateUpdater.ts"]
+CMD_CONFIG --> ENGINE_CLIENT["LLM Client<br/>packages/engine/src/llm/client.ts"]
 ```
 
 **Diagram sources**
 - [apps/cli/src/index.ts:1-154](file://apps/cli/src/index.ts#L1-L154)
-- [apps/cli/src/commands/config.ts:1-104](file://apps/cli/src/commands/config.ts#L1-L104)
+- [apps/cli/src/commands/config.ts:1-215](file://apps/cli/src/commands/config.ts#L1-L215)
 - [apps/cli/src/commands/init.ts:1-90](file://apps/cli/src/commands/init.ts#L1-L90)
 - [apps/cli/src/commands/generate.ts:1-70](file://apps/cli/src/commands/generate.ts#L1-L70)
 - [apps/cli/src/commands/status.ts:1-55](file://apps/cli/src/commands/status.ts#L1-L55)
@@ -121,12 +122,13 @@ CMD_STATE --> STATE_UPDATER["State Updater<br/>packages/engine/src/agents/stateU
 - [apps/cli/src/commands/validate.ts:1-107](file://apps/cli/src/commands/validate.ts#L1-L107)
 - [apps/cli/src/commands/regenerate.ts:1-68](file://apps/cli/src/commands/regenerate.ts#L1-L68)
 - [apps/cli/src/commands/hint.ts:1-73](file://apps/cli/src/commands/hint.ts#L1-L73)
-- [apps/cli/src/config/store.ts:1-151](file://apps/cli/src/config/store.ts#L1-L151)
-- [packages/engine/src/types/index.ts:1-90](file://packages/engine/src/types/index.ts#L1-L90)
+- [apps/cli/src/config/store.ts:1-195](file://apps/cli/src/config/store.ts#L1-L195)
+- [packages/engine/src/types/index.ts:1-149](file://packages/engine/src/types/index.ts#L1-L149)
 - [packages/engine/src/story/bible.ts:1-73](file://packages/engine/src/story/bible.ts#L1-L73)
 - [packages/engine/src/story/state.ts:1-30](file://packages/engine/src/story/state.ts#L1-L30)
 - [packages/engine/src/story/structuredState.ts:1-235](file://packages/engine/src/story/structuredState.ts#L1-L235)
 - [packages/engine/src/agents/stateUpdater.ts:1-193](file://packages/engine/src/agents/stateUpdater.ts#L1-L193)
+- [packages/engine/src/llm/client.ts:1-200](file://packages/engine/src/llm/client.ts#L1-L200)
 
 **Section sources**
 - [apps/cli/src/index.ts:1-154](file://apps/cli/src/index.ts#L1-L154)
@@ -140,6 +142,7 @@ CMD_STATE --> STATE_UPDATER["State Updater<br/>packages/engine/src/agents/stateU
 - **New**: Structured state persistence system automatically initializes and manages character and plot thread states with comprehensive narrative tracking.
 - **New**: Interactive hints system provides contextual guidance and quick tips based on story progress and user context.
 - **New**: Enhanced init command with interactive prompts for story creation, replacing the previous static parameter approach.
+- **New**: Multi-model configuration system supporting separate reasoning and chat models with backward compatibility for single-model setups.
 
 Key runtime behaviors:
 - Interactive configuration via inquirer prompts.
@@ -149,15 +152,17 @@ Key runtime behaviors:
 - Memory systems support vector-based narrative recall and semantic search.
 - Exit codes: non-zero on errors (e.g., missing story ID, invalid chapter numbers).
 - **New**: Contextual help system provides intelligent suggestions based on story state and user actions.
+- **New**: Multi-model LLM client automatically selects appropriate models based on task type (reasoning for generation/planning, chat for validation/summarization).
 
 **Section sources**
 - [apps/cli/src/index.ts:11-53](file://apps/cli/src/index.ts#L11-L53)
-- [apps/cli/src/commands/config.ts:38-104](file://apps/cli/src/commands/config.ts#L38-L104)
+- [apps/cli/src/commands/config.ts:38-182](file://apps/cli/src/commands/config.ts#L38-L182)
 - [apps/cli/src/config/store.ts:15-49](file://apps/cli/src/config/store.ts#L15-L49)
-- [packages/engine/src/types/index.ts:1-90](file://packages/engine/src/types/index.ts#L1-L90)
+- [packages/engine/src/types/index.ts:1-149](file://packages/engine/src/types/index.ts#L1-L149)
 - [packages/engine/src/story/structuredState.ts:23-85](file://packages/engine/src/story/structuredState.ts#L23-L85)
 - [apps/cli/src/commands/hint.ts:3-47](file://apps/cli/src/commands/hint.ts#L3-L47)
 - [apps/cli/src/commands/init.ts:17-64](file://apps/cli/src/commands/init.ts#L17-L64)
+- [packages/engine/src/llm/client.ts:39-47](file://packages/engine/src/llm/client.ts#L39-L47)
 
 ## Architecture Overview
 The CLI orchestrates story lifecycle operations backed by the engine with enhanced structured state management and comprehensive story management capabilities. Configuration is applied at startup and injected into environment variables for downstream LLM clients, while structured state provides detailed narrative tracking and memory systems enable sophisticated narrative recall.
@@ -170,6 +175,7 @@ participant Init as "init.ts"
 participant Config as "config.ts"
 participant Store as "store.ts"
 participant Engine as "Engine (types/state/bible/structuredState)"
+participant LLMClient as "LLM Client"
 User->>CLI : "nos config"
 CLI->>Config : "configCommand()"
 Config->>Config : "loadConfig()/select()/password()"
@@ -192,6 +198,10 @@ Init-->>User : "Story created with ID"
 User->>CLI : "nos hint [story-id]"
 CLI->>CLI : "showHint() with context"
 CLI-->>User : "Contextual suggestions"
+User->>CLI : "nos generate <story-id>"
+CLI->>LLMClient : "complete(prompt, { task : 'generation' })"
+LLMClient->>LLMClient : "select reasoning model for generation"
+LLMClient-->>User : "Generated chapter"
 ```
 
 **Diagram sources**
@@ -204,13 +214,15 @@ CLI-->>User : "Contextual suggestions"
 - [apps/cli/src/config/store.ts:139-151](file://apps/cli/src/config/store.ts#L139-L151)
 - [apps/cli/src/commands/hint.ts:3-47](file://apps/cli/src/commands/hint.ts#L3-L47)
 - [apps/cli/src/commands/init.ts:17-79](file://apps/cli/src/commands/init.ts#L17-L79)
+- [packages/engine/src/llm/client.ts:39-47](file://packages/engine/src/llm/client.ts#L39-L47)
+- [packages/engine/src/llm/client.ts:113-125](file://packages/engine/src/llm/client.ts#L113-L125)
 
 ## Detailed Component Analysis
 
 ### Command: nos config
 Purpose
-- Interactively configure the LLM provider, model, and API key. Persists configuration to ~/.narrative-os/config.json and applies environment variables for the LLM client.
-- **New**: Can display current configuration without interactive setup using the `--show` flag.
+- Interactively configure the LLM provider, model(s), and API key(s). Supports both single-model and multi-model configurations with backward compatibility. Persists configuration to ~/.narrative-os/config.json and applies environment variables for the LLM client.
+- **New**: Can display current configuration without interactive setup using the `--show` flag with enhanced model purpose indicators.
 
 Syntax
 - nos config
@@ -222,13 +234,17 @@ Options
 Behavior
 - **Interactive mode** (default): Prompts for provider selection (OpenAI or DeepSeek), model selection based on provider, and API key (masked), then writes configuration.
 - **Display mode** (`--show`): Shows current configuration without prompting for interactive setup.
+- **New**: Multi-model configuration: User can choose to configure separate reasoning and chat models for different tasks.
+- **New**: Backward compatibility: Automatically converts legacy single-model configurations to multi-model format.
 - Writes configuration and prints a confirmation summary in interactive mode.
 
 Configuration file location
 - ~/.narrative-os/config.json
 
 Environment variables set
-- LLM_PROVIDER, LLM_MODEL, OPENAI_API_KEY (when provider is OpenAI), DEEPSEEK_API_KEY (when provider is DeepSeek)
+- **New**: LLM_MODELS_CONFIG: JSON-encoded multi-model configuration for the LLM client
+- **Legacy**: LLM_PROVIDER, LLM_MODEL, OPENAI_API_KEY (when provider is OpenAI), DEEPSEEK_API_KEY (when provider is DeepSeek)
+- **New**: Individual API keys are also set for backward compatibility
 
 Exit codes
 - 0 on success; non-zero on IO or prompt failures.
@@ -236,18 +252,23 @@ Exit codes
 Common usage
 - Initial setup after installing the CLI.
 - **New**: Check current configuration without changing it using `nos config --show`.
+- **New**: Configure multi-model setup for advanced reasoning and chat separation.
 
 Advanced usage
 - Re-run to change provider or model without manual edits.
 - Combine with CI setup by exporting environment variables prior to invoking nos generate/continue.
 - **New**: Use `nos config --show` in scripts to verify configuration before running story generation commands.
+- **New**: Multi-model configurations automatically integrate with the LLM client's task-based model selection.
 
-**Updated** Added support for non-interactive configuration display via the `--show` flag
+**Updated** Enhanced with multi-model configuration support and improved configuration display
 
 **Section sources**
 - [apps/cli/src/index.ts:32-39](file://apps/cli/src/index.ts#L32-L39)
-- [apps/cli/src/commands/config.ts:38-104](file://apps/cli/src/commands/config.ts#L38-L104)
+- [apps/cli/src/commands/config.ts:38-182](file://apps/cli/src/commands/config.ts#L38-L182)
+- [apps/cli/src/commands/config.ts:55-90](file://apps/cli/src/commands/config.ts#L55-L90)
+- [apps/cli/src/commands/config.ts:100-181](file://apps/cli/src/commands/config.ts#L100-L181)
 - [apps/cli/package.json:12-16](file://apps/cli/package.json#L12-L16)
+- [packages/engine/src/llm/client.ts:58-78](file://packages/engine/src/llm/client.ts#L58-L78)
 
 ### Command: nos init
 Purpose
@@ -314,6 +335,7 @@ Behavior
 - **Enhanced**: Automatically initializes structured state if it doesn't exist.
 - Builds a GenerationContext with target word count and invokes the engine pipeline.
 - **New**: Integrates structured state updates through the StateUpdater agent.
+- **New**: Uses multi-model LLM client with task-based model selection (reasoning model for generation).
 - Saves updated state and chapters; prints chapter details and progress.
 - On failure, logs an error and exits with non-zero code.
 
@@ -332,6 +354,7 @@ Automation tip
 - [apps/cli/src/config/store.ts:28-49](file://apps/cli/src/config/store.ts#L28-L49)
 - [packages/engine/src/types/index.ts:60-65](file://packages/engine/src/types/index.ts#L60-L65)
 - [packages/engine/src/agents/stateUpdater.ts:85-193](file://packages/engine/src/agents/stateUpdater.ts#L85-L193)
+- [packages/engine/src/llm/client.ts:113-125](file://packages/engine/src/llm/client.ts#L113-L125)
 
 ### Command: nos status [story-id]
 Purpose
@@ -368,6 +391,7 @@ Behavior
 - Loads story data and verifies it is not complete.
 - **Enhanced**: Automatically initializes structured state if it doesn't exist.
 - Iteratively generates chapters, integrating structured state updates through the StateUpdater agent.
+- **New**: Uses multi-model LLM client with task-based model selection for optimal performance.
 - Saving state and printing per-chapter feedback.
 - On any failure, logs the error and exits with non-zero code.
 
@@ -385,6 +409,7 @@ Batch operations
 - [apps/cli/src/commands/continue.ts:4-63](file://apps/cli/src/commands/continue.ts#L4-L63)
 - [apps/cli/src/config/store.ts:28-49](file://apps/cli/src/config/store.ts#L28-L49)
 - [packages/engine/src/agents/stateUpdater.ts:85-193](file://packages/engine/src/agents/stateUpdater.ts#L85-L193)
+- [packages/engine/src/llm/client.ts:113-125](file://packages/engine/src/llm/client.ts#L113-L125)
 
 ### Command: nos list
 Purpose
@@ -622,6 +647,7 @@ Behavior
 - Loads the target story and validates chapter existence.
 - Initializes or loads vector store for memory consistency.
 - Creates generation context based on state before the target chapter.
+- **New**: Uses multi-model LLM client with reasoning model for regeneration.
 - Generates replacement chapter with canonical validation.
 - Replaces the old chapter and updates story data.
 - Displays regeneration results including new title, word count, and any violations.
@@ -635,6 +661,7 @@ Example
 **Section sources**
 - [apps/cli/src/index.ts:93-100](file://apps/cli/src/index.ts#L93-L100)
 - [apps/cli/src/commands/regenerate.ts:1-68](file://apps/cli/src/commands/regenerate.ts#L1-L68)
+- [packages/engine/src/llm/client.ts:113-125](file://packages/engine/src/llm/client.ts#L113-L125)
 
 ### Command: nos hint [story-id]
 Purpose
@@ -709,12 +736,13 @@ CMD_GENERATE --> STORY_STATE["engine/story/state.ts"]
 CMD_CONTINUE --> STORY_STATE
 CMD_STATE --> STRUCTURED_STATE["engine/story/structuredState.ts"]
 CMD_STATE --> STATE_UPDATER["engine/agents/stateUpdater.ts"]
+CMD_CONFIG --> ENGINE_CLIENT["engine/llm/client.ts"]
 STORE --> GENERATE_PIPELINE["engine/pipeline/generateChapter.ts"]
 ```
 
 **Diagram sources**
 - [apps/cli/src/index.ts:1-154](file://apps/cli/src/index.ts#L1-L154)
-- [apps/cli/src/commands/config.ts:1-104](file://apps/cli/src/commands/config.ts#L1-L104)
+- [apps/cli/src/commands/config.ts:1-215](file://apps/cli/src/commands/config.ts#L1-L215)
 - [apps/cli/src/commands/init.ts:1-90](file://apps/cli/src/commands/init.ts#L1-L90)
 - [apps/cli/src/commands/generate.ts:1-70](file://apps/cli/src/commands/generate.ts#L1-L70)
 - [apps/cli/src/commands/status.ts:1-55](file://apps/cli/src/commands/status.ts#L1-L55)
@@ -730,19 +758,20 @@ STORE --> GENERATE_PIPELINE["engine/pipeline/generateChapter.ts"]
 - [apps/cli/src/commands/validate.ts:1-107](file://apps/cli/src/commands/validate.ts#L1-L107)
 - [apps/cli/src/commands/regenerate.ts:1-68](file://apps/cli/src/commands/regenerate.ts#L1-L68)
 - [apps/cli/src/commands/hint.ts:1-73](file://apps/cli/src/commands/hint.ts#L1-L73)
-- [apps/cli/src/config/store.ts:1-151](file://apps/cli/src/config/store.ts#L1-L151)
-- [packages/engine/src/types/index.ts:1-90](file://packages/engine/src/types/index.ts#L1-L90)
+- [apps/cli/src/config/store.ts:1-195](file://apps/cli/src/config/store.ts#L1-L195)
+- [packages/engine/src/types/index.ts:1-149](file://packages/engine/src/types/index.ts#L1-L149)
 - [packages/engine/src/story/bible.ts:1-73](file://packages/engine/src/story/bible.ts#L1-L73)
 - [packages/engine/src/story/state.ts:1-30](file://packages/engine/src/story/state.ts#L1-L30)
 - [packages/engine/src/story/structuredState.ts:1-235](file://packages/engine/src/story/structuredState.ts#L1-L235)
 - [packages/engine/src/agents/stateUpdater.ts:1-193](file://packages/engine/src/agents/stateUpdater.ts#L1-L193)
 - [packages/engine/src/pipeline/generateChapter.ts:1-108](file://packages/engine/src/pipeline/generateChapter.ts#L1-L108)
+- [packages/engine/src/llm/client.ts:1-200](file://packages/engine/src/llm/client.ts#L1-L200)
 
 **Section sources**
 - [apps/cli/src/index.ts:1-154](file://apps/cli/src/index.ts#L1-L154)
-- [apps/cli/src/commands/config.ts:1-104](file://apps/cli/src/commands/config.ts#L1-L104)
-- [apps/cli/src/config/store.ts:1-151](file://apps/cli/src/config/store.ts#L1-L151)
-- [packages/engine/src/types/index.ts:1-90](file://packages/engine/src/types/index.ts#L1-L90)
+- [apps/cli/src/commands/config.ts:1-215](file://apps/cli/src/commands/config.ts#L1-L215)
+- [apps/cli/src/config/store.ts:1-195](file://apps/cli/src/config/store.ts#L1-L195)
+- [packages/engine/src/types/index.ts:1-149](file://packages/engine/src/types/index.ts#L1-L149)
 
 ## Performance Considerations
 - Each nos generate invocation performs disk I/O to load/save story data; batching via nos continue reduces overhead.
@@ -750,6 +779,8 @@ STORE --> GENERATE_PIPELINE["engine/pipeline/generateChapter.ts"]
 - **New**: Interactive prompts via Inquirer add minimal runtime overhead but greatly improve user experience.
 - **New**: Memory operations (vector store loading/searching) have minimal performance impact but can be optimized by caching frequently accessed data.
 - **New**: Validation operations scale with chapter count and constraint complexity; consider running selectively during development.
+- **New**: Multi-model configuration adds negligible overhead as models are cached in memory.
+- **New**: Task-based model selection ensures optimal performance by using appropriate models for each operation type.
 - Target word count is fixed for generation; adjust story length via --chapters during init to control total work.
 - Network latency dominates LLM calls; consider rate limits and provider quotas.
 - For large-scale automation, cache configuration and reuse environment variables to avoid repeated file reads.
@@ -757,6 +788,7 @@ STORE --> GENERATE_PIPELINE["engine/pipeline/generateChapter.ts"]
 - **New**: Contextual hints system provides immediate feedback without heavy computation.
 - **New**: Configuration display operation is extremely fast as it only reads from local file system without any interactive prompts.
 - **New**: Interactive prompts are asynchronous and provide immediate feedback, making the CLI feel responsive even with user input.
+- **New**: Multi-model LLM client caches providers and models for efficient access during story generation.
 
 ## Troubleshooting Guide
 Common issues and resolutions
@@ -766,12 +798,18 @@ Common issues and resolutions
 - Configuration missing
   - Cause: No ~/.narrative-os/config.json.
   - Resolution: Run nos config to set provider, model, and API key.
+- **New**: Multi-model configuration issues
+  - Cause: Corrupted or incomplete multi-model configuration.
+  - Resolution: Run `nos config` to reconfigure; use `nos config --show` to verify setup; check that both reasoning and chat models are properly configured.
 - **New**: Interactive prompt failures
   - Cause: Terminal not supporting interactive input or interrupted prompts.
   - Resolution: Use parameter-driven mode (e.g., `nos init --title "Story" --genre "Fantasy"`) or fix terminal environment.
 - **New**: Configuration display issues
   - Cause: No configuration file exists or is corrupted.
   - Resolution: Run `nos config --show` to see current configuration status; if empty, run `nos config` to set up.
+- **New**: Model purpose confusion
+  - Cause: Unclear which model is used for which task.
+  - Resolution: Use `nos config --show` to see model purposes; reasoning models are used for generation/planning, chat models for validation/summarization.
 - Generation failures
   - Cause: LLM API errors, network issues, or invalid context.
   - Resolution: Verify API credentials; retry; inspect recent summaries via nos status; reduce concurrency.
@@ -812,7 +850,7 @@ Exit codes summary
 - [apps/cli/src/commands/export.ts:7-10](file://apps/cli/src/commands/export.ts#L7-L10)
 
 ## Conclusion
-The nos CLI provides a comprehensive and powerful workflow for creating, generating, managing, and validating stories powered by the Narrative Operating System engine. With the addition of 12 new commands, enhanced structured state persistence, interactive hints system, sophisticated memory management, and the new interactive init command with dynamic user prompts, it now offers advanced narrative tracking capabilities, comprehensive story management, intelligent assistance, and an intuitive user experience while maintaining both beginner-friendly workflows and advanced automation scenarios.
+The nos CLI provides a comprehensive and powerful workflow for creating, generating, managing, and validating stories powered by the Narrative Operating System engine. With the addition of 12 new commands, enhanced structured state persistence, interactive hints system, sophisticated memory management, the new interactive init command with dynamic user prompts, and the revolutionary multi-model configuration system with separate reasoning and chat models, it now offers advanced narrative tracking capabilities, comprehensive story management, intelligent assistance, multi-model performance optimization, and an intuitive user experience while maintaining both beginner-friendly workflows and advanced automation scenarios.
 
 ## Appendices
 
@@ -901,10 +939,10 @@ class PlotThreadState {
 +string summary
 }
 class GenerationContext {
-+StoryBible bible
-+StoryState state
-+number chapterNumber
-+number targetWordCount
++bible StoryBible
++state StoryState
++chapterNumber number
++targetWordCount number
 }
 class VectorMemory {
 +string id
@@ -922,6 +960,26 @@ class ConstraintGraph {
 +load(data)
 +serialize()
 }
+class ModelConfig {
++string name
++string provider
++string apiKey
++string baseURL
++string model
++'reasoning'|'chat'|'fast' purpose
+}
+class MultiModelConfig {
++ModelConfig[] models
++string defaultModel
+}
+class LLMClient {
++Map~string, ModelConfig~ models
++Map~string, LLMProvider~ providers
++string defaultModelName
++complete(prompt, config)
++completeJSON(prompt, config)
++getAvailableModels()
+}
 StoryBible "1" o-- "many" CharacterProfile
 StoryBible "1" o-- "many" PlotThread
 StoryState "1" o-- "many" ChapterSummary
@@ -931,13 +989,17 @@ GenerationContext --> StoryBible
 GenerationContext --> StoryState
 VectorMemory --> StoryBible
 ConstraintGraph --> StoryBible
+LLMClient --> ModelConfig
+MultiModelConfig --> ModelConfig
 ```
 
 **Diagram sources**
-- [packages/engine/src/types/index.ts:1-90](file://packages/engine/src/types/index.ts#L1-L90)
+- [packages/engine/src/types/index.ts:1-149](file://packages/engine/src/types/index.ts#L1-L149)
 - [packages/engine/src/story/structuredState.ts:23-235](file://packages/engine/src/story/structuredState.ts#L23-L235)
 - [packages/engine/src/memory/vectorStore.ts:1-200](file://packages/engine/src/memory/vectorStore.ts#L1-L200)
 - [packages/engine/src/constraints/constraintGraph.ts:1-150](file://packages/engine/src/constraints/constraintGraph.ts#L1-L150)
+- [packages/engine/src/types/index.ts:92-104](file://packages/engine/src/types/index.ts#L92-L104)
+- [packages/engine/src/llm/client.ts:49-190](file://packages/engine/src/llm/client.ts#L49-L190)
 
 ### Storage Layout
 Stories are persisted under ~/.narrative-os/stories/<id> with the following files:
@@ -952,7 +1014,7 @@ Stories are persisted under ~/.narrative-os/stories/<id> with the following file
 
 **Section sources**
 - [apps/cli/src/config/store.ts:15-49](file://apps/cli/src/config/store.ts#L15-L49)
-- [apps/cli/src/config/store.ts:117-151](file://apps/cli/src/config/store.ts#L117-L151)
+- [apps/cli/src/config/store.ts:117-195](file://apps/cli/src/config/store.ts#L117-L195)
 
 ### Practical Examples and Workflows
 
@@ -977,6 +1039,8 @@ Power-user techniques
 - **New**: Chapter correction: regenerate specific chapters with nos regenerate
 - **New**: Configuration verification: use `nos config --show` in deployment scripts to verify environment setup
 - **New**: Interactive workflow optimization: combine interactive prompts with parameter overrides for partial automation
+- **New**: Multi-model optimization: leverage separate reasoning and chat models for best performance
+- **New**: Task-based model selection: understand how different models are automatically selected for different operations
 
 **Section sources**
 - [PROGRESS.md:126-137](file://PROGRESS.md#L126-L137)
@@ -984,6 +1048,7 @@ Power-user techniques
 - [packages/engine/src/story/structuredState.ts:181-235](file://packages/engine/src/story/structuredState.ts#L181-L235)
 - [apps/cli/src/commands/hint.ts:25-46](file://apps/cli/src/commands/hint.ts#L25-L46)
 - [apps/cli/src/commands/init.ts:17-79](file://apps/cli/src/commands/init.ts#L17-L79)
+- [packages/engine/src/llm/client.ts:39-47](file://packages/engine/src/llm/client.ts#L39-L47)
 
 ### Interactive Prompts System Features
 **New**: The enhanced CLI now provides a comprehensive interactive prompts system for story creation:
@@ -1058,26 +1123,64 @@ Power-user techniques
 **New**: The CLI now provides a convenient way to display current configuration without interactive setup:
 
 - **Non-Interactive Display**: The `--show` flag allows users to quickly check their current configuration
+- **Model Purpose Indicators**: Shows reasoning, chat, and fast model purposes with clear labeling
+- **Multi-Model Visualization**: Displays all configured models with their purposes and providers
 - **Immediate Feedback**: Shows provider, model, and API key status without any prompts
 - **File Path Information**: Displays the exact location of the configuration file
 - **Error Handling**: Gracefully handles cases where no configuration exists
 - **Script Integration**: Ideal for use in automation scripts and CI/CD pipelines
 
 **Section sources**
-- [apps/cli/src/commands/config.ts:38-104](file://apps/cli/src/commands/config.ts#L38-L104)
+- [apps/cli/src/commands/config.ts:55-90](file://apps/cli/src/commands/config.ts#L55-L90)
+- [apps/cli/src/commands/config.ts:66-89](file://apps/cli/src/commands/config.ts#L66-L89)
 - [apps/cli/src/index.ts:32-39](file://apps/cli/src/index.ts#L32-L39)
 
-### Enhanced Init Command Workflow
-**New**: The enhanced init command provides multiple interaction modes:
+### Enhanced Config Command Workflow
+**New**: The enhanced config command provides multiple configuration modes:
 
-- **Fully Interactive Mode**: `nos init` - prompts for all fields
-- **Partial Interactive Mode**: `nos init --title "Story"` - prompts for remaining fields
-- **Parameter-Driven Mode**: `nos init --title "Story" --genre "Fantasy" --chapters 8` - no prompts
-- **Validation**: Input validation ensures data quality (required fields, minimum lengths, numeric ranges)
-- **Defaults**: Intelligent defaults for common fields reduce user burden
-- **Genre Selection**: Predefined genre choices with user-friendly options
+- **Multi-Model Setup**: Interactive prompts for choosing reasoning and chat models with provider selection
+- **Single-Model Compatibility**: Automatic conversion from legacy single-model configurations
+- **Backward Compatibility**: Maintains support for existing LLM_PROVIDER/LLM_MODEL environment variables
+- **Non-Interactive Display**: `nos config --show` provides immediate configuration overview
+- **Model Purpose Management**: Clear indication of model purposes (reasoning, chat, fast)
+- **Provider Integration**: Supports OpenAI and DeepSeek with appropriate model recommendations
 - **Flexible Integration**: Works seamlessly with automation scripts and CI/CD pipelines
 
 **Section sources**
-- [apps/cli/src/commands/init.ts:17-79](file://apps/cli/src/commands/init.ts#L17-L79)
-- [apps/cli/src/index.ts:42-52](file://apps/cli/src/index.ts#L42-L52)
+- [apps/cli/src/commands/config.ts:55-182](file://apps/cli/src/commands/config.ts#L55-L182)
+- [apps/cli/src/index.ts:32-39](file://apps/cli/src/index.ts#L32-L39)
+- [packages/engine/src/llm/client.ts:58-111](file://packages/engine/src/llm/client.ts#L58-L111)
+
+### Multi-Model Configuration Features
+**New**: Revolutionary multi-model configuration system:
+
+- **Separate Model Types**: Distinct reasoning models for complex creative tasks and chat models for validation
+- **Task-Based Selection**: Automatic model selection based on operation type (generation/planning vs validation/summarization)
+- **Backward Compatibility**: Seamless integration with existing single-model configurations
+- **Environment Integration**: Multi-model configuration stored in LLM_MODELS_CONFIG environment variable
+- **Provider Support**: OpenAI and DeepSeek with appropriate model recommendations
+- **Purpose Indicators**: Clear model purpose labeling (reasoning, chat, fast)
+- **Default Model Management**: Configurable default model for fallback operations
+
+**Section sources**
+- [apps/cli/src/commands/config.ts:8-30](file://apps/cli/src/commands/config.ts#L8-L30)
+- [apps/cli/src/commands/config.ts:100-148](file://apps/cli/src/commands/config.ts#L100-L148)
+- [packages/engine/src/types/index.ts:92-113](file://packages/engine/src/types/index.ts#L92-L113)
+- [packages/engine/src/llm/client.ts:39-47](file://packages/engine/src/llm/client.ts#L39-L47)
+- [packages/engine/src/llm/client.ts:113-125](file://packages/engine/src/llm/client.ts#L113-L125)
+
+### Task-Based Model Selection
+**New**: Intelligent model selection system:
+
+- **Generation Tasks**: Uses reasoning models for complex creative writing and planning
+- **Validation Tasks**: Uses chat models for validation and summarization
+- **Extraction Tasks**: Uses chat models for memory/state extraction
+- **Default Fallback**: Uses chat models when no specific task is defined
+- **Fast Models**: Available for summarization and extraction tasks
+- **Automatic Selection**: Transparent model switching based on operation requirements
+- **Performance Optimization**: Ensures optimal performance through appropriate model matching
+
+**Section sources**
+- [packages/engine/src/llm/client.ts:39-47](file://packages/engine/src/llm/client.ts#L39-L47)
+- [packages/engine/src/llm/client.ts:113-125](file://packages/engine/src/llm/client.ts#L113-L125)
+- [packages/engine/src/llm/client.ts:182-189](file://packages/engine/src/llm/client.ts#L182-L189)
