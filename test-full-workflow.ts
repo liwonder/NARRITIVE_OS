@@ -125,29 +125,24 @@ async function main() {
   // Step 5: Verify chapter was created
   console.log('\n✅ Step 5: Verifying chapter output...');
   const storyPath = path.join(storiesDir, storyId);
-  const chaptersDir = path.join(storyPath, 'chapters');
+  const chaptersFile = path.join(storyPath, 'chapters.json');
   
-  if (!fs.existsSync(chaptersDir)) {
-    throw new Error('Chapters directory not created');
+  if (!fs.existsSync(chaptersFile)) {
+    throw new Error('Chapters file not created');
   }
   
-  const chapters = fs.readdirSync(chaptersDir).filter(f => f.endsWith('.json'));
+  const chapters = JSON.parse(fs.readFileSync(chaptersFile, 'utf-8'));
   console.log(`  Created ${chapters.length} chapter(s)`);
   
   if (chapters.length > 0) {
-    const chapter1Path = path.join(chaptersDir, 'chapter-1.json');
-    if (fs.existsSync(chapter1Path)) {
-      const chapter1 = JSON.parse(fs.readFileSync(chapter1Path, 'utf-8'));
-      console.log(`  Chapter 1 title: ${chapter1.title}`);
-      console.log(`  Chapter 1 content length: ${chapter1.content?.length || 0} chars`);
-      
-      if (chapter1.content && chapter1.content.length > 100) {
-        console.log('\n🎉 SUCCESS: Chapter 1 generated successfully!');
-      } else {
-        throw new Error('Chapter 1 content too short or missing');
-      }
+    const chapter1 = chapters[0];
+    console.log(`  Chapter 1 title: ${chapter1.title}`);
+    console.log(`  Chapter 1 content length: ${chapter1.content?.length || 0} chars`);
+    
+    if (chapter1.content && chapter1.content.length > 100) {
+      console.log('\n🎉 SUCCESS: Chapter 1 generated successfully!');
     } else {
-      throw new Error('Chapter 1 file not found');
+      throw new Error('Chapter 1 content too short or missing');
     }
   } else {
     throw new Error('No chapters generated');

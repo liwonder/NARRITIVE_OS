@@ -44,6 +44,8 @@
 - Updated Agent Architecture to utilize task-specific model routing for optimal performance
 - Expanded Configuration Management with interactive CLI support for multi-model setups
 - Enhanced Provider Abstraction with improved error handling and model discovery
+- **Added Embedding Model Capabilities**: New embedding task type and dedicated embedding model support for vector memory operations
+- **Expanded Provider Support**: Added Alibaba Cloud (Qwen) and ByteDance Ark providers with native embedding capabilities
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -60,12 +62,12 @@
 ## Introduction
 This document describes the architecture of the Narrative Operating System engine package, focusing on the AI-powered story generation system. The engine follows an agent-based architecture with a clear separation of concerns: agents encapsulate specialized tasks (writing, completeness checking, summarization, and canon validation), a **multi-model LLM integration layer** with purpose-based routing abstracts provider details, a canonical memory system maintains story facts, a vector memory system provides semantic search capabilities, and a generation pipeline orchestrates the workflow. The system now incorporates a World Simulation Layer with autonomous character agents, a Chapter Planner Agent for structured scene planning, a Constraint Graph for narrative consistency enforcement, and a comprehensive state management system with structured state tracking.
 
-**Updated** Enhanced to reflect the new Multi-Model Client Design that supports purpose-based routing, task-specific model mapping, and improved provider abstraction with backward compatibility.
+**Updated** Enhanced to reflect the new Multi-Model Client Design that supports purpose-based routing, task-specific model mapping, embedding model capabilities, and expanded provider support including Alibaba Cloud and ByteDance Ark.
 
 ## Project Structure
 The repository is organized as a monorepo using pnpm workspaces and Turborepo orchestration:
-- packages/engine: Core engine library exporting types, **enhanced LLM client with multi-model support**, agents, memory, pipeline, story utilities, world simulation, and constraint systems.
-- apps/cli: CLI application that consumes the engine to initialize stories, generate chapters, validate consistency, inspect state, and manage persisted state with **interactive multi-model configuration**.
+- packages/engine: Core engine library exporting types, **enhanced LLM client with multi-model support and embedding capabilities**, agents, memory, pipeline, story utilities, world simulation, and constraint systems.
+- apps/cli: CLI application that consumes the engine to initialize stories, generate chapters, validate consistency, inspect state, and manage persisted state with **interactive multi-model configuration including embedding providers**.
 - Root configuration files define workspace layout and Turborepo task caching.
 
 ```mermaid
@@ -74,7 +76,7 @@ subgraph "Monorepo"
 subgraph "packages/engine"
 E_Index["index.ts"]
 E_Types["types/index.ts"]
-E_LLM["llm/client.ts<br/>Multi-Model Client"]
+E_LLM["llm/client.ts<br/>Multi-Model Client<br/>Embedding Support"]
 E_Memory["memory/*"]
 E_Pipeline["pipeline/generateChapter.ts"]
 E_Story["story/*"]
@@ -89,7 +91,7 @@ C_Validate["src/commands/validate.ts"]
 C_State["src/commands/state.ts"]
 C_Memories["src/commands/memories.ts"]
 C_Store["src/config/store.ts"]
-C_Config["src/commands/config.ts<br/>Multi-Model Setup"]
+C_Config["src/commands/config.ts<br/>Multi-Model Setup<br/>Embedding Providers"]
 end
 end
 C_Index --> C_Gen
@@ -126,27 +128,27 @@ E_Index --> E_Constraints
 - [turbo.json:1-19](file://turbo.json#L1-L19)
 
 ## Core Components
-- Export surface: The engine's public API is exported via a single barrel file, exposing types, **enhanced LLM client with multi-model support**, agents, pipeline, story utilities, memory APIs, world simulation components, and constraint systems.
-- Types: Define the canonical data models for StoryBible, StoryState, Chapter, ChapterSummary, GenerationContext, and **enhanced LLM configuration interfaces** including ModelConfig and TaskType.
-- **Multi-Model LLM Client**: Provides a provider-agnostic abstraction with **purpose-based routing**, **task-specific model mapping**, and **backward compatibility** with single-model configurations.
-- Agents: Specialized modules implementing writing, completeness checks, summarization, canon validation, memory extraction, and state updates with **task-aware model selection**.
+- Export surface: The engine's public API is exported via a single barrel file, exposing types, **enhanced LLM client with multi-model support and embedding capabilities**, agents, pipeline, story utilities, memory APIs, world simulation components, and constraint systems.
+- Types: Define the canonical data models for StoryBible, StoryState, Chapter, ChapterSummary, GenerationContext, and **enhanced LLM configuration interfaces** including ModelConfig with expanded provider support and TaskType with embedding operations.
+- **Multi-Model LLM Client**: Provides a provider-agnostic abstraction with **purpose-based routing**, **task-specific model mapping**, **embedding model discovery**, and **backward compatibility** with single-model configurations.
+- Agents: Specialized modules implementing writing, completeness checks, summarization, canon validation, memory extraction, and state updates with **task-aware model selection** including embedding operations.
 - World Simulation Layer: Character agents with goals, knowledge, and autonomy, event resolvers for conflict and interaction resolution, and world state management.
 - Constraint Graph: Narrative consistency system enforcing logical rules for canon, location, knowledge, timeline, and logical constraints.
-- Vector Memory System: HNSW-based semantic search with automatic embedding generation, supporting contextual queries and category filtering.
+- Vector Memory System: HNSW-based semantic search with automatic embedding generation, supporting contextual queries and category filtering, powered by dedicated embedding models.
 - Memory Retriever: Contextual memory retrieval with ranking and categorization for LLM prompts.
 - State Updater Pipeline: Autonomous post-chapter state management with structured state tracking and constraint graph updates.
 - Structured State Management: Comprehensive character and plot thread state tracking with tension calculation and recent event management.
 - Canonical memory: A structured store for facts categorized by character/world/plot/timeline, with helpers to extract and format facts for prompts.
 - Pipeline: Orchestrates the chapter generation loop, integrating agents and optional validation.
 - Story utilities: Builders for StoryBible and mutation helpers for characters and plot threads.
-- CLI integration: Loads persisted stories, constructs GenerationContext, invokes the pipeline, updates state, and persists results with **interactive multi-model configuration**.
+- CLI integration: Loads persisted stories, constructs GenerationContext, invokes the pipeline, updates state, and persists results with **interactive multi-model configuration including embedding providers**.
 
 **Section sources**
 - [packages/engine/src/index.ts:1-116](file://packages/engine/src/index.ts#L1-L116)
-- [packages/engine/src/types/index.ts:1-149](file://packages/engine/src/types/index.ts#L1-L149)
-- [packages/engine/src/llm/client.ts:1-200](file://packages/engine/src/llm/client.ts#L1-L200)
+- [packages/engine/src/types/index.ts:1-150](file://packages/engine/src/types/index.ts#L1-L150)
+- [packages/engine/src/llm/client.ts:1-211](file://packages/engine/src/llm/client.ts#L1-L211)
 - [packages/engine/src/memory/canonStore.ts:1-134](file://packages/engine/src/memory/canonStore.ts#L1-L134)
-- [packages/engine/src/memory/vectorStore.ts:1-208](file://packages/engine/src/memory/vectorStore.ts#L1-L208)
+- [packages/engine/src/memory/vectorStore.ts:1-258](file://packages/engine/src/memory/vectorStore.ts#L1-L258)
 - [packages/engine/src/memory/memoryRetriever.ts:1-174](file://packages/engine/src/memory/memoryRetriever.ts#L1-L174)
 - [packages/engine/src/memory/stateUpdater.ts:1-435](file://packages/engine/src/memory/stateUpdater.ts#L1-L435)
 - [packages/engine/src/story/structuredState.ts:1-235](file://packages/engine/src/story/structuredState.ts#L1-L235)
@@ -169,18 +171,18 @@ E_Index --> E_Constraints
 - [apps/cli/src/commands/state.ts:1-83](file://apps/cli/src/commands/state.ts#L1-L83)
 - [apps/cli/src/commands/memories.ts:1-66](file://apps/cli/src/commands/memories.ts#L1-L66)
 - [apps/cli/src/config/store.ts:1-195](file://apps/cli/src/config/store.ts#L1-L195)
-- [apps/cli/src/commands/config.ts:1-215](file://apps/cli/src/commands/config.ts#L1-L215)
+- [apps/cli/src/commands/config.ts:1-318](file://apps/cli/src/commands/config.ts#L1-L318)
 
 ## Architecture Overview
 The system employs:
-- **Enhanced Factory pattern for LLM providers**: The LLM client factory selects and instantiates providers based on environment configuration, enabling pluggable backends with **multi-model support**.
-- **Purpose-based routing**: The LLM client routes tasks to appropriate models based on purpose (reasoning, chat, fast) for optimal performance.
-- **Task-specific model mapping**: Different tasks use different models: generation/planning use reasoning models, validation/summarization use chat models, extraction uses chat models, and default uses chat models.
+- **Enhanced Factory pattern for LLM providers**: The LLM client factory selects and instantiates providers based on environment configuration, enabling pluggable backends with **multi-model support** and **embedding model capabilities**.
+- **Purpose-based routing**: The LLM client routes tasks to appropriate models based on purpose (reasoning, chat, fast, embedding) for optimal performance.
+- **Task-specific model mapping**: Different tasks use different models: generation/planning use reasoning models, validation/summarization use chat models, extraction uses chat models, embedding uses dedicated embedding models, and default uses chat models.
 - **Pipeline pattern for generation workflow**: The generateChapter function coordinates writing, optional continuation, validation, and summarization in a deterministic loop.
-- **Agent-based architecture**: Each agent encapsulates a distinct responsibility and interacts with the LLM client through a shared interface with **task-aware model selection**.
+- **Agent-based architecture**: Each agent encapsulates a distinct responsibility and interacts with the LLM client through a shared interface with **task-aware model selection** including embedding operations.
 - World Simulation Layer: Characters with goals, knowledge, and autonomy generate emergent plot through decision-making and event resolution.
 - Constraint Graph: Narrative consistency system enforcing logical rules for canon, location, knowledge, timeline, and logical constraints.
-- Vector Memory System: HNSW-based semantic search with automatic embedding generation for contextual memory retrieval.
+- Vector Memory System: HNSW-based semantic search with automatic embedding generation for contextual memory retrieval, powered by dedicated embedding models.
 - Memory Retriever: Contextual memory retrieval with ranking and categorization for LLM prompts.
 - State Updater Pipeline: Autonomous post-chapter state management with structured state tracking and constraint graph updates.
 - Structured State Management: Comprehensive character and plot thread state tracking with tension calculation and recent event management.
@@ -207,9 +209,10 @@ subgraph "Multi-Model Routing"
 LLM --> Reasoning["Reasoning Model<br/>(deepseek-reasoner)"]
 LLM --> Chat["Chat Model<br/>(deepseek-chat)"]
 LLM --> Fast["Fast Model<br/>(gpt-4o-mini)"]
+LLM --> Embedding["Embedding Model<br/>(text-embedding-3-small)"]
 end
 subgraph "Memory System"
-VectorStore["VectorStore (HNSW)"]
+VectorStore["VectorStore (HNSW)<br/>Embedding Powered"]
 MemoryRetriever["MemoryRetriever"]
 MemoryExtractor["MemoryExtractor"]
 VectorStore --> MemoryRetriever
@@ -259,9 +262,9 @@ Store --> MemoriesCmd
 - [packages/engine/src/agents/summarizer.ts:27-31](file://packages/engine/src/agents/summarizer.ts#L27-L31)
 - [packages/engine/src/agents/canonValidator.ts:44-48](file://packages/engine/src/agents/canonValidator.ts#L44-L48)
 - [packages/engine/src/agents/chapterPlanner.ts:110-122](file://packages/engine/src/agents/chapterPlanner.ts#L110-L122)
-- [packages/engine/src/llm/client.ts:40-47](file://packages/engine/src/llm/client.ts#L40-L47)
-- [packages/engine/src/llm/client.ts:113-125](file://packages/engine/src/llm/client.ts#L113-L125)
-- [packages/engine/src/memory/vectorStore.ts:19-208](file://packages/engine/src/memory/vectorStore.ts#L19-L208)
+- [packages/engine/src/llm/client.ts:40-48](file://packages/engine/src/llm/client.ts#L40-L48)
+- [packages/engine/src/llm/client.ts:114-126](file://packages/engine/src/llm/client.ts#L114-L126)
+- [packages/engine/src/memory/vectorStore.ts:19-258](file://packages/engine/src/memory/vectorStore.ts#L19-L258)
 - [packages/engine/src/memory/memoryRetriever.ts:18-174](file://packages/engine/src/memory/memoryRetriever.ts#L18-L174)
 - [packages/engine/src/memory/stateUpdater.ts:90-435](file://packages/engine/src/memory/stateUpdater.ts#L90-L435)
 - [packages/engine/src/story/structuredState.ts:23-235](file://packages/engine/src/story/structuredState.ts#L23-L235)
@@ -277,7 +280,7 @@ Store --> MemoriesCmd
 - [apps/cli/src/commands/state.ts:3-83](file://apps/cli/src/commands/state.ts#L3-L83)
 - [apps/cli/src/commands/memories.ts:4-66](file://apps/cli/src/commands/memories.ts#L4-L66)
 - [apps/cli/src/config/store.ts:15-49](file://apps/cli/src/config/store.ts#L15-L49)
-- [apps/cli/src/commands/config.ts:192-214](file://apps/cli/src/commands/config.ts#L192-L214)
+- [apps/cli/src/commands/config.ts:192-318](file://apps/cli/src/commands/config.ts#L192-L318)
 
 **Section sources**
 - [packages/engine/README.md:36-50](file://packages/engine/README.md#L36-L50)
@@ -285,11 +288,12 @@ Store --> MemoriesCmd
 ## Detailed Component Analysis
 
 ### Enhanced LLM Integration Layer
-- **Multi-Model Client Architecture**: The LLM client now supports multiple models with purpose-based routing, task-specific model mapping, and backward compatibility.
-- **Provider abstraction**: The LLMProvider interface defines a single method for completions, allowing interchangeable providers.
-- **Provider factory**: The LLM client loads configuration from environment variables and creates the appropriate provider (OpenAI or DeepSeek).
-- **Purpose-based routing**: Models are categorized as 'reasoning', 'chat', or 'fast' and automatically selected based on task type.
-- **Task-specific model mapping**: Different tasks use different models: generation/planning use reasoning models, validation/summarization use chat models, extraction uses chat models, and default uses chat models.
+- **Multi-Model Client Architecture**: The LLM client now supports multiple models with purpose-based routing, task-specific model mapping, embedding model discovery, and backward compatibility.
+- **Provider abstraction**: The LLMProvider interface defines a single method for completions, allowing interchangeable providers including OpenAI, DeepSeek, Alibaba Cloud, and ByteDance Ark.
+- **Provider factory**: The LLM client loads configuration from environment variables and creates the appropriate provider (OpenAI, DeepSeek, Alibaba Cloud, or ByteDance Ark).
+- **Purpose-based routing**: Models are categorized as 'reasoning', 'chat', 'fast', or 'embedding' and automatically selected based on task type.
+- **Task-specific model mapping**: Different tasks use different models: generation/planning use reasoning models, validation/summarization use chat models, extraction uses chat models, embedding uses dedicated embedding models, and default uses chat models.
+- **Embedding Model Discovery**: The LLM client can discover and route to embedding models specifically configured for vector memory operations.
 - **Backward compatibility**: Single-model configuration is still supported for legacy users.
 - **Singleton accessor**: A global LLM client is lazily initialized and reused across agents.
 - **JSON completion helper**: A convenience method ensures strict JSON responses for validators and parsers.
@@ -311,14 +315,15 @@ class LLMClient {
 +completeJSON~T~(prompt, config) Promise~T~
 +getModelForTask(task) ModelConfig
 +getAvailableModels() ModelConfig[]
++getEmbeddingConfig() ModelConfig
 }
 class ModelConfig {
 -name string
--provider "openai" | "deepseek" | string
+-provider "openai" | "deepseek" | "alibaba" | "ark" | string
 -apiKey string
 -baseURL string
 -model string
--purpose "reasoning" | "chat" | "fast"
+-purpose "reasoning" | "chat" | "fast" | "embedding"
 }
 class TaskType {
 <<enumeration>>
@@ -327,6 +332,7 @@ validation
 summarization
 extraction
 planning
+embedding
 default
 }
 LLMProvider <|.. OpenAIProvider
@@ -337,19 +343,20 @@ ModelConfig --> TaskType : "mapped to"
 
 **Diagram sources**
 - [packages/engine/src/llm/client.ts:4-37](file://packages/engine/src/llm/client.ts#L4-L37)
-- [packages/engine/src/llm/client.ts:49-190](file://packages/engine/src/llm/client.ts#L49-L190)
-- [packages/engine/src/types/index.ts:92-113](file://packages/engine/src/types/index.ts#L92-L113)
+- [packages/engine/src/llm/client.ts:49-201](file://packages/engine/src/llm/client.ts#L49-L201)
+- [packages/engine/src/types/index.ts:92-115](file://packages/engine/src/types/index.ts#L92-L115)
 
 **Section sources**
-- [packages/engine/src/llm/client.ts:1-200](file://packages/engine/src/llm/client.ts#L1-L200)
-- [packages/engine/src/types/index.ts:91-113](file://packages/engine/src/types/index.ts#L91-L113)
+- [packages/engine/src/llm/client.ts:1-211](file://packages/engine/src/llm/client.ts#L1-L211)
+- [packages/engine/src/types/index.ts:91-115](file://packages/engine/src/types/index.ts#L91-L115)
 
 ### Vector Memory System
 - HNSW-based Semantic Search: Hierarchical Navigable Small World algorithm provides efficient approximate nearest neighbor search for semantic similarity.
-- Automatic Embedding Generation: Uses OpenAI's text-embedding-3-small model for vector representations, with fallback to mock embeddings for testing.
+- Automatic Embedding Generation: Uses dedicated embedding models (OpenAI text-embedding-3-small, Alibaba Cloud text-embedding-v3, ByteDance Ark doubao-embedding) for vector representations, with fallback to mock embeddings for testing.
 - Memory Categories: Supports four categories (event, character, world, plot) for structured memory organization.
 - Dynamic Index Management: Automatic resizing and capacity management for growing memory collections.
 - Persistence Support: Complete serialization/deserialization for saving/loading vector stores between sessions.
+- **Embedding Model Integration**: Vector store can utilize dedicated embedding models configured through the LLM client for optimal vector generation.
 
 ```mermaid
 classDiagram
@@ -388,11 +395,11 @@ MemoryRetriever --> VectorStore : "uses"
 ```
 
 **Diagram sources**
-- [packages/engine/src/memory/vectorStore.ts:19-208](file://packages/engine/src/memory/vectorStore.ts#L19-L208)
+- [packages/engine/src/memory/vectorStore.ts:19-258](file://packages/engine/src/memory/vectorStore.ts#L19-L258)
 - [packages/engine/src/memory/memoryRetriever.ts:18-174](file://packages/engine/src/memory/memoryRetriever.ts#L18-L174)
 
 **Section sources**
-- [packages/engine/src/memory/vectorStore.ts:1-208](file://packages/engine/src/memory/vectorStore.ts#L1-L208)
+- [packages/engine/src/memory/vectorStore.ts:1-258](file://packages/engine/src/memory/vectorStore.ts#L1-L258)
 - [packages/engine/src/memory/memoryRetriever.ts:1-174](file://packages/engine/src/memory/memoryRetriever.ts#L1-L174)
 
 ### Structured State Management
@@ -655,7 +662,7 @@ Pipe-->>CLI : "GenerateChapterResult"
 - [packages/engine/src/agents/summarizer.ts:27-31](file://packages/engine/src/agents/summarizer.ts#L27-L31)
 - [packages/engine/src/agents/canonValidator.ts:44-48](file://packages/engine/src/agents/canonValidator.ts#L44-L48)
 - [packages/engine/src/agents/memoryExtractor.ts:62-66](file://packages/engine/src/agents/memoryExtractor.ts#L62-L66)
-- [packages/engine/src/llm/client.ts:135-147](file://packages/engine/src/llm/client.ts#L135-L147)
+- [packages/engine/src/llm/client.ts:136-148](file://packages/engine/src/llm/client.ts#L136-L148)
 
 **Section sources**
 - [packages/engine/src/pipeline/generateChapter.ts:1-108](file://packages/engine/src/pipeline/generateChapter.ts#L1-L108)
@@ -668,7 +675,7 @@ Pipe-->>CLI : "GenerateChapterResult"
 - **MemoryExtractor**: Extracts narrative memories from chapters with proper categorization for vector storage using **task: 'extraction'**.
 - **StateUpdater**: Extracts and applies state changes to structured state management system.
 - **ChapterPlanner**: Converts objectives into detailed scene outlines with tension progression and word count estimation.
-- **Task-aware Model Selection**: Each agent specifies the appropriate task type for optimal model routing.
+- **Task-aware Model Selection**: Each agent specifies the appropriate task type for optimal model routing, including embedding operations.
 
 ```mermaid
 classDiagram
@@ -710,6 +717,7 @@ class LLMClient {
 +complete(...)
 +completeJSON~T~(...)
 +getModelForTask(task) ModelConfig
++getEmbeddingConfig() ModelConfig
 }
 ChapterWriter --> LLMClient : "uses task : 'generation'"
 CompletenessChecker --> LLMClient : "uses default"
@@ -726,7 +734,7 @@ ChapterPlanner --> LLMClient : "uses task : 'planning'"
 - [packages/engine/src/agents/canonValidator.ts:44-48](file://packages/engine/src/agents/canonValidator.ts#L44-L48)
 - [packages/engine/src/agents/memoryExtractor.ts:62-66](file://packages/engine/src/agents/memoryExtractor.ts#L62-L66)
 - [packages/engine/src/agents/stateUpdater.ts:113-116](file://packages/engine/src/agents/stateUpdater.ts#L113-L116)
-- [packages/engine/src/llm/client.ts:113-125](file://packages/engine/src/llm/client.ts#L113-L125)
+- [packages/engine/src/llm/client.ts:114-126](file://packages/engine/src/llm/client.ts#L114-L126)
 
 **Section sources**
 - [packages/engine/src/agents/writer.ts:1-166](file://packages/engine/src/agents/writer.ts#L1-L166)
@@ -772,13 +780,13 @@ ExtractCanon --> Return
 
 ### Enhanced CLI Integration
 - Command routing: The CLI initializes commands for config, init, generate, status, continue, validate, state inspection, and memory querying.
-- **Interactive Multi-Model Configuration**: The config command provides an interactive setup for multi-model configurations with reasoning and chat models.
+- **Interactive Multi-Model Configuration**: The config command provides an interactive setup for multi-model configurations with reasoning and chat models, and **embedding model configuration** including providers like Alibaba Cloud, ByteDance Ark, and OpenAI.
 - Generation flow: Loads persisted story, constructs GenerationContext, invokes generateChapter, updates state, and persists results.
 - Validation flow: Comprehensive story validation including constraint checking, consistency verification, and violation reporting.
 - State inspection: Detailed character and plot thread state visualization with progress tracking.
 - Memory querying: Semantic search through vector memories with contextual filtering and relevance scoring.
 - Error handling: Catches generation failures and exits with a non-zero code.
-- **Environment Configuration**: Applies multi-model configuration by setting LLM_MODELS_CONFIG environment variable.
+- **Environment Configuration**: Applies multi-model configuration by setting LLM_MODELS_CONFIG environment variable with **embedding model support**.
 
 ```mermaid
 sequenceDiagram
@@ -810,7 +818,7 @@ CLI-->>User : "Validation report"
 - [apps/cli/src/config/store.ts:15-49](file://apps/cli/src/config/store.ts#L15-L49)
 - [packages/engine/src/pipeline/generateChapter.ts:26-103](file://packages/engine/src/pipeline/generateChapter.ts#L26-L103)
 - [packages/engine/src/constraints/validator.ts:73-84](file://packages/engine/src/constraints/validator.ts#L73-L84)
-- [apps/cli/src/commands/config.ts:192-214](file://apps/cli/src/commands/config.ts#L192-L214)
+- [apps/cli/src/commands/config.ts:192-318](file://apps/cli/src/commands/config.ts#L192-L318)
 
 **Section sources**
 - [apps/cli/src/index.ts:1-54](file://apps/cli/src/index.ts#L1-L54)
@@ -819,17 +827,17 @@ CLI-->>User : "Validation report"
 - [apps/cli/src/commands/state.ts:1-83](file://apps/cli/src/commands/state.ts#L1-L83)
 - [apps/cli/src/commands/memories.ts:1-66](file://apps/cli/src/commands/memories.ts#L1-L66)
 - [apps/cli/src/config/store.ts:1-195](file://apps/cli/src/config/store.ts#L1-L195)
-- [apps/cli/src/commands/config.ts:1-215](file://apps/cli/src/commands/config.ts#L1-L215)
+- [apps/cli/src/commands/config.ts:1-318](file://apps/cli/src/commands/config.ts#L1-L318)
 
 ## Dependency Analysis
 - Cohesion: Each module focuses on a single responsibility—agents encapsulate prompting and inference with task-aware model selection, the pipeline orchestrates workflows, memory manages canonical facts and vector memories, world simulation handles character autonomy, constraints operate independently but integrate with validation systems, and state management tracks story progression.
 - Coupling: Agents depend on the LLM client abstraction with task-aware model selection; the pipeline depends on agents and memory; world simulation components interact through well-defined interfaces; constraints operate independently but integrate with validation systems; vector memory system integrates with state management and constraint graph.
 - Extensibility: New providers can be added to the LLM client factory; new agents can be integrated into the pipeline with appropriate task specification; additional categories can be added to the CanonStore; world simulation can accommodate new character types and event types; vector memory system supports new embedding models and search algorithms.
-- **Multi-Model Extensibility**: The system supports additional models with different purposes through the ModelConfig interface and TASK_MODEL_MAPPING.
+- **Multi-Model Extensibility**: The system supports additional models with different purposes through the ModelConfig interface and TASK_MODEL_MAPPING, including **embedding model support**.
 
 ```mermaid
 graph LR
-Types["types/index.ts"] --> LLM["llm/client.ts<br/>Multi-Model"]
+Types["types/index.ts"] --> LLM["llm/client.ts<br/>Multi-Model<br/>Embedding Support"]
 Types --> Memory["memory/*"]
 Types --> Pipeline["pipeline/generateChapter.ts"]
 Types --> Story["story/*"]
@@ -848,7 +856,7 @@ CLI_Index["apps/cli/src/index.ts"] --> CLI_Gen["apps/cli/src/commands/generate.t
 CLI_Index --> CLI_Validate["apps/cli/src/commands/validate.ts"]
 CLI_Index --> CLI_State["apps/cli/src/commands/state.ts"]
 CLI_Index --> CLI_Memories["apps/cli/src/commands/memories.ts"]
-CLI_Index --> CLI_Config["apps/cli/src/commands/config.ts<br/>Multi-Model Setup"]
+CLI_Index --> CLI_Config["apps/cli/src/commands/config.ts<br/>Multi-Model Setup<br/>Embedding Providers"]
 CLI_Gen --> Engine_Index["@narrative-os/engine/src/index.ts"]
 CLI_Validate --> Engine_Index
 CLI_State --> Engine_Index
@@ -864,9 +872,9 @@ Engine_Index --> Constraints
 ```
 
 **Diagram sources**
-- [packages/engine/src/types/index.ts:1-149](file://packages/engine/src/types/index.ts#L1-L149)
-- [packages/engine/src/llm/client.ts:1-200](file://packages/engine/src/llm/client.ts#L1-L200)
-- [packages/engine/src/memory/vectorStore.ts:1-208](file://packages/engine/src/memory/vectorStore.ts#L1-L208)
+- [packages/engine/src/types/index.ts:1-150](file://packages/engine/src/types/index.ts#L1-L150)
+- [packages/engine/src/llm/client.ts:1-211](file://packages/engine/src/llm/client.ts#L1-L211)
+- [packages/engine/src/memory/vectorStore.ts:1-258](file://packages/engine/src/memory/vectorStore.ts#L1-L258)
 - [packages/engine/src/memory/memoryRetriever.ts:1-174](file://packages/engine/src/memory/memoryRetriever.ts#L1-L174)
 - [packages/engine/src/memory/stateUpdater.ts:1-435](file://packages/engine/src/memory/stateUpdater.ts#L1-L435)
 - [packages/engine/src/story/structuredState.ts:1-235](file://packages/engine/src/story/structuredState.ts#L1-L235)
@@ -889,7 +897,7 @@ Engine_Index --> Constraints
 - [apps/cli/src/commands/validate.ts:1-107](file://apps/cli/src/commands/validate.ts#L1-L107)
 - [apps/cli/src/commands/state.ts:1-83](file://apps/cli/src/commands/state.ts#L1-L83)
 - [apps/cli/src/commands/memories.ts:1-66](file://apps/cli/src/commands/memories.ts#L1-L66)
-- [apps/cli/src/commands/config.ts:1-215](file://apps/cli/src/commands/config.ts#L1-L215)
+- [apps/cli/src/commands/config.ts:1-318](file://apps/cli/src/commands/config.ts#L1-L318)
 - [packages/engine/src/index.ts:1-116](file://packages/engine/src/index.ts#L1-L116)
 
 **Section sources**
@@ -902,12 +910,13 @@ Engine_Index --> Constraints
 - **Continuation attempts**: Limit maxContinuationAttempts to avoid long-running loops.
 - **Prompt construction**: Reuse formatted CanonStore sections and recent summaries to minimize redundant context.
 - **Vector memory scaling**: HNSW algorithm provides logarithmic search complexity; monitor index size and adjust capacity management.
-- **Embedding generation**: Batch embedding requests when possible; consider rate limiting for external API calls.
+- **Embedding generation**: Batch embedding requests when possible; consider rate limiting for external API calls; **embedding model optimization** for vector memory operations.
 - **World simulation complexity**: Character decision-making and event resolution add computational overhead; consider batching and caching strategies.
 - **Constraint graph operations**: Graph traversal and validation scale with story complexity; optimize adjacency list operations.
 - **State management overhead**: Structured state updates add processing time; consider lazy evaluation for non-critical calculations.
 - **Persistence overhead**: Batch writes and avoid frequent disk I/O during long runs.
 - **Multi-Model Overhead**: Model switching adds minimal overhead but provides significant performance benefits through purpose-based routing.
+- **Embedding Model Efficiency**: Dedicated embedding models provide optimized vector generation for semantic search operations.
 
 ## Troubleshooting Guide
 - **LLM provider errors**: Verify environment variables for provider selection and keys. Confirm model availability and quotas.
@@ -923,10 +932,12 @@ Engine_Index --> Constraints
 - **Constraint violations**: ConstraintGraph validation may report logical inconsistencies; review narrative timeline and character knowledge updates.
 - **Chapter planner failures**: ChapterPlanner offers fallback outline generation; verify director objectives and target word counts.
 - **Model not found errors**: Ensure model names in configuration match actual model configurations and providers are available.
+- **Embedding model errors**: **Verify embedding model configuration** and API keys; check embedding dimension compatibility; ensure embedding provider supports the required model.
+- **Provider compatibility issues**: **Check provider embedding support** for Alibaba Cloud, ByteDance Ark, and OpenAI; ensure proper base URLs and model names are configured.
 
 **Section sources**
-- [packages/engine/src/llm/client.ts:127-133](file://packages/engine/src/llm/client.ts#L127-L133)
-- [packages/engine/src/llm/client.ts:72-77](file://packages/engine/src/llm/client.ts#L72-L77)
+- [packages/engine/src/llm/client.ts:128-134](file://packages/engine/src/llm/client.ts#L128-L134)
+- [packages/engine/src/llm/client.ts:72-78](file://packages/engine/src/llm/client.ts#L72-L78)
 - [apps/cli/src/config/store.ts:39-67](file://apps/cli/src/config/store.ts#L39-L67)
 - [packages/engine/src/memory/vectorStore.ts:30-75](file://packages/engine/src/memory/vectorStore.ts#L30-L75)
 - [packages/engine/src/memory/stateUpdater.ts:94-248](file://packages/engine/src/memory/stateUpdater.ts#L94-L248)
@@ -935,29 +946,30 @@ Engine_Index --> Constraints
 - [packages/engine/src/constraints/constraintGraph.ts:229-244](file://packages/engine/src/constraints/constraintGraph.ts#L229-L244)
 
 ## Conclusion
-The Narrative Operating System engine package implements a comprehensive, extensible architecture for AI-powered story generation with **advanced multi-model support**. The system now features a sophisticated hybrid approach combining autonomous world simulation with narrative direction, supported by intelligent planning, strict consistency enforcement, and advanced memory management. The **enhanced LLM client with multi-model architecture** provides purpose-based routing, task-specific model mapping, and backward compatibility, enabling optimal performance across different use cases. The addition of vector memory system with semantic search, structured state management with comprehensive character and plot tracking, enhanced constraint validation with dual-mode approaches, and autonomous state updater pipeline enables emergent storytelling with logical coherence, narrative consistency, and rich contextual awareness. By separating concerns into agents with task-aware model selection, a provider-agnostic LLM client with multi-model support, canonical and vector memory systems, structured state management, world simulation, constraint enforcement, and a pipeline orchestrator, the system supports iterative chapter generation with validation, memory extraction, and state updates. The CLI demonstrates practical usage through generation, validation, state inspection, memory querying commands, and **interactive multi-model configuration**, along with persistence and incremental progress tracking. The modular design and environment-driven configuration facilitate easy experimentation with providers and tuning of generation parameters, while the **purpose-based routing system** ensures optimal model selection for different tasks.
+The Narrative Operating System engine package implements a comprehensive, extensible architecture for AI-powered story generation with **advanced multi-model support and embedding capabilities**. The system now features a sophisticated hybrid approach combining autonomous world simulation with narrative direction, supported by intelligent planning, strict consistency enforcement, and advanced memory management with **dedicated embedding models**. The **enhanced LLM client with multi-model architecture** provides purpose-based routing, task-specific model mapping, **embedding model discovery**, and backward compatibility, enabling optimal performance across different use cases including **semantic search operations**. The addition of vector memory system with semantic search, structured state management with comprehensive character and plot tracking, enhanced constraint validation with dual-mode approaches, and autonomous state updater pipeline enables emergent storytelling with logical coherence, narrative consistency, and rich contextual awareness powered by **optimized embedding models**. By separating concerns into agents with task-aware model selection, a provider-agnostic LLM client with multi-model support and **embedding capabilities**, canonical and vector memory systems, structured state management, world simulation, constraint enforcement, and a pipeline orchestrator, the system supports iterative chapter generation with validation, memory extraction, and state updates. The CLI demonstrates practical usage through generation, validation, state inspection, memory querying commands, and **interactive multi-model configuration including embedding providers**, along with persistence and incremental progress tracking. The modular design and environment-driven configuration facilitate easy experimentation with providers and tuning of generation parameters, while the **purpose-based routing system** ensures optimal model selection for different tasks including **embedding operations**.
 
-**Updated** Enhanced conclusion to reflect the comprehensive multi-model architecture and purpose-based routing capabilities.
+**Updated** Enhanced conclusion to reflect the comprehensive multi-model architecture, embedding model capabilities, and expanded provider support including Alibaba Cloud and ByteDance Ark.
 
 ## Appendices
 - **Technology stack**: TypeScript, OpenAI SDK integration, HNSW-based vector search with hnswlib-node, monorepo orchestration with Turborepo and pnpm workspaces.
 - **Cross-cutting concerns**:
-  - **Configuration management**: Environment variables drive provider selection, multi-model configuration, and defaults.
+  - **Configuration management**: Environment variables drive provider selection, multi-model configuration, embedding model setup, and defaults.
   - **Error handling**: Centralized LLM client error reporting and fallbacks in validators, with model discovery and routing error handling.
   - **Extensibility**: Factory pattern for providers, modular agents with task-aware model selection, flexible world simulation, constraint graph system, and vector memory architecture.
   - **Narrative consistency**: Automated validation through constraint graph and LLM-based checking.
-  - **Memory management**: Semantic search with automatic embedding generation and contextual retrieval.
+  - **Memory management**: Semantic search with automatic embedding generation and contextual retrieval, powered by dedicated embedding models.
   - **State tracking**: Comprehensive structured state management with tension calculation and recent event tracking.
   - **World simulation**: Autonomous character agents with goal-driven decision making and event resolution.
-  - **Multi-model architecture**: Purpose-based routing, task-specific model mapping, and backward compatibility support.
+  - **Multi-model architecture**: Purpose-based routing, task-specific model mapping, embedding model discovery, and backward compatibility support.
+  - **Provider ecosystem**: Support for OpenAI, DeepSeek, Alibaba Cloud, and ByteDance Ark providers with **native embedding capabilities**.
 
 **Section sources**
-- [packages/engine/src/llm/client.ts:40-47](file://packages/engine/src/llm/client.ts#L40-L47)
-- [packages/engine/src/llm/client.ts:113-125](file://packages/engine/src/llm/client.ts#L113-L125)
+- [packages/engine/src/llm/client.ts:40-48](file://packages/engine/src/llm/client.ts#L40-L48)
+- [packages/engine/src/llm/client.ts:114-126](file://packages/engine/src/llm/client.ts#L114-L126)
 - [packages/engine/src/memory/vectorStore.ts:125-168](file://packages/engine/src/memory/vectorStore.ts#L125-L168)
 - [packages/engine/src/story/structuredState.ts:155-179](file://packages/engine/src/story/structuredState.ts#L155-L179)
 - [turbo.json:1-19](file://turbo.json#L1-L19)
 - [pnpm-workspace.yaml:1-4](file://pnpm-workspace.yaml#L1-L4)
 - [packages/engine/README.md:1-55](file://packages/engine/README.md#L1-L55)
 - [packages/engine/package.json:1-44](file://packages/engine/package.json#L1-L44)
-- [apps/cli/src/commands/config.ts:192-214](file://apps/cli/src/commands/config.ts#L192-L214)
+- [apps/cli/src/commands/config.ts:192-318](file://apps/cli/src/commands/config.ts#L192-L318)

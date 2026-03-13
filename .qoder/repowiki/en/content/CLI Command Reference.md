@@ -19,6 +19,7 @@
 - [apps/cli/src/commands/validate.ts](file://apps/cli/src/commands/validate.ts)
 - [apps/cli/src/commands/regenerate.ts](file://apps/cli/src/commands/regenerate.ts)
 - [apps/cli/src/commands/hint.ts](file://apps/cli/src/commands/hint.ts)
+- [apps/cli/src/commands/version.ts](file://apps/cli/src/commands/version.ts)
 - [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts)
 - [packages/engine/src/types/index.ts](file://packages/engine/src/types/index.ts)
 - [packages/engine/src/story/state.ts](file://packages/engine/src/story/state.ts)
@@ -35,12 +36,12 @@
 
 ## Update Summary
 **Changes Made**
-- Enhanced the config command section to reflect the new multi-model configuration system with reasoning, chat, and embedding model support
-- Added comprehensive documentation for the new multi-model setup with OpenAI and DeepSeek provider integration
-- Updated configuration display to show model purpose indicators (reasoning, chat, fast, embedding)
-- Enhanced troubleshooting section to cover multi-model configuration scenarios including embedding setup
+- Added comprehensive documentation for the new `version` command that displays detailed version information for CLI and engine modules
+- Enhanced the `config` command section to reflect the new multi-model configuration system with reasoning, chat, and embedding model support
+- Updated supported providers list to include Alibaba Cloud (Qwen) and ByteDance Ark alongside OpenAI and DeepSeek
 - Added practical examples demonstrating both single-model and multi-model workflows with embedding configuration
 - Updated LLM client documentation to reflect task-based model selection and embedding support
+- Enhanced troubleshooting section to cover multi-model configuration scenarios including embedding setup
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -55,7 +56,7 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document provides a comprehensive command reference for the Narrative Operating System CLI (nos). It covers command syntax, parameters, flags, usage patterns, and integration points for all nos commands including the newly added 12 commands: bible, clone, delete, export, hint, list, memories, read, regenerate, state, and validate. The system features enhanced structured state persistence, interactive hints system, comprehensive story management capabilities with automatic initialization and robust error handling for improved reliability and advanced storytelling capabilities.
+This document provides a comprehensive command reference for the Narrative Operating System CLI (nos). It covers command syntax, parameters, flags, usage patterns, and integration points for all nos commands including the newly added 13 commands: bible, clone, delete, export, hint, list, memories, read, regenerate, state, validate, and version. The system features enhanced structured state persistence, interactive hints system, comprehensive story management capabilities with automatic initialization and robust error handling for improved reliability and advanced storytelling capabilities.
 
 ## Project Structure
 The CLI is implemented as a TypeScript application using Commander for command parsing and Inquirer for interactive configuration. Commands delegate to the engine package for story generation and rely on a local filesystem store under the user's home directory with enhanced structured state management and memory systems.
@@ -78,6 +79,7 @@ CLI --> CMD_MEMORIES["Command: memories<br/>apps/cli/src/commands/memories.ts"]
 CLI --> CMD_VALIDATE["Command: validate<br/>apps/cli/src/commands/validate.ts"]
 CLI --> CMD_REGENERATE["Command: regenerate<br/>apps/cli/src/commands/regenerate.ts"]
 CLI --> CMD_HINT["Command: hint<br/>apps/cli/src/commands/hint.ts"]
+CLI --> CMD_VERSION["Command: version<br/>apps/cli/src/commands/version.ts"]
 CMD_CONFIG --> STORE["Local Store<br/>apps/cli/src/config/store.ts"]
 CMD_INIT --> STORE
 CMD_GENERATE --> STORE
@@ -92,6 +94,7 @@ CMD_BIBLE --> STORE
 CMD_STATE --> STORE
 CMD_MEMORIES --> STORE
 CMD_VALIDATE --> STORE
+CMD_REGENERATE --> STORE
 CMD_INIT --> ENGINE_TYPES["Engine Types<br/>packages/engine/src/types/index.ts"]
 CMD_GENERATE --> ENGINE_TYPES
 CMD_CONTINUE --> ENGINE_TYPES
@@ -108,8 +111,8 @@ CMD_CONFIG --> VECTOR_STORE["Vector Store<br/>packages/engine/src/memory/vectorS
 ```
 
 **Diagram sources**
-- [apps/cli/src/index.ts:1-154](file://apps/cli/src/index.ts#L1-L154)
-- [apps/cli/src/commands/config.ts:1-249](file://apps/cli/src/commands/config.ts#L1-L249)
+- [apps/cli/src/index.ts:1-161](file://apps/cli/src/index.ts#L1-L161)
+- [apps/cli/src/commands/config.ts:1-318](file://apps/cli/src/commands/config.ts#L1-L318)
 - [apps/cli/src/commands/init.ts:1-90](file://apps/cli/src/commands/init.ts#L1-L90)
 - [apps/cli/src/commands/generate.ts:1-70](file://apps/cli/src/commands/generate.ts#L1-L70)
 - [apps/cli/src/commands/status.ts:1-55](file://apps/cli/src/commands/status.ts#L1-L55)
@@ -125,6 +128,7 @@ CMD_CONFIG --> VECTOR_STORE["Vector Store<br/>packages/engine/src/memory/vectorS
 - [apps/cli/src/commands/validate.ts:1-107](file://apps/cli/src/commands/validate.ts#L1-L107)
 - [apps/cli/src/commands/regenerate.ts:1-68](file://apps/cli/src/commands/regenerate.ts#L1-L68)
 - [apps/cli/src/commands/hint.ts:1-73](file://apps/cli/src/commands/hint.ts#L1-L73)
+- [apps/cli/src/commands/version.ts:1-124](file://apps/cli/src/commands/version.ts#L1-L124)
 - [apps/cli/src/config/store.ts:1-195](file://apps/cli/src/config/store.ts#L1-L195)
 - [packages/engine/src/types/index.ts:1-150](file://packages/engine/src/types/index.ts#L1-L150)
 - [packages/engine/src/story/bible.ts:1-73](file://packages/engine/src/story/bible.ts#L1-L73)
@@ -135,12 +139,12 @@ CMD_CONFIG --> VECTOR_STORE["Vector Store<br/>packages/engine/src/memory/vectorS
 - [packages/engine/src/memory/vectorStore.ts:1-237](file://packages/engine/src/memory/vectorStore.ts#L1-L237)
 
 **Section sources**
-- [apps/cli/src/index.ts:1-154](file://apps/cli/src/index.ts#L1-L154)
+- [apps/cli/src/index.ts:1-161](file://apps/cli/src/index.ts#L1-L161)
 - [apps/cli/package.json:1-50](file://apps/cli/package.json#L1-L50)
 - [package.json:1-17](file://package.json#L1-L17)
 
 ## Core Components
-- CLI entrypoint defines the nos binary, version, and registers commands with their options and actions, including the new 12 commands.
+- CLI entrypoint defines the nos binary, version, and registers commands with their options and actions, including the new 13 commands.
 - Commands share a common configuration and storage layer for persistent story data with enhanced structured state management and memory systems.
 - Engine types define the data structures used across commands (StoryBible, StoryState, Chapter, GenerationContext, StoryStructuredState).
 - **New**: Structured state persistence system automatically initializes and manages character and plot thread states with comprehensive narrative tracking.
@@ -148,6 +152,7 @@ CMD_CONFIG --> VECTOR_STORE["Vector Store<br/>packages/engine/src/memory/vectorS
 - **New**: Enhanced init command with interactive prompts for story creation, replacing the previous static parameter approach.
 - **New**: Multi-model configuration system supporting separate reasoning, chat, and embedding models with backward compatibility for single-model setups.
 - **New**: Task-based model selection system with automatic model assignment based on operation type (generation/planning, validation/summarization, extraction, embedding).
+- **New**: Version command provides detailed version information for CLI and engine modules.
 
 Key runtime behaviors:
 - Interactive configuration via inquirer prompts.
@@ -158,6 +163,7 @@ Key runtime behaviors:
 - Exit codes: non-zero on errors (e.g., missing story ID, invalid chapter numbers).
 - **New**: Contextual help system provides intelligent suggestions based on story state and user actions.
 - **New**: Multi-model LLM client automatically selects appropriate models based on task type with embedding support.
+- **New**: Version command displays CLI and engine module versions with development mode detection.
 
 **Section sources**
 - [apps/cli/src/index.ts:11-53](file://apps/cli/src/index.ts#L11-L53)
@@ -169,6 +175,7 @@ Key runtime behaviors:
 - [apps/cli/src/commands/init.ts:17-64](file://apps/cli/src/commands/init.ts#L17-L64)
 - [packages/engine/src/llm/client.ts:39-47](file://packages/engine/src/llm/client.ts#L39-L47)
 - [packages/engine/src/memory/vectorStore.ts:1-237](file://packages/engine/src/memory/vectorStore.ts#L1-L237)
+- [apps/cli/src/commands/version.ts:64-123](file://apps/cli/src/commands/version.ts#L64-123)
 
 ## Architecture Overview
 The CLI orchestrates story lifecycle operations backed by the engine with enhanced structured state management and comprehensive story management capabilities. Configuration is applied at startup and injected into environment variables for downstream LLM clients, while structured state provides detailed narrative tracking and memory systems enable sophisticated narrative recall with embedding support.
@@ -179,10 +186,14 @@ participant User as "User"
 participant CLI as "nos CLI"
 participant Init as "init.ts"
 participant Config as "config.ts"
+participant Version as "version.ts"
 participant Store as "store.ts"
 participant Engine as "Engine (types/state/bible/structuredState)"
 participant LLMClient as "LLM Client"
 participant VectorStore as "Vector Store"
+User->>CLI : "nos version"
+CLI->>Version : "versionCommand()"
+Version-->>User : "Display CLI and engine versions"
 User->>CLI : "nos config"
 CLI->>Config : "configCommand()"
 Config->>Config : "loadConfig()/select()/password()"
@@ -217,6 +228,7 @@ VectorStore-->>User : "Memory search results"
 **Diagram sources**
 - [apps/cli/src/index.ts:18-33](file://apps/cli/src/index.ts#L18-L33)
 - [apps/cli/src/commands/config.ts:38-66](file://apps/cli/src/commands/config.ts#L38-L66)
+- [apps/cli/src/commands/version.ts:64-123](file://apps/cli/src/commands/version.ts#L64-L123)
 - [apps/cli/src/config/store.ts:15-26](file://apps/cli/src/config/store.ts#L15-L26)
 - [packages/engine/src/story/bible.ts:3-26](file://packages/engine/src/story/bible.ts#L3-L26)
 - [packages/engine/src/story/state.ts:3-12](file://packages/engine/src/story/state.ts#L3-L12)
@@ -230,9 +242,52 @@ VectorStore-->>User : "Memory search results"
 
 ## Detailed Component Analysis
 
+### Command: nos version
+Purpose
+- Display detailed version information for the CLI and engine modules, including installed extension modules and development mode detection.
+
+Syntax
+- nos version
+- nos version -v
+
+Options
+- --version, -v: Show version information
+
+Behavior
+- Displays comprehensive version information including CLI package details, engine module version, and any installed extension modules.
+- Shows development mode detection when running from local source.
+- Provides installation guidance for updates.
+- Handles cases where engine modules are not installed.
+
+Output format
+- Formatted table-like display with section headers and version details.
+- Lists installed extension modules with their versions when available.
+
+Configuration file location
+- No configuration file required
+
+Environment variables set
+- None
+
+Exit codes
+- 0 on success; non-zero on IO failures.
+
+Common usage
+- Check current CLI and engine versions: `nos version`
+- Verify installation status and module versions
+
+Advanced usage
+- Use in automation scripts to verify environment setup
+- Check development vs production mode
+- Monitor for updates and module availability
+
+**Section sources**
+- [apps/cli/src/index.ts:154-158](file://apps/cli/src/index.ts#L154-L158)
+- [apps/cli/src/commands/version.ts:64-123](file://apps/cli/src/commands/version.ts#L64-123)
+
 ### Command: nos config
 Purpose
-- Interactively configure the LLM provider, model(s), and API key(s). Supports both single-model and multi-model configurations with backward compatibility. Persists configuration to ~/.narrative-os/config.json and applies environment variables for the LLM client. **New**: Now supports separate reasoning, chat, and embedding models with OpenAI and DeepSeek provider integration.
+- Interactively configure the LLM provider, model(s), and API key(s). Supports both single-model and multi-model configurations with backward compatibility. Persists configuration to ~/.narrative-os/config.json and applies environment variables for the LLM client. **New**: Now supports separate reasoning, chat, and embedding models with OpenAI, DeepSeek, Alibaba Cloud (Qwen), and ByteDance Ark provider integration.
 
 Syntax
 - nos config
@@ -242,11 +297,11 @@ Options
 - --show, -s: Show current configuration without interactive setup
 
 Behavior
-- **Interactive mode** (default): Prompts for provider selection (OpenAI or DeepSeek), model selection based on provider, and API key (masked), then writes configuration.
+- **Interactive mode** (default): Prompts for provider selection (OpenAI, DeepSeek, Alibaba Cloud, or ByteDance Ark), model selection based on provider, and API key (masked), then writes configuration.
 - **Display mode** (`--show`): Shows current configuration without prompting for interactive setup.
 - **New**: Multi-model configuration: User can choose to configure separate reasoning and chat models for different tasks, plus optional embedding model for memory operations.
-- **New**: Provider integration: Supports OpenAI with GPT models and DeepSeek with specialized reasoning models.
-- **New**: Embedding configuration: Optional OpenAI embeddings setup for vector memory operations.
+- **New**: Expanded provider integration: Supports OpenAI with GPT models, DeepSeek with specialized reasoning models, Alibaba Cloud (Qwen) with embedding support, and ByteDance Ark with embedding support.
+- **New**: Embedding configuration: Optional provider-specific embeddings setup for vector memory operations.
 - **New**: Backward compatibility: Automatically converts legacy single-model configurations to multi-model format.
 - Writes configuration and prints a confirmation summary in interactive mode.
 
@@ -255,7 +310,7 @@ Configuration file location
 
 Environment variables set
 - **New**: LLM_MODELS_CONFIG: JSON-encoded multi-model configuration for the LLM client
-- **Legacy**: LLM_PROVIDER, LLM_MODEL, OPENAI_API_KEY (when provider is OpenAI), DEEPSEEK_API_KEY (when provider is DeepSeek)
+- **Legacy**: LLM_PROVIDER, LLM_MODEL, OPENAI_API_KEY, DEEPSEEK_API_KEY, ALIBABA_API_KEY, ARK_API_KEY (when applicable)
 - **New**: Individual API keys are also set for backward compatibility
 - **New**: Embedding model configuration accessible via LLM client for vector memory operations
 
@@ -266,7 +321,7 @@ Common usage
 - Initial setup after installing the CLI.
 - **New**: Check current configuration without changing it using `nos config --show`.
 - **New**: Configure multi-model setup for advanced reasoning and chat separation with optional embeddings.
-- **New**: Set up embedding model for memory operations using OpenAI embeddings.
+- **New**: Set up embedding model for memory operations using provider-specific embeddings.
 
 Advanced usage
 - Re-run to change provider or model without manual edits.
@@ -275,11 +330,11 @@ Advanced usage
 - **New**: Multi-model configurations automatically integrate with the LLM client's task-based model selection.
 - **New**: Embedding configuration enables vector memory operations for advanced narrative recall.
 
-**Updated** Enhanced with multi-model configuration support, provider integration, and embedding setup
+**Updated** Enhanced with multi-model configuration support, expanded provider integration, and embedding setup
 
 **Section sources**
-- [apps/cli/src/index.ts:32-39](file://apps/cli/src/index.ts#L32-L39)
-- [apps/cli/src/commands/config.ts:38-182](file://apps/cli/src/commands/config.ts#L38-L182)
+- [apps/cli/src/index.ts:34-40](file://apps/cli/src/index.ts#L34-L40)
+- [apps/cli/src/commands/config.ts:57-277](file://apps/cli/src/commands/config.ts#L57-L277)
 - [apps/cli/src/commands/config.ts:55-90](file://apps/cli/src/commands/config.ts#L55-L90)
 - [apps/cli/src/commands/config.ts:100-181](file://apps/cli/src/commands/config.ts#L100-L181)
 - [apps/cli/package.json:12-16](file://apps/cli/package.json#L12-L16)
@@ -332,7 +387,7 @@ Interactive Usage Examples
 **Updated** Added comprehensive interactive prompts system with validation and defaults
 
 **Section sources**
-- [apps/cli/src/index.ts:41-52](file://apps/cli/src/index.ts#L41-L52)
+- [apps/cli/src/index.ts:42-53](file://apps/cli/src/index.ts#L42-L53)
 - [apps/cli/src/commands/init.ts:4-90](file://apps/cli/src/commands/init.ts#L4-L90)
 - [packages/engine/src/story/bible.ts:3-26](file://packages/engine/src/story/bible.ts#L3-L26)
 - [packages/engine/src/story/state.ts:3-12](file://packages/engine/src/story/state.ts#L3-L12)
@@ -366,7 +421,7 @@ Automation tip
 - Use a shell loop to iterate nos generate until completion.
 
 **Section sources**
-- [apps/cli/src/index.ts:78-83](file://apps/cli/src/index.ts#L78-L83)
+- [apps/cli/src/index.ts:79-84](file://apps/cli/src/index.ts#L79-L84)
 - [apps/cli/src/commands/generate.ts:4-70](file://apps/cli/src/commands/generate.ts#L4-L70)
 - [apps/cli/src/config/store.ts:28-49](file://apps/cli/src/config/store.ts#L28-L49)
 - [packages/engine/src/types/index.ts:60-65](file://packages/engine/src/types/index.ts#L60-L65)
@@ -393,7 +448,7 @@ Example
 - nos status abc123def
 
 **Section sources**
-- [apps/cli/src/index.ts:60-63](file://apps/cli/src/index.ts#L60-L63)
+- [apps/cli/src/index.ts:61-64](file://apps/cli/src/index.ts#L61-L64)
 - [apps/cli/src/commands/status.ts:3-54](file://apps/cli/src/commands/status.ts#L3-L54)
 - [apps/cli/src/config/store.ts:51-75](file://apps/cli/src/config/store.ts#L51-L75)
 
@@ -423,7 +478,7 @@ Batch operations
 - Combine with shell scripting to process multiple stories or retry on failure.
 
 **Section sources**
-- [apps/cli/src/index.ts:85-91](file://apps/cli/src/index.ts#L85-L91)
+- [apps/cli/src/index.ts:86-92](file://apps/cli/src/index.ts#L86-L92)
 - [apps/cli/src/commands/continue.ts:4-63](file://apps/cli/src/commands/continue.ts#L4-L63)
 - [apps/cli/src/config/store.ts:28-49](file://apps/cli/src/config/store.ts#L28-L49)
 - [packages/engine/src/agents/stateUpdater.ts:85-193](file://packages/engine/src/agents/stateUpdater.ts#L85-L193)
@@ -451,7 +506,7 @@ Example
 - nos list
 
 **Section sources**
-- [apps/cli/src/index.ts:54-58](file://apps/cli/src/index.ts#L54-L58)
+- [apps/cli/src/index.ts:55-59](file://apps/cli/src/index.ts#L55-L59)
 - [apps/cli/src/commands/list.ts:1-23](file://apps/cli/src/commands/list.ts#L1-L23)
 
 ### Command: nos delete <story-id> [--force]
@@ -478,7 +533,7 @@ Example
 - nos delete abc123def --force
 
 **Section sources**
-- [apps/cli/src/index.ts:65-71](file://apps/cli/src/index.ts#L65-L71)
+- [apps/cli/src/index.ts:66-72](file://apps/cli/src/index.ts#L66-L72)
 - [apps/cli/src/commands/delete.ts:1-36](file://apps/cli/src/commands/delete.ts#L1-L36)
 
 ### Command: nos clone <story-id> <new-title>
@@ -502,7 +557,7 @@ Example
 - nos clone abc123def "New Adventure"
 
 **Section sources**
-- [apps/cli/src/index.ts:73-76](file://apps/cli/src/index.ts#L73-L76)
+- [apps/cli/src/index.ts:74-77](file://apps/cli/src/index.ts#L74-L77)
 - [apps/cli/src/commands/clone.ts:1-53](file://apps/cli/src/commands/clone.ts#L1-L53)
 
 ### Command: nos export <story-id> [--format <format>] [--output <file>]
@@ -530,7 +585,7 @@ Example
 - nos export abc123def --format txt --output my_story.txt
 
 **Section sources**
-- [apps/cli/src/index.ts:110-117](file://apps/cli/src/index.ts#L110-L117)
+- [apps/cli/src/index.ts:111-118](file://apps/cli/src/index.ts#L111-L118)
 - [apps/cli/src/commands/export.ts:1-114](file://apps/cli/src/commands/export.ts#L1-L114)
 
 ### Command: nos read <story-id> [chapter-number]
@@ -553,7 +608,7 @@ Example
 - nos read abc123def 5
 
 **Section sources**
-- [apps/cli/src/index.ts:103-108](file://apps/cli/src/index.ts#L103-L108)
+- [apps/cli/src/index.ts:104-110](file://apps/cli/src/index.ts#L104-L110)
 - [apps/cli/src/commands/read.ts:1-48](file://apps/cli/src/commands/read.ts#L1-L48)
 
 ### Command: nos bible <story-id>
@@ -577,7 +632,7 @@ Example
 - nos bible abc123def
 
 **Section sources**
-- [apps/cli/src/index.ts:120-123](file://apps/cli/src/index.ts#L120-L123)
+- [apps/cli/src/index.ts:121-124](file://apps/cli/src/index.ts#L121-L124)
 - [apps/cli/src/commands/bible.ts:1-54](file://apps/cli/src/commands/bible.ts#L1-L54)
 
 ### Command: nos state <story-id>
@@ -602,7 +657,7 @@ Example
 - nos state abc123def
 
 **Section sources**
-- [apps/cli/src/index.ts:125-128](file://apps/cli/src/index.ts#L125-L128)
+- [apps/cli/src/index.ts:126-129](file://apps/cli/src/index.ts#L126-L129)
 - [apps/cli/src/commands/state.ts:1-83](file://apps/cli/src/commands/state.ts#L1-L83)
 
 ### Command: nos memories <story-id> [query]
@@ -628,7 +683,7 @@ Example
 - nos memories abc123def "character meeting"
 
 **Section sources**
-- [apps/cli/src/index.ts:130-136](file://apps/cli/src/index.ts#L130-L136)
+- [apps/cli/src/index.ts:131-137](file://apps/cli/src/index.ts#L131-L137)
 - [apps/cli/src/commands/memories.ts:1-66](file://apps/cli/src/commands/memories.ts#L1-L66)
 - [packages/engine/src/memory/vectorStore.ts:125-177](file://packages/engine/src/memory/vectorStore.ts#L125-L177)
 
@@ -653,7 +708,7 @@ Example
 - nos validate abc123def
 
 **Section sources**
-- [apps/cli/src/index.ts:138-144](file://apps/cli/src/index.ts#L138-L144)
+- [apps/cli/src/index.ts:139-145](file://apps/cli/src/index.ts#L139-L145)
 - [apps/cli/src/commands/validate.ts:1-107](file://apps/cli/src/commands/validate.ts#L1-L107)
 
 ### Command: nos regenerate <story-id> <chapter-number>
@@ -680,7 +735,7 @@ Example
 - nos regenerate abc123def 3
 
 **Section sources**
-- [apps/cli/src/index.ts:93-100](file://apps/cli/src/index.ts#L93-L100)
+- [apps/cli/src/index.ts:94-101](file://apps/cli/src/index.ts#L94-L101)
 - [apps/cli/src/commands/regenerate.ts:1-68](file://apps/cli/src/commands/regenerate.ts#L1-L68)
 - [packages/engine/src/llm/client.ts:113-125](file://packages/engine/src/llm/client.ts#L113-L125)
 
@@ -708,7 +763,7 @@ Example
 - nos hint abc123def
 
 **Section sources**
-- [apps/cli/src/index.ts:146-151](file://apps/cli/src/index.ts#L146-L151)
+- [apps/cli/src/index.ts:147-152](file://apps/cli/src/index.ts#L147-L152)
 - [apps/cli/src/commands/hint.ts:1-73](file://apps/cli/src/commands/hint.ts#L1-L73)
 
 ## Dependency Analysis
@@ -732,6 +787,7 @@ CLI_INDEX --> CMD_MEMORIES["commands/memories.ts"]
 CLI_INDEX --> CMD_VALIDATE["commands/validate.ts"]
 CLI_INDEX --> CMD_REGENERATE["commands/regenerate.ts"]
 CLI_INDEX --> CMD_HINT["commands/hint.ts"]
+CLI_INDEX --> CMD_VERSION["commands/version.ts"]
 CMD_INIT --> STORE["config/store.ts"]
 CMD_GENERATE --> STORE
 CMD_STATUS --> STORE
@@ -763,8 +819,8 @@ STORE --> GENERATE_PIPELINE["engine/pipeline/generateChapter.ts"]
 ```
 
 **Diagram sources**
-- [apps/cli/src/index.ts:1-154](file://apps/cli/src/index.ts#L1-L154)
-- [apps/cli/src/commands/config.ts:1-249](file://apps/cli/src/commands/config.ts#L1-L249)
+- [apps/cli/src/index.ts:1-161](file://apps/cli/src/index.ts#L1-L161)
+- [apps/cli/src/commands/config.ts:1-318](file://apps/cli/src/commands/config.ts#L1-L318)
 - [apps/cli/src/commands/init.ts:1-90](file://apps/cli/src/commands/init.ts#L1-L90)
 - [apps/cli/src/commands/generate.ts:1-70](file://apps/cli/src/commands/generate.ts#L1-L70)
 - [apps/cli/src/commands/status.ts:1-55](file://apps/cli/src/commands/status.ts#L1-L55)
@@ -780,6 +836,7 @@ STORE --> GENERATE_PIPELINE["engine/pipeline/generateChapter.ts"]
 - [apps/cli/src/commands/validate.ts:1-107](file://apps/cli/src/commands/validate.ts#L1-L107)
 - [apps/cli/src/commands/regenerate.ts:1-68](file://apps/cli/src/commands/regenerate.ts#L1-L68)
 - [apps/cli/src/commands/hint.ts:1-73](file://apps/cli/src/commands/hint.ts#L1-L73)
+- [apps/cli/src/commands/version.ts:1-124](file://apps/cli/src/commands/version.ts#L1-L124)
 - [apps/cli/src/config/store.ts:1-195](file://apps/cli/src/config/store.ts#L1-L195)
 - [packages/engine/src/types/index.ts:1-150](file://packages/engine/src/types/index.ts#L1-L150)
 - [packages/engine/src/story/bible.ts:1-73](file://packages/engine/src/story/bible.ts#L1-L73)
@@ -791,8 +848,8 @@ STORE --> GENERATE_PIPELINE["engine/pipeline/generateChapter.ts"]
 - [packages/engine/src/memory/vectorStore.ts:1-237](file://packages/engine/src/memory/vectorStore.ts#L1-L237)
 
 **Section sources**
-- [apps/cli/src/index.ts:1-154](file://apps/cli/src/index.ts#L1-L154)
-- [apps/cli/src/commands/config.ts:1-249](file://apps/cli/src/commands/config.ts#L1-L249)
+- [apps/cli/src/index.ts:1-161](file://apps/cli/src/index.ts#L1-L161)
+- [apps/cli/src/commands/config.ts:1-318](file://apps/cli/src/commands/config.ts#L1-L318)
 - [apps/cli/src/config/store.ts:1-195](file://apps/cli/src/config/store.ts#L1-L195)
 - [packages/engine/src/types/index.ts:1-150](file://packages/engine/src/types/index.ts#L1-L150)
 
@@ -805,7 +862,7 @@ STORE --> GENERATE_PIPELINE["engine/pipeline/generateChapter.ts"]
 - **New**: Multi-model configuration adds negligible overhead as models are cached in memory.
 - **New**: Task-based model selection ensures optimal performance by using appropriate models for each operation type.
 - **New**: Embedding operations use dedicated embedding models for vector memory operations.
-- **New**: Provider-specific optimizations (DeepSeek reasoning models, OpenAI embeddings) improve performance for specialized tasks.
+- **New**: Provider-specific optimizations (DeepSeek reasoning models, OpenAI embeddings, Alibaba Cloud Qwen) improve performance for specialized tasks.
 - Target word count is fixed for generation; adjust story length via --chapters during init to control total work.
 - Network latency dominates LLM calls; consider rate limits and provider quotas.
 - For large-scale automation, cache configuration and reuse environment variables to avoid repeated file reads.
@@ -815,6 +872,7 @@ STORE --> GENERATE_PIPELINE["engine/pipeline/generateChapter.ts"]
 - **New**: Interactive prompts are asynchronous and provide immediate feedback, making the CLI feel responsive even with user input.
 - **New**: Multi-model LLM client caches providers and models for efficient access during story generation.
 - **New**: Embedding model caching improves vector memory performance for repeated operations.
+- **New**: Version command provides instant version information without significant overhead.
 
 ## Troubleshooting Guide
 Common issues and resolutions
@@ -828,11 +886,11 @@ Common issues and resolutions
   - Cause: Corrupted or incomplete multi-model configuration.
   - Resolution: Run `nos config` to reconfigure; use `nos config --show` to verify setup; check that both reasoning and chat models are properly configured; ensure embedding model is set if needed.
 - **New**: Provider-specific issues
-  - Cause: DeepSeek API key problems or OpenAI API key problems.
-  - Resolution: Verify API keys for selected provider; check provider-specific model availability; ensure correct base URLs for DeepSeek.
+  - Cause: DeepSeek API key problems, OpenAI API key problems, Alibaba Cloud API key problems, or ByteDance Ark API key problems.
+  - Resolution: Verify API keys for selected provider; check provider-specific model availability; ensure correct base URLs for DeepSeek, Alibaba Cloud, and ByteDance Ark.
 - **New**: Embedding configuration issues
-  - Cause: Missing OpenAI API key for embeddings or DeepSeek not supporting embeddings.
-  - Resolution: Use `nos config --show` to check embedding configuration; if using DeepSeek, configure OpenAI separately for embeddings; verify embedding model availability.
+  - Cause: Missing API key for embeddings or provider not supporting embeddings.
+  - Resolution: Use `nos config --show` to check embedding configuration; if using DeepSeek, configure OpenAI separately for embeddings; verify embedding model availability for Alibaba Cloud or ByteDance Ark.
 - **New**: Interactive prompt failures
   - Cause: Terminal not supporting interactive input or interrupted prompts.
   - Resolution: Use parameter-driven mode (e.g., `nos init --title "Story" --genre "Fantasy"`) or fix terminal environment.
@@ -856,7 +914,7 @@ Common issues and resolutions
   - Resolution: Run nos generate or nos continue on the story; it will automatically initialize structured state.
 - **New**: Memory system issues
   - Cause: Missing or corrupted vector-store.json or embedding model problems.
-  - Resolution: Run nos regenerate on problematic chapters to rebuild memory data; check embedding configuration; verify OpenAI API key if using embeddings.
+  - Resolution: Run nos regenerate on problematic chapters to rebuild memory data; check embedding configuration; verify API key if using embeddings.
 - **New**: Validation failures
   - Cause: Canon violations or constraint graph issues.
   - Resolution: Review validation output; fix narrative inconsistencies; run nos validate again to confirm resolution.
@@ -866,6 +924,9 @@ Common issues and resolutions
 - **New**: Export format issues
   - Cause: Unsupported format or file write permissions.
   - Resolution: Specify supported formats (markdown/txt); check output directory permissions; use --output option for custom filenames.
+- **New**: Version command issues
+  - Cause: Package information not found or module not installed.
+  - Resolution: Ensure CLI and engine modules are properly installed; check npm registry connectivity; use `npm list -g @narrative-os/cli` to verify installation.
 
 Exit codes summary
 - 0: Success
@@ -880,9 +941,10 @@ Exit codes summary
 - [apps/cli/src/config/store.ts:139-151](file://apps/cli/src/config/store.ts#L139-L151)
 - [apps/cli/src/commands/regenerate.ts:17-21](file://apps/cli/src/commands/regenerate.ts#L17-L21)
 - [apps/cli/src/commands/export.ts:7-10](file://apps/cli/src/commands/export.ts#L7-L10)
+- [apps/cli/src/commands/version.ts:64-123](file://apps/cli/src/commands/version.ts#L64-123)
 
 ## Conclusion
-The nos CLI provides a comprehensive and powerful workflow for creating, generating, managing, and validating stories powered by the Narrative Operating System engine. With the addition of 12 new commands, enhanced structured state persistence, interactive hints system, sophisticated memory management, the new interactive init command with dynamic user prompts, and the revolutionary multi-model configuration system with separate reasoning, chat, and embedding models, it now offers advanced narrative tracking capabilities, comprehensive story management, intelligent assistance, multi-model performance optimization, embedding support for vector memory operations, and an intuitive user experience while maintaining both beginner-friendly workflows and advanced automation scenarios.
+The nos CLI provides a comprehensive and powerful workflow for creating, generating, managing, and validating stories powered by the Narrative Operating System engine. With the addition of 13 new commands, enhanced structured state persistence, interactive hints system, sophisticated memory management, the new interactive init command with dynamic user prompts, the revolutionary multi-model configuration system with separate reasoning, chat, and embedding models, and the new version command for detailed version information, it now offers advanced narrative tracking capabilities, comprehensive story management, intelligent assistance, multi-model performance optimization, embedding support for vector memory operations, an intuitive user experience, and detailed version management while maintaining both beginner-friendly workflows and advanced automation scenarios.
 
 ## Appendices
 
@@ -1069,6 +1131,7 @@ Stories are persisted under ~/.narrative-os/stories/<id> with the following file
 Beginner workflows
 - Configure provider and model: nos config
 - **New**: Check configuration: nos config --show
+- **New**: Check versions: nos version
 - **New**: Interactive story creation: nos init (prompts for all fields)
 - **New**: Parameter-driven story creation: nos init --title "My Story" --genre "Fantasy" --chapters 8
 - Generate chapters one-by-one: nos generate <story-id>
@@ -1086,10 +1149,11 @@ Power-user techniques
 - **New**: Story management: clone templates with nos clone, export finished works with nos export
 - **New**: Chapter correction: regenerate specific chapters with nos regenerate
 - **New**: Configuration verification: use `nos config --show` in deployment scripts to verify environment setup
+- **New**: Version management: use `nos version` to verify CLI and engine versions in deployment scripts
 - **New**: Interactive workflow optimization: combine interactive prompts with parameter overrides for partial automation
 - **New**: Multi-model optimization: leverage separate reasoning, chat, and embedding models for best performance
 - **New**: Task-based model selection: understand how different models are automatically selected for different operations
-- **New**: Embedding configuration: set up OpenAI embeddings for vector memory operations
+- **New**: Embedding configuration: set up provider-specific embeddings for vector memory operations
 
 **Section sources**
 - [PROGRESS.md:126-137](file://PROGRESS.md#L126-L137)
@@ -1099,6 +1163,7 @@ Power-user techniques
 - [apps/cli/src/commands/init.ts:17-79](file://apps/cli/src/commands/init.ts#L17-L79)
 - [packages/engine/src/llm/client.ts:39-47](file://packages/engine/src/llm/client.ts#L39-L47)
 - [packages/engine/src/memory/vectorStore.ts:125-177](file://packages/engine/src/memory/vectorStore.ts#L125-L177)
+- [apps/cli/src/commands/version.ts:64-123](file://apps/cli/src/commands/version.ts#L64-123)
 
 ### Interactive Prompts System Features
 **New**: The enhanced CLI now provides a comprehensive interactive prompts system for story creation:
@@ -1184,22 +1249,22 @@ Power-user techniques
 **Section sources**
 - [apps/cli/src/commands/config.ts:55-90](file://apps/cli/src/commands/config.ts#L55-L90)
 - [apps/cli/src/commands/config.ts:66-89](file://apps/cli/src/commands/config.ts#L66-L89)
-- [apps/cli/src/index.ts:32-39](file://apps/cli/src/index.ts#L32-L39)
+- [apps/cli/src/index.ts:34-40](file://apps/cli/src/index.ts#L34-L40)
 
 ### Enhanced Config Command Workflow
 **New**: The enhanced config command provides multiple configuration modes:
 
 - **Multi-Model Setup**: Interactive prompts for choosing reasoning and chat models with provider selection
-- **Embedding Configuration**: Optional OpenAI embeddings setup for vector memory operations
-- **Provider Integration**: Supports OpenAI and DeepSeek with appropriate model recommendations
+- **Embedding Configuration**: Optional provider-specific embeddings setup for vector memory operations
+- **Expanded Provider Integration**: Supports OpenAI, DeepSeek, Alibaba Cloud (Qwen), and ByteDance Ark with appropriate model recommendations
 - **Backward Compatibility**: Automatic conversion from legacy single-model configurations
 - **Non-Interactive Display**: `nos config --show` provides immediate configuration overview
 - **Model Purpose Management**: Clear indication of model purposes (reasoning, chat, fast, embedding)
 - **Flexible Integration**: Works seamlessly with automation scripts and CI/CD pipelines
 
 **Section sources**
-- [apps/cli/src/commands/config.ts:55-182](file://apps/cli/src/commands/config.ts#L55-L182)
-- [apps/cli/src/index.ts:32-39](file://apps/cli/src/index.ts#L32-L39)
+- [apps/cli/src/commands/config.ts:55-277](file://apps/cli/src/commands/config.ts#L55-L277)
+- [apps/cli/src/index.ts:34-40](file://apps/cli/src/index.ts#L34-L40)
 - [packages/engine/src/llm/client.ts:58-111](file://packages/engine/src/llm/client.ts#L58-L111)
 - [packages/engine/src/memory/vectorStore.ts:125-177](file://packages/engine/src/memory/vectorStore.ts#L125-L177)
 
@@ -1210,7 +1275,7 @@ Power-user techniques
 - **Task-Based Selection**: Automatic model selection based on operation type (generation/planning vs validation/summarization vs embedding)
 - **Backward Compatibility**: Seamless integration with existing single-model configurations
 - **Environment Integration**: Multi-model configuration stored in LLM_MODELS_CONFIG environment variable
-- **Provider Support**: OpenAI and DeepSeek with appropriate model recommendations
+- **Expanded Provider Support**: OpenAI, DeepSeek, Alibaba Cloud (Qwen), and ByteDance Ark with appropriate model recommendations
 - **Purpose Indicators**: Clear model purpose labeling (reasoning, chat, fast, embedding)
 - **Default Model Management**: Configurable default model for fallback operations
 - **Embedding Support**: Dedicated embedding models for vector memory operations
@@ -1242,15 +1307,30 @@ Power-user techniques
 ### Embedding Configuration and Vector Memory
 **New**: Advanced embedding support for vector memory operations:
 
-- **Embedding Model Setup**: Optional OpenAI embeddings configuration for vector memory
-- **Provider Limitations**: DeepSeek doesn't support embeddings, requiring separate OpenAI configuration
+- **Embedding Model Setup**: Optional provider-specific embeddings configuration for vector memory
+- **Provider Limitations**: DeepSeek doesn't support embeddings, requiring separate OpenAI configuration; Alibaba Cloud and ByteDance Ark support native embeddings
 - **Vector Operations**: Semantic search and memory recall using embedding vectors
-- **Dimension Support**: text-embedding-3-small dimension (1536) for optimal performance
+- **Dimension Support**: text-embedding-3-small (1536) for optimal performance
 - **Fallback Mechanisms**: Mock embeddings for testing environments
-- **API Integration**: Direct OpenAI embeddings API integration with error handling
+- **API Integration**: Direct provider-specific embeddings API integration with error handling
 - **Memory Persistence**: Vector store data stored in vector-store.json for efficient retrieval
 
 **Section sources**
 - [apps/cli/src/commands/config.ts:126-147](file://apps/cli/src/commands/config.ts#L126-L147)
 - [packages/engine/src/memory/vectorStore.ts:21-237](file://packages/engine/src/memory/vectorStore.ts#L21-L237)
 - [packages/engine/src/llm/client.ts:192-200](file://packages/engine/src/llm/client.ts#L192-L200)
+
+### Version Command Features
+**New**: Comprehensive version information display system:
+
+- **CLI Version**: Shows CLI package name, version, and description
+- **Engine Version**: Displays engine module version when installed
+- **Extension Modules**: Lists installed extension modules with their versions
+- **Development Mode**: Detects and reports local development mode
+- **Installation Guidance**: Provides update instructions for latest versions
+- **Error Handling**: Gracefully handles missing modules or package information
+- **Cross-Platform Support**: Works across different Node.js environments
+
+**Section sources**
+- [apps/cli/src/commands/version.ts:64-123](file://apps/cli/src/commands/version.ts#L64-123)
+- [apps/cli/package.json:1-50](file://apps/cli/package.json#L1-L50)
