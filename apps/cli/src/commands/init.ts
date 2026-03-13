@@ -1,4 +1,4 @@
-import { createStoryBible, addCharacter, createStoryState } from '@narrative-os/engine';
+import { createStoryBible, createStoryState, generateCharacters } from '@narrative-os/engine';
 import { saveStory } from '../config/store.js';
 import { input, select, number } from '@inquirer/prompts';
 
@@ -65,14 +65,15 @@ export async function initCommand(options: {
 
   let bible = createStoryBible(title, theme, genre, setting, tone, premise, targetChapters);
 
-  // Add a placeholder protagonist (user can add more characters later)
-  bible = addCharacter(
-    bible,
-    'Protagonist',
-    'protagonist',
-    ['brave', 'determined'],
-    ['achieve their goal']
-  );
+  // Generate characters using LLM based on story context
+  console.log('  🎭 Generating characters...');
+  const characters = await generateCharacters(title, premise, genre, setting, bible.language);
+  bible.characters = characters;
+  
+  console.log(`     Created ${characters.length} characters:`);
+  characters.forEach(char => {
+    console.log(`     • ${char.name} (${char.role === 'protagonist' ? ' protagonist' : char.role})`);
+  });
 
   const state = createStoryState(bible.id, targetChapters);
 

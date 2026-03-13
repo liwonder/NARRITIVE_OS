@@ -69,12 +69,39 @@ export class LLMClient {
           this.providers.set(model.name, new OpenAIProvider(model));
         }
         this.defaultModelName = config.defaultModel;
+        
+        // Set up task-based model aliases for multi-model config
+        this.setupTaskModelAliases();
       } catch (e) {
         console.warn('Failed to parse LLM_MODELS_CONFIG, falling back to single model config');
         this.loadSingleModelConfig();
       }
     } else {
       this.loadSingleModelConfig();
+    }
+  }
+  
+  private setupTaskModelAliases() {
+    // Map task types to appropriate models
+    // generation -> reasoning model (for creative tasks)
+    const reasoningModel = this.models.get('reasoning') || this.models.get('default');
+    if (reasoningModel) {
+      this.models.set('generation', reasoningModel);
+      this.providers.set('generation', this.providers.get('reasoning') || this.providers.get('default')!);
+    }
+    
+    // chat -> default model
+    const defaultModel = this.models.get('default');
+    if (defaultModel) {
+      this.models.set('chat', defaultModel);
+      this.providers.set('chat', this.providers.get('default')!);
+    }
+    
+    // fast -> fast model or fallback to default
+    const fastModel = this.models.get('fast') || this.models.get('default');
+    if (fastModel) {
+      this.models.set('fast', fastModel);
+      this.providers.set('fast', this.providers.get('fast') || this.providers.get('default')!);
     }
   }
 
@@ -108,6 +135,17 @@ export class LLMClient {
       };
       this.models.set('reasoning', reasoningConfig);
       this.providers.set('reasoning', new OpenAIProvider(reasoningConfig));
+    }
+    
+    // Add generation model alias (same as reasoning for creative tasks)
+    const reasoningModel = this.models.get('reasoning');
+    if (reasoningModel) {
+      this.models.set('generation', reasoningModel);
+      this.providers.set('generation', this.providers.get('reasoning')!);
+    } else {
+      // If no reasoning model, use default for generation too
+      this.models.set('generation', modelConfig);
+      this.providers.set('generation', this.providers.get('default')!);
     }
   }
 

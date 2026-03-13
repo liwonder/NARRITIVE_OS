@@ -21,6 +21,8 @@
 - [packages/engine/src/memory/canonStore.ts](file://packages/engine/src/memory/canonStore.ts)
 - [packages/engine/src/pipeline/generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts)
 - [packages/engine/src/test/simple.test.ts](file://packages/engine/src/test/simple.test.ts)
+- [packages/engine/src/story/bible.ts](file://packages/engine/src/story/bible.ts)
+- [packages/engine/src/constraints/validator.ts](file://packages/engine/src/constraints/validator.ts)
 </cite>
 
 ## Update Summary
@@ -30,6 +32,8 @@
 - Improved cross-platform compatibility for configuration and testing
 - Updated version management documentation for new version increments
 - Added comprehensive multi-model configuration support in CLI
+- **New**: Added comprehensive language detection functionality with Chinese content validation testing
+- **New**: Integrated language detection into story creation and character generation workflows
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -46,16 +50,21 @@
 12. [Contribution Guidelines](#contribution-guidelines)
 13. [Release and Version Management](#release-and-version-management)
 14. [Extensibility Guide](#extensibility-guide)
-15. [Conclusion](#conclusion)
+15. [Testing Strategies](#testing-strategies)
+16. [Development Workflow](#development-workflow)
+17. [Conclusion](#conclusion)
 
 ## Introduction
 This document provides comprehensive development and contributing guidance for the Narrative Operating System (NOS) monorepo. It covers environment setup with PNPM workspaces and Turborepo orchestration, build and development workflows, testing strategies, CI considerations, contribution standards, debugging and profiling techniques, release processes, and extensibility for agents, memory strategies, and LLM providers. The project now includes comprehensive installation scripts for Windows PowerShell and cross-platform publishing workflows for both Windows and Unix-like systems, along with improved repository organization practices and enhanced multi-model LLM configuration capabilities.
+
+**New**: The system now features comprehensive language detection functionality supporting multiple writing systems including Chinese, Japanese, Korean, Arabic, Russian, Thai, and Hindi, with integrated testing validation for international content generation.
 
 ## Project Structure
 The repository is a TypeScript monorepo organized into:
 - apps/cli: A CLI application that orchestrates story creation and generation via the engine package, featuring advanced multi-model configuration support.
 - packages/engine: The core engine responsible for story modeling, LLM orchestration, agent pipeline, and memory management, with enhanced testing infrastructure.
 - **New**: Comprehensive multi-model LLM configuration system supporting both single and multi-model setups with automatic model selection based on task purposes.
+- **New**: Advanced language detection system supporting multiple writing systems for international content generation.
 
 PNPM workspaces define the package locations, and Turborepo defines shared tasks and caching behavior across the monorepo. The repository follows standardized organization patterns to maintain cleanliness and prevent accidental commits of generated content.
 
@@ -76,6 +85,9 @@ end
 subgraph "Enhanced Configuration"
 MULTI_MODEL["Multi-Model Config<br/>- Reasoning Models<br/>- Chat Models<br/>- Embedding Support<br/>- Task-Based Selection"]
 end
+subgraph "Language Detection"
+LANG_DETECTION["Language Detection<br/>- Chinese (Simplified)<br/>- Japanese (Hiragana/Katakana)<br/>- Korean (Hangul)<br/>- Arabic<br/>- Cyrillic<br/>- Thai<br/>- Devanagari"]
+end
 ROOT_PKG --> CLI_PKG
 ROOT_PKG --> ENG_PKG
 WS --> CLI_PKG
@@ -83,7 +95,9 @@ WS --> ENG_PKG
 TURBO --> CLI_PKG
 TURBO --> ENG_PKG
 CLI_PKG --> MULTI_MODEL
+CLI_PKG --> LANG_DETECTION
 ENG_PKG --> MULTI_MODEL
+ENG_PKG --> LANG_DETECTION
 ```
 
 **Diagram sources**
@@ -93,6 +107,7 @@ ENG_PKG --> MULTI_MODEL
 - [.gitignore:1-50](file://.gitignore#L1-L50)
 - [apps/cli/package.json:1-50](file://apps/cli/package.json#L1-L50)
 - [packages/engine/package.json:1-46](file://packages/engine/package.json#L1-L46)
+- [packages/engine/src/story/bible.ts:8-50](file://packages/engine/src/story/bible.ts#L8-L50)
 
 **Section sources**
 - [package.json:1-17](file://package.json#L1-L17)
@@ -104,25 +119,30 @@ ENG_PKG --> MULTI_MODEL
 - CLI Application: Provides commands to configure, initialize stories, generate chapters, show status, and continue sequences. It depends on the engine package and exposes a binary named nos. Now features advanced multi-model configuration with interactive setup.
 - Engine Package: Exports types, LLM client with multi-model support, agents (writer, completeness checker, summarizer, canon validator), pipeline for chapter generation, story bible/state utilities, and memory/canon store.
 - **New**: Enhanced multi-model LLM configuration system supporting reasoning, chat, and fast models with automatic task-based selection.
+- **New**: Comprehensive language detection system supporting multiple writing systems for international content generation.
 
 Key exports and entry points:
 - CLI entry: [apps/cli/src/index.ts:1-154](file://apps/cli/src/index.ts#L1-L154)
-- Engine entry: [packages/engine/src/index.ts:1-23](file://packages/engine/src/index.ts#L1-L23)
+- Engine entry: [packages/engine/src/index.ts:1-123](file://packages/engine/src/index.ts#L1-L123)
 - Engine types: [packages/engine/src/types/index.ts:1-90](file://packages/engine/src/types/index.ts#L1-L90)
 - Enhanced LLM client: [packages/engine/src/llm/client.ts:1-200](file://packages/engine/src/llm/client.ts#L1-L200)
 - Canon store: [packages/engine/src/memory/canonStore.ts:1-134](file://packages/engine/src/memory/canonStore.ts#L1-L134)
 - Generation pipeline: [packages/engine/src/pipeline/generateChapter.ts:1-76](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
+- **New**: Language detection: [packages/engine/src/story/bible.ts:8-50](file://packages/engine/src/story/bible.ts#L8-L50)
 
 **Section sources**
 - [apps/cli/src/index.ts:1-154](file://apps/cli/src/index.ts#L1-L154)
-- [packages/engine/src/index.ts:1-23](file://packages/engine/src/index.ts#L1-L23)
+- [packages/engine/src/index.ts:1-123](file://packages/engine/src/index.ts#L1-L123)
 - [packages/engine/src/types/index.ts:1-90](file://packages/engine/src/types/index.ts#L1-L90)
 - [packages/engine/src/llm/client.ts:1-200](file://packages/engine/src/llm/client.ts#L1-L200)
 - [packages/engine/src/memory/canonStore.ts:1-134](file://packages/engine/src/memory/canonStore.ts#L1-L134)
 - [packages/engine/src/pipeline/generateChapter.ts:1-76](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
+- [packages/engine/src/story/bible.ts:8-50](file://packages/engine/src/story/bible.ts#L8-L50)
 
 ## Architecture Overview
 The CLI drives story lifecycle commands, delegating to the engine for generation and state management. The engine coordinates agents and memory to produce coherent chapters guided by the story bible and canonical facts. The system now includes automated installation and publishing workflows for seamless development and distribution, with enhanced multi-model LLM configuration supporting both single and complex multi-model setups.
+
+**New**: The architecture now includes intelligent language detection that automatically identifies content writing systems and applies appropriate cultural and linguistic context to story generation.
 
 ```mermaid
 graph TB
@@ -134,9 +154,13 @@ INSTALL["Windows Installer<br/>install.ps1"]
 PUBLISH["Cross-Platform Publisher<br/>publish.ps1 & publish.sh"]
 REPO["Repository Organization<br/>.gitignore patterns<br/>Narrative_Operating_System/"]
 CONFIG["Configuration System<br/>- Home Directory Config<br/>- Multi-Model JSON<br/>- Environment Variables"]
+LANG_DETECTION["Language Detection<br/>- Auto-detect Writing Systems<br/>- Cultural Context<br/>- Character Generation"]
+CHAR_GEN["Character Generation<br/>- Language-Aware Names<br/>- Cultural Authenticity<br/>- Regional Variants"]
 CLI --> ENGINE
 ENGINE --> LLM
 ENGINE --> STORE
+ENGINE --> LANG_DETECTION
+LANG_DETECTION --> CHAR_GEN
 INSTALL --> CLI
 INSTALL --> ENGINE
 PUBLISH --> INSTALL
@@ -146,13 +170,15 @@ CONFIG --> LLM
 
 **Diagram sources**
 - [apps/cli/src/index.ts:1-154](file://apps/cli/src/index.ts#L1-L154)
-- [packages/engine/src/index.ts:1-23](file://packages/engine/src/index.ts#L1-L23)
+- [packages/engine/src/index.ts:1-123](file://packages/engine/src/index.ts#L1-L123)
 - [packages/engine/src/llm/client.ts:1-200](file://packages/engine/src/llm/client.ts#L1-L200)
 - [packages/engine/src/memory/canonStore.ts:1-134](file://packages/engine/src/memory/canonStore.ts#L1-L134)
 - [install.ps1:1-130](file://install.ps1#L1-L130)
 - [publish.ps1:1-95](file://publish.ps1#L1-L95)
 - [publish.sh:1-100](file://publish.sh#L1-L100)
 - [.gitignore:50-50](file://.gitignore#L50-L50)
+- [packages/engine/src/story/bible.ts:8-50](file://packages/engine/src/story/bible.ts#L8-L50)
+- [packages/engine/src/story/bible.ts:153-242](file://packages/engine/src/story/bible.ts#L153-L242)
 
 ## Detailed Component Analysis
 
@@ -237,6 +263,70 @@ TaskModelMapping --> LLMClient : "guides selection"
 **Section sources**
 - [packages/engine/src/llm/client.ts:1-200](file://packages/engine/src/llm/client.ts#L1-L200)
 
+### Language Detection System
+**New**: The system now includes comprehensive language detection functionality that automatically identifies content writing systems and applies appropriate cultural context.
+
+```mermaid
+flowchart TD
+Start(["Text Input"]) --> CheckEmpty{"Empty or Invalid?"}
+CheckEmpty --> |Yes| DefaultEN["Default to English ('en')"]
+CheckEmpty --> |No| CheckChinese["Check Chinese Characters<br/>\\u4e00-\\u9fa5"]
+CheckChinese --> |Match| SetZH["Set Language: Chinese ('zh')"]
+CheckChinese --> |No| CheckJapanese["Check Japanese Characters<br/>Hiragana/Katakana"]
+CheckJapanese --> |Match| SetJA["Set Language: Japanese ('ja')"]
+CheckJapanese --> |No| CheckKorean["Check Korean Characters<br/>\\uac00-\\ud7af"]
+CheckKorean --> |Match| SetKO["Set Language: Korean ('ko')"]
+CheckKorean --> |No| CheckArabic["Check Arabic Characters<br/>\\u0600-\\u06ff"]
+CheckArabic --> |Match| SetAR["Set Language: Arabic ('ar')"]
+CheckArabic --> |No| CheckCyrillic["Check Cyrillic Characters<br/>\\u0400-\\u04ff"]
+CheckCyrillic --> |Match| SetRU["Set Language: Russian ('ru')"]
+CheckCyrillic --> |No| CheckThai["Check Thai Characters<br/>\\u0e00-\\u0e7f"]
+CheckThai --> |Match| SetTH["Set Language: Thai ('th')"]
+CheckThai --> |No| CheckDevanagari["Check Devanagari Characters<br/>\\u0900-\\u097f"]
+CheckDevanagari --> |Match| SetHI["Set Language: Hindi ('hi')"]
+CheckDevanagari --> |No| DefaultEN
+DefaultEN --> End(["Return 'en'"])
+SetZH --> End
+SetJA --> End
+SetKO --> End
+SetAR --> End
+SetRU --> End
+SetTH --> End
+SetHI --> End
+```
+
+**Diagram sources**
+- [packages/engine/src/story/bible.ts:8-50](file://packages/engine/src/story/bible.ts#L8-L50)
+
+**Section sources**
+- [packages/engine/src/story/bible.ts:8-50](file://packages/engine/src/story/bible.ts#L8-L50)
+
+### Intelligent Character Generation
+**New**: Character generation now uses language detection to create culturally appropriate character names and personalities.
+
+```mermaid
+sequenceDiagram
+participant User as "Story Creator"
+participant Engine as "Engine"
+participant LangDetect as "Language Detector"
+participant CharGen as "Character Generator"
+User->>Engine : createStoryBible(title, premise, ...)
+Engine->>LangDetect : detectLanguage(title + premise)
+LangDetect-->>Engine : Language Code (e.g., 'zh', 'ja', 'ko')
+Engine->>CharGen : generateCharacters(title, premise, genre, setting, language)
+CharGen->>CharGen : getDefaultCharacters(language)
+CharGen-->>Engine : Character List (culturally appropriate)
+Engine-->>User : Story Bible with Language-Aware Characters
+```
+
+**Diagram sources**
+- [packages/engine/src/story/bible.ts:153-242](file://packages/engine/src/story/bible.ts#L153-L242)
+- [packages/engine/src/story/bible.ts:8-50](file://packages/engine/src/story/bible.ts#L8-L50)
+
+**Section sources**
+- [packages/engine/src/story/bible.ts:153-242](file://packages/engine/src/story/bible.ts#L153-L242)
+- [packages/engine/src/story/bible.ts:8-50](file://packages/engine/src/story/bible.ts#L8-L50)
+
 ### CLI Commands
 - Initialization: Creates a story bible, adds characters, initializes state, and persists the story.
 - Generation: Loads a story, builds a generation context, invokes the engine pipeline, updates state, and persists results.
@@ -249,7 +339,7 @@ participant Engine as "Engine"
 participant FS as "Config Store"
 User->>CLI : "nos init [options]"
 CLI->>Engine : createStoryBible(...)
-Engine-->>CLI : StoryBible
+Engine-->>CLI : StoryBible (with language detection)
 CLI->>Engine : addCharacter(...), createStoryState(...)
 Engine-->>CLI : Updated Bible, State
 CLI->>FS : saveStory(...)
@@ -259,7 +349,7 @@ CLI-->>User : "Story created : ID ..."
 
 **Diagram sources**
 - [apps/cli/src/commands/init.ts:1-50](file://apps/cli/src/commands/init.ts#L1-L50)
-- [packages/engine/src/index.ts:1-23](file://packages/engine/src/index.ts#L1-L23)
+- [packages/engine/src/index.ts:1-123](file://packages/engine/src/index.ts#L1-L123)
 
 **Section sources**
 - [apps/cli/src/commands/init.ts:1-50](file://apps/cli/src/commands/init.ts#L1-L50)
@@ -354,6 +444,7 @@ number targetChapters
 string premise
 datetime createdAt
 datetime updatedAt
+string language
 }
 CHARACTER_PROFILE {
 string id
@@ -577,6 +668,10 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
   - Standardized .gitignore patterns reduce repository size and improve Git operations performance.
   - Clean repository state reduces merge conflicts and improves development workflow efficiency.
   - Consistent directory naming conventions improve project discoverability and maintenance.
+- **New**: Language Detection Performance:
+  - Efficient regex-based character detection minimizes computational overhead.
+  - Automatic language-aware character generation reduces cultural mismatch costs.
+  - Multi-language support enables optimized prompt engineering for different writing systems.
 
 ## Troubleshooting Guide
 
@@ -599,12 +694,14 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
 ### Test Setup
 - The test loads a local config file from `~/.narrative-os/config.json` to inject provider and model settings prior to importing engine modules.
 - **New**: Enhanced Path Handling: Tests now properly handle both single and multi-model configurations with automatic model selection.
+- **New**: Language Detection Testing: Integration tests validate language detection accuracy with Chinese content and other writing systems.
 
 ### Error Handling
 - CLI commands exit with non-zero status on failure; inspect logs for detailed errors.
 - **New**: Installation and publishing scripts provide detailed error messages and recovery suggestions.
 - **New**: Repository organization scripts help maintain clean repository state and prevent common organization issues.
 - **New**: Multi-Model Configuration Errors: The system provides clear error messages for invalid configuration formats and missing API keys.
+- **New**: Language Detection Errors: System validates language detection accuracy and provides fallback mechanisms for edge cases.
 
 **Section sources**
 - [install.ps1:20-51](file://install.ps1#L20-L51)
@@ -623,6 +720,7 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
   - **New**: Use installation scripts for rapid environment setup on Windows or Unix-like systems.
   - **New**: Follow standardized repository organization practices using .gitignore patterns.
   - **New**: Contribute to multi-model configuration enhancements and testing infrastructure.
+  - **New**: Extend language detection capabilities for additional writing systems.
 - Code Style
   - Follow TypeScript strictness and formatting conventions used in the repository.
 - Commit Messages and PRs
@@ -631,13 +729,14 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
   - Ensure tests pass locally before opening a pull request.
   - **New**: Review .gitignore patterns when adding new build artifacts or temporary files.
   - **New**: Test multi-model configuration scenarios and cross-platform compatibility.
+  - **New**: Validate language detection accuracy with international content samples.
 - Review Process
   - Request reviews from maintainers; address feedback promptly.
 - **New**: Publishing Contributions
   - Use appropriate publishing scripts for cross-platform compatibility.
   - Follow semantic versioning guidelines when preparing releases.
   - **New**: Ensure repository organization patterns are maintained during releases.
-  - **New**: Test enhanced LLM configuration and multi-model functionality.
+  - **New**: Test enhanced LLM configuration, multi-model functionality, and language detection.
 
 ## Release and Version Management
 
@@ -664,6 +763,7 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
 - **Progress Tracking**: Scripts provide detailed feedback throughout the publishing process.
 - **Repository Organization**: Release process maintains standardized .gitignore patterns for clean distribution.
 - **New**: Multi-Model Configuration Releases: Enhanced configuration system is included in all releases with backward compatibility.
+- **New**: Language Detection Releases: Internationalization features are included in all releases with comprehensive testing.
 
 **Section sources**
 - [publish.ps1:23-48](file://publish.ps1#L23-L48)
@@ -709,29 +809,47 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
 - [apps/cli/src/commands/config.ts:8-30](file://apps/cli/src/commands/config.ts#L8-L30)
 - [apps/cli/src/commands/config.ts:51-53](file://apps/cli/src/commands/config.ts#L51-L53)
 
+### Extending Language Detection
+**New**: Extend the language detection system to support additional writing systems.
+
+- Add new character range detection in the `detectLanguage` function
+- Update the `getLanguageName` function with language names
+- Extend character generation logic to support new languages
+- Add comprehensive testing for new writing systems
+
+**Section sources**
+- [packages/engine/src/story/bible.ts:8-50](file://packages/engine/src/story/bible.ts#L8-L50)
+- [packages/engine/src/story/bible.ts:55-72](file://packages/engine/src/story/bible.ts#L55-L72)
+- [packages/engine/src/story/bible.ts:222-242](file://packages/engine/src/story/bible.ts#L222-L242)
+
 ## Testing Strategies
 - Unit Tests for the Engine
   - The engine includes a comprehensive test suite using Vitest with enhanced multi-model configuration support.
   - Tests load configuration from `~/.narrative-os/config.json` to inject provider and model settings prior to importing engine modules.
   - **New**: Enhanced Path Handling: Tests now properly handle both single and multi-model configurations with automatic model selection.
+  - **New**: Language Detection Testing: Integration tests validate language detection accuracy with Chinese content and other writing systems.
 - Integration Testing Approaches
   - Use the CLI to drive end-to-end flows: initialize a story, generate chapters iteratively, and verify persisted state and outputs.
   - Mock or stub the LLM client for deterministic tests when appropriate.
   - **New**: Multi-Model Testing: Tests can be configured to use different model types (reasoning, chat, fast) based on task requirements.
+  - **New**: International Content Testing: Validate language detection accuracy with multilingual content samples.
 - Continuous Integration
   - Configure CI to install PNPM, install dependencies, build, lint, and run tests using Turborepo tasks.
   - Cache node_modules and Turbo cache to speed up jobs.
   - **New**: CI should respect .gitignore patterns to prevent accidental commits of generated content.
   - **New**: CI should test both single and multi-model configuration scenarios.
+  - **New**: CI should validate language detection functionality across different writing systems.
 - **New**: Automated Testing with Enhanced Configuration
   - Installation scripts can be used to quickly set up test environments on different platforms.
   - Publishing scripts ensure consistent testing environments across development and production.
   - Repository organization patterns help maintain clean test environments.
   - **New**: Multi-Model Configuration Testing: CI should validate both legacy single-model and new multi-model configuration formats.
+  - **New**: Language Detection Testing: CI should test language detection accuracy with comprehensive content samples.
 
 **Section sources**
 - [packages/engine/src/test/simple.test.ts:1-64](file://packages/engine/src/test/simple.test.ts#L1-L64)
 - [packages/engine/src/llm/client.ts:58-111](file://packages/engine/src/llm/client.ts#L58-L111)
+- [packages/engine/src/story/bible.ts:8-50](file://packages/engine/src/story/bible.ts#L8-L50)
 
 ## Development Workflow
 - Local Setup
@@ -740,24 +858,29 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
   - **New**: Use installation scripts for rapid environment setup on Windows or Unix-like systems.
   - **New**: Follow standardized repository organization practices using .gitignore patterns.
   - **New**: Configure multi-model LLM setup using the enhanced CLI configuration system.
+  - **New**: Test language detection functionality with international content samples.
 - Running the CLI
   - Build the engine and CLI, then use the CLI binary to manage stories.
   - **New**: Use `nos config` to set up multi-model configuration with interactive prompts.
+  - **New**: Test language detection by creating stories with different writing systems.
 - Debugging
   - Enable verbose logging in the LLM client and pipeline steps.
   - Inspect persisted story state and chapter outputs to isolate issues.
   - **New**: Debug multi-model configuration issues using `nos config --show` to verify current setup.
+  - **New**: Debug language detection issues by examining detected language codes and character patterns.
 - Profiling
   - Measure generation latency per chapter and track token usage per provider.
   - Adjust model parameters and prompt sizes to optimize throughput.
   - **New**: Monitor multi-model performance differences between reasoning, chat, and fast models.
   - **New**: Track cost optimization benefits of task-based model selection.
   - **New**: Monitor repository organization impact on development workflow efficiency.
+  - **New**: Profile language detection performance with various content types and writing systems.
 - **New**: Cross-Platform Development
   - Use platform-appropriate installation and publishing scripts for consistent development experience.
   - Leverage automated scripts for environment setup and cleanup across different operating systems.
   - **New**: Maintain consistent repository organization patterns across all development environments.
-  - **New**: Test multi-model configuration across different platforms and Node.js versions.
+  - **New**: Test multi-model configuration and language detection across different platforms and Node.js versions.
+  - **New**: Validate international content generation across different operating systems and locales.
 
 **Section sources**
 - [package.json:5-11](file://package.json#L5-L11)
@@ -773,6 +896,8 @@ This guide outlines how to develop, test, and contribute to the Narrative Operat
 
 **Most significantly**, the enhanced multi-model LLM configuration system provides unprecedented flexibility in model selection and task optimization. The system now supports both single and complex multi-model setups with automatic task-based model selection, enabling optimal performance and cost efficiency across different generation tasks.
 
-These improvements significantly reduce the barrier to entry for contributors while maintaining reliable distribution of the Narrative Operating System across diverse development environments. The combination of automated tooling, enhanced configuration capabilities, and standardized organization practices creates a robust foundation for ongoing development and contribution to the project.
+**New**: The comprehensive language detection system represents a major advancement in international content generation, supporting multiple writing systems including Chinese, Japanese, Korean, Arabic, Russian, Thai, and Hindi. This system automatically detects content writing systems and applies appropriate cultural context to story generation, character creation, and narrative consistency checking.
 
-The current version numbers (CLI: 0.1.8, Engine: 0.1.5) indicate a stable initial release with comprehensive multi-model support, making it suitable for production use while maintaining room for future enhancements and optimizations.
+These improvements significantly reduce the barrier to entry for contributors while maintaining reliable distribution of the Narrative Operating System across diverse development environments. The combination of automated tooling, enhanced configuration capabilities, standardized organization practices, and comprehensive internationalization features creates a robust foundation for ongoing development and contribution to the project.
+
+The current version numbers (CLI: 0.1.8, Engine: 0.1.5) indicate a stable initial release with comprehensive multi-model support and advanced language detection capabilities, making it suitable for production use while maintaining room for future enhancements and optimizations in international content generation and cultural authenticity.

@@ -94,7 +94,7 @@ export {
 export { generateChapter, type GenerateChapterResult, type GenerateChapterOptions } from './pipeline/generateChapter.js';
 
 // Story
-export { createStoryBible, addCharacter, addPlotThread } from './story/bible.js';
+export { createStoryBible, addCharacter, addPlotThread, generateCharacters } from './story/bible.js';
 export { createStoryState, updateStoryState } from './story/state.js';
 export {
   createStructuredState,
