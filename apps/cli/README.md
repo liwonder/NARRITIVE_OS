@@ -28,7 +28,7 @@ nos continue <story-id>
 
 | Command | Description |
 |---------|-------------|
-| `nos init` | Create a new story |
+| `nos init` | Create a new story (interactive prompts) |
 | `nos generate <id>` | Generate next chapter |
 | `nos continue <id>` | Auto-generate remaining chapters |
 | `nos status [id]` | View story status |
@@ -39,7 +39,15 @@ nos continue <story-id>
 | `nos validate <id>` | Validate story consistency |
 | `nos export <id>` | Export story to markdown |
 | `nos delete <id>` | Delete a story |
-| `nos config` | Configure LLM settings |
+| `nos config` | Configure LLM settings (multi-model) |
+| `nos version` | Show version information |
+
+## Supported LLM Providers
+
+- **OpenAI** - GPT-4o, GPT-4o-mini, GPT-4-turbo
+- **DeepSeek** - deepseek-chat, deepseek-reasoner
+- **Alibaba Cloud** - Qwen models (qwen-max, qwen-plus, qwen-turbo, text-embedding-v3)
+- **ByteDance Ark** - Doubao models (doubao-pro-128k, doubao-lite-128k, doubao-embedding)
 
 ## Features
 

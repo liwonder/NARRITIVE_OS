@@ -18,13 +18,14 @@
 
 ## Update Summary
 **Changes Made**
-- Enhanced embedding provider system with multi-provider AI embedding support (OpenAI and DeepSeek)
-- Improved API key detection logic with automatic provider switching capabilities
-- Added comprehensive mock embedding fallback mechanisms for testing scenarios
+- Enhanced embedding provider system with comprehensive OpenAI embeddings integration
+- Added mock embedding fallback mechanisms for testing scenarios
+- Implemented provider detection through LLM client configuration system
+- Improved error handling with graceful degradation from real embeddings to mock embeddings
+- Added embedding dimension support (1536 dimensions for text-embedding-3-small)
 - Updated Vector Storage Implementation section to cover new embedding provider architecture
 - Enhanced Performance Considerations section with multi-provider capacity management strategies
 - Added new subsection on Multi-Provider Embedding Architecture
-- Updated code examples and diagrams to reflect dynamic provider switching behavior
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -44,7 +45,7 @@ The Vector Memory System is a sophisticated narrative memory management framewor
 
 The system operates on the principle that meaningful narrative content can be represented as high-dimensional vectors that capture semantic meaning, enabling similarity-based retrieval of relevant past experiences. By organizing memories into categories (events, characters, world, plot), the system provides both broad semantic recall and targeted categorical filtering for specific storytelling needs.
 
-**Updated** Enhanced with multi-provider AI embedding support that automatically detects and switches between OpenAI and DeepSeek APIs based on available credentials, providing robust fallback mechanisms and improved reliability for long-form narrative generation.
+**Updated** Enhanced with comprehensive multi-provider AI embedding support that automatically detects and switches between OpenAI and DeepSeek APIs based on available credentials, providing robust fallback mechanisms and improved reliability for long-form narrative generation.
 
 ## System Architecture
 
@@ -67,7 +68,6 @@ subgraph "Multi-Provider Embedding System"
 LLM[LLMClient]
 EMB[Embedding Provider]
 OPENAI[OpenAI API]
-DEEPSEEK[DeepSeek API]
 MOCK[Mock Embeddings]
 end
 subgraph "Data Types"
@@ -84,7 +84,6 @@ ME --> VS
 MR --> VS
 VS --> EMB
 EMB --> OPENAI
-EMB --> DEEPSEEK
 EMB --> MOCK
 GE --> ST
 GE --> BL
@@ -152,7 +151,7 @@ VectorStore --> MemorySearchResult : "returns"
 - [vectorStore.ts:19-161](file://packages/engine/src/memory/vectorStore.ts#L19-L161)
 
 **Section sources**
-- [vectorStore.ts:1-221](file://packages/engine/src/memory/vectorStore.ts#L1-L221)
+- [vectorStore.ts:1-237](file://packages/engine/src/memory/vectorStore.ts#L1-L237)
 
 ### MemoryRetriever Class
 
@@ -168,7 +167,7 @@ Client->>MR : retrieveForChapter(context, k)
 MR->>MR : generateContextualQuery()
 MR->>VS : searchSimilar(query, k*2)
 VS->>EMB : generateEmbedding(query)
-EMB->>EMB : Detect Provider (OpenAI/DeepSeek/Mock)
+EMB->>EMB : Detect Provider (OpenAI/Mock)
 EMB-->>VS : Embedding Vector
 VS-->>MR : MemorySearchResult[]
 MR->>MR : filterPastMemories()
@@ -214,25 +213,25 @@ ThreadLoop --> |No| Done
 
 ## Vector Storage Implementation
 
-### Multi-Provider Embedding Architecture
+### Comprehensive Embedding Provider Architecture
 
-The VectorStore now implements a sophisticated multi-provider embedding system that automatically detects and utilizes the most appropriate embedding service based on available credentials and configuration.
+The VectorStore now implements a sophisticated multi-provider embedding system that automatically detects and utilizes the most appropriate embedding service based on available credentials and configuration. The system prioritizes real embeddings from configured providers with graceful fallback to mock embeddings.
 
 ```mermaid
 flowchart TD
 Query[Text Input] --> CheckMock{"USE_MOCK_EMBEDDINGS?"}
 CheckMock --> |Yes| MockGen[generateMockEmbedding]
-CheckMock --> |No| CheckKeys[Check API Keys]
-CheckKeys --> OpenAIKey{OPENAI_API_KEY?}
-CheckKeys --> DeepSeekKey{DEEPSEEK_API_KEY?}
+CheckMock --> |No| CheckConfig[Check LLM Embedding Config]
+CheckConfig --> HasConfig{Embedding Config Found?}
+HasConfig --> |Yes| UseConfig[Use Configured Provider]
+HasConfig --> |No| CheckEnv[Check Environment Variables]
+CheckEnv --> OpenAIKey{OPENAI_API_KEY?}
 OpenAIKey --> |Yes| OpenAI[Use OpenAI Embeddings]
-OpenAIKey --> |No| DeepSeekKey
-DeepSeekKey --> |Yes| DeepSeek[Use DeepSeek Embeddings]
-DeepSeekKey --> |No| MockGen
-OpenAI --> TryAPI{API Success?}
+OpenAIKey --> |No| MockGen
+UseConfig --> TryAPI{API Success?}
 TryAPI --> |Yes| ReturnReal[Return Real Embedding]
 TryAPI --> |No| MockGen
-DeepSeek --> TryAPI2{API Success?}
+OpenAI --> TryAPI2{API Success?}
 TryAPI2 --> |Yes| ReturnReal2[Return Real Embedding]
 TryAPI2 --> |No| MockGen
 MockGen --> Deterministic[Seed-based Generation]
@@ -246,25 +245,27 @@ Store --> Complete([Embedding Ready])
 ```
 
 **Diagram sources**
-- [vectorStore.ts:125-161](file://packages/engine/src/memory/vectorStore.ts#L125-L161)
+- [vectorStore.ts:125-177](file://packages/engine/src/memory/vectorStore.ts#L125-L177)
 
 **Section sources**
-- [vectorStore.ts:125-161](file://packages/engine/src/memory/vectorStore.ts#L125-L161)
+- [vectorStore.ts:125-177](file://packages/engine/src/memory/vectorStore.ts#L125-L177)
 
 ### Enhanced Embedding Generation and Indexing
 
 The VectorStore implements a robust multi-provider embedding system that gracefully handles different AI services and provides comprehensive fallback mechanisms:
 
+- **Configured Provider Detection**: Uses LLM client's embedding configuration when available
 - **OpenAI Embeddings**: Uses `text-embedding-3-small` model when OpenAI API key is available
-- **DeepSeek Embeddings**: Automatically switches to DeepSeek when OpenAI key is unavailable but DeepSeek key is present
+- **Environment-Based Configuration**: Falls back to environment variables for API key detection
 - **Mock Embeddings**: Deterministic generation for testing without external API dependencies
 - **Automatic Fallback**: Graceful degradation from real embeddings to mock embeddings when APIs fail
+- **Error Handling**: Comprehensive error catching with logging and fallback mechanisms
 
 The system uses a 1536-dimensional embedding space optimized for the `text-embedding-3-small` model, with HNSW indexing providing efficient similarity search capabilities.
 
 **Section sources**
 - [vectorStore.ts:20-35](file://packages/engine/src/memory/vectorStore.ts#L20-L35)
-- [vectorStore.ts:125-161](file://packages/engine/src/memory/vectorStore.ts#L125-L161)
+- [vectorStore.ts:125-177](file://packages/engine/src/memory/vectorStore.ts#L125-L177)
 
 ### Dynamic Index Resizing Capabilities
 
@@ -301,8 +302,7 @@ The VectorStore implements robust persistence mechanisms for production deployme
 - **Story Isolation**: Factory pattern ensures separate stores per story ID
 
 **Section sources**
-- [vectorStore.ts:183-205](file://packages/engine/src/memory/vectorStore.ts#L183-L205)
-- [vectorStore.ts:208-221](file://packages/engine/src/memory/vectorStore.ts#L208-L221)
+- [vectorStore.ts:200-221](file://packages/engine/src/memory/vectorStore.ts#L200-L221)
 
 ## Memory Retrieval System
 
@@ -444,7 +444,7 @@ The VectorStore employs advanced multi-provider embedding strategies to ensure o
 
 - **Automatic Provider Detection**: The system automatically detects available API keys and selects the most appropriate embedding provider
 - **Graceful Degradation**: Real embeddings are used when available, with automatic fallback to mock embeddings when APIs fail
-- **Provider Switching**: Dynamic switching between OpenAI and DeepSeek based on credential availability and API success rates
+- **Provider Priority**: Configured providers take precedence over environment-based detection
 - **Environment-Based Configuration**: Flexible configuration through environment variables for different deployment scenarios
 
 ### Dynamic Capacity Management
@@ -473,11 +473,11 @@ The system implements intelligent multi-provider fallback mechanisms:
 - **Mock Embeddings**: Deterministic generation for testing environments without external API dependencies
 - **API Fallback**: Automatic switching to mock embeddings when external APIs fail or are unavailable
 - **Environment Control**: Configurable embedding generation through environment variables
-- **Provider Priority**: Automatic selection of OpenAI over DeepSeek when both are available
+- **Provider Priority**: Automatic selection of configured providers over environment variables
 
 **Section sources**
 - [vectorStore.ts:39-63](file://packages/engine/src/memory/vectorStore.ts#L39-L63)
-- [vectorStore.ts:125-161](file://packages/engine/src/memory/vectorStore.ts#L125-L161)
+- [vectorStore.ts:125-177](file://packages/engine/src/memory/vectorStore.ts#L125-L177)
 
 ## Testing and Validation
 
@@ -528,12 +528,12 @@ The testing framework supports flexible configuration through environment variab
 
 ## Conclusion
 
-The Vector Memory System represents a sophisticated approach to narrative memory management, combining advanced vector similarity search with structured canonical fact management, dynamic capacity management, and multi-provider embedding support. Its modular architecture enables seamless integration into larger story generation systems while maintaining flexibility for various use cases and deployment scenarios.
+The Vector Memory System represents a sophisticated approach to narrative memory management, combining advanced vector similarity search with structured canonical fact management, dynamic capacity management, and comprehensive multi-provider embedding support. Its modular architecture enables seamless integration into larger story generation systems while maintaining flexibility for various use cases and deployment scenarios.
 
 Key strengths of the system include:
 
-- **Robust Multi-Provider Embedding**: Automatic detection and utilization of OpenAI and DeepSeek APIs with graceful fallback to mock embeddings
-- **Dynamic Provider Switching**: Intelligent credential-based provider selection and automatic API failure handling
+- **Robust Multi-Provider Embedding**: Automatic detection and utilization of configured embedding providers with graceful fallback to mock embeddings
+- **Dynamic Provider Selection**: Intelligent credential-based provider selection with automatic API failure handling
 - **Advanced Vector Indexing**: Efficient similarity search using HNSW with configurable parameters
 - **Dynamic Capacity Management**: Automatic resizing capabilities that scale with memory requirements
 - **Flexible Embedding Generation**: Support for both real embeddings and deterministic mocks
@@ -541,6 +541,6 @@ Key strengths of the system include:
 - **Production-Ready Persistence**: Complete serialization and deserialization capabilities
 - **Comprehensive Testing**: Extensive test coverage ensuring reliability and correctness across multiple embedding providers
 
-The system's design supports both research and production deployment scenarios, with clear pathways for customization and extension. The addition of multi-provider embedding support significantly enhances reliability and accessibility for long-form narrative generation, making it suitable for extended story arcs and complex narrative structures across different AI service providers.
+The system's design supports both research and production deployment scenarios, with clear pathways for customization and extension. The addition of comprehensive embedding system integration significantly enhances reliability and accessibility for long-form narrative generation, making it suitable for extended story arcs and complex narrative structures across different AI service providers.
 
 Future enhancements could include advanced query expansion, multi-modal memory types, distributed storage capabilities, more sophisticated capacity prediction algorithms for optimal resource utilization, and expanded support for additional AI embedding providers.

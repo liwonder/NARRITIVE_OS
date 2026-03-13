@@ -91,7 +91,7 @@ export interface LLMProviderConfig {
 // Multi-model configuration for different task types
 export interface ModelConfig {
   name: string;
-  provider: 'openai' | 'deepseek' | string;
+  provider: 'openai' | 'deepseek' | 'alibaba' | 'ark' | string;
   apiKey: string;
   baseURL?: string;
   model: string;

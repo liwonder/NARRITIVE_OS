@@ -8,11 +8,11 @@ const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
 // Multi-model configuration interface
 interface ModelConfig {
   name: string;
-  provider: 'openai' | 'deepseek';
+  provider: 'openai' | 'deepseek' | 'alibaba' | 'ark';
   apiKey: string;
   baseURL?: string;
   model: string;
-  purpose: 'reasoning' | 'chat' | 'fast';
+  purpose: 'reasoning' | 'chat' | 'fast' | 'embedding';
 }
 
 interface MultiModelConfig {
@@ -22,7 +22,7 @@ interface MultiModelConfig {
 
 // Legacy single-model config for backward compatibility
 interface LegacyConfig {
-  provider: 'openai' | 'deepseek';
+  provider: 'openai' | 'deepseek' | 'alibaba' | 'ark';
   apiKey: string;
   model: string;
 }
@@ -32,6 +32,8 @@ type Config = LegacyConfig | MultiModelConfig;
 const PROVIDERS = [
   { name: 'OpenAI', value: 'openai', models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'] },
   { name: 'DeepSeek', value: 'deepseek', models: ['deepseek-chat', 'deepseek-reasoner'] },
+  { name: 'Alibaba Cloud (Qwen)', value: 'alibaba', models: ['qwen-max', 'qwen-plus', 'qwen-turbo', 'text-embedding-v3'] },
+  { name: 'ByteDance Ark', value: 'ark', models: ['doubao-pro-128k', 'doubao-lite-128k', 'doubao-embedding'] },
 ];
 
 function loadConfig(): Config | null {
@@ -123,35 +125,77 @@ export async function configCommand(showOnly = false) {
       default: provider === 'deepseek' ? 'deepseek-chat' : 'gpt-4o-mini',
     });
 
-    // Ask for embedding provider (DeepSeek doesn't support embeddings)
-    const useOpenAIEmbeddings = await confirm({
-      message: 'Use OpenAI for embeddings? (DeepSeek does not support embeddings)',
-      default: provider !== 'deepseek',
-    });
+    // Determine if provider supports embeddings natively
+    const supportsEmbeddings = provider === 'alibaba' || provider === 'ark' || provider === 'openai';
+    const needsSeparateEmbedding = provider === 'deepseek';
 
     let embeddingConfig: ModelConfig | undefined;
     
-    if (useOpenAIEmbeddings) {
-      const openAIEmbedKey = await password({
-        message: 'Enter OpenAI API key (for embeddings):',
-        mask: '*',
+    if (needsSeparateEmbedding) {
+      // DeepSeek doesn't support embeddings, ask for alternative
+      const useOpenAIEmbeddings = await confirm({
+        message: 'Use OpenAI for embeddings? (DeepSeek does not support embeddings)',
+        default: true,
       });
       
-      embeddingConfig = {
-        name: 'embedding',
-        provider: 'openai',
-        apiKey: openAIEmbedKey,
-        model: 'text-embedding-3-small',
-        purpose: 'fast',
-      };
+      if (useOpenAIEmbeddings) {
+        const openAIEmbedKey = await password({
+          message: 'Enter OpenAI API key (for embeddings):',
+          mask: '*',
+        });
+        
+        embeddingConfig = {
+          name: 'embedding',
+          provider: 'openai',
+          apiKey: openAIEmbedKey,
+          model: 'text-embedding-3-small',
+          purpose: 'embedding',
+        };
+      }
+    } else if (supportsEmbeddings) {
+      // Provider supports embeddings, ask if they want to use it
+      const useProviderEmbeddings = await confirm({
+        message: `Use ${provider === 'alibaba' ? 'Alibaba Cloud' : provider === 'ark' ? 'ByteDance Ark' : 'OpenAI'} for embeddings?`,
+        default: true,
+      });
+      
+      if (useProviderEmbeddings) {
+        const embedModel = provider === 'alibaba' 
+          ? 'text-embedding-v3' 
+          : provider === 'ark' 
+            ? 'doubao-embedding' 
+            : 'text-embedding-3-small';
+        
+        embeddingConfig = {
+          name: 'embedding',
+          provider: provider as 'openai' | 'alibaba' | 'ark',
+          apiKey,
+          model: embedModel,
+          purpose: 'embedding',
+        };
+      }
     }
 
-    const baseURL = provider === 'deepseek' ? 'https://api.deepseek.com' : undefined;
+    // Set baseURL based on provider
+    let baseURL: string | undefined;
+    switch (provider) {
+      case 'deepseek':
+        baseURL = 'https://api.deepseek.com';
+        break;
+      case 'alibaba':
+        baseURL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
+        break;
+      case 'ark':
+        baseURL = 'https://ark.cn-beijing.volces.com/api/v3';
+        break;
+      default:
+        baseURL = undefined;
+    }
 
     const models: ModelConfig[] = [
       {
         name: 'reasoning',
-        provider: provider as 'openai' | 'deepseek',
+        provider: provider as 'openai' | 'deepseek' | 'alibaba' | 'ark',
         apiKey,
         baseURL,
         model: reasoningModel,
@@ -159,7 +203,7 @@ export async function configCommand(showOnly = false) {
       },
       {
         name: 'chat',
-        provider: provider as 'openai' | 'deepseek',
+        provider: provider as 'openai' | 'deepseek' | 'alibaba' | 'ark',
         apiKey,
         baseURL,
         model: chatModel,
@@ -182,7 +226,10 @@ export async function configCommand(showOnly = false) {
     console.log(`  Reasoning: ${reasoningModel}`);
     console.log(`  Chat: ${chatModel}`);
     if (embeddingConfig) {
-      console.log(`  Embeddings: OpenAI (text-embedding-3-small)`);
+      const embedProvider = embeddingConfig.provider === 'alibaba' ? 'Alibaba Cloud' 
+        : embeddingConfig.provider === 'ark' ? 'ByteDance Ark' 
+        : 'OpenAI';
+      console.log(`  Embeddings: ${embedProvider} (${embeddingConfig.model})`);
     } else {
       console.log(`  Embeddings: Mock (no API configured)`);
     }
@@ -207,7 +254,7 @@ export async function configCommand(showOnly = false) {
       mask: '*',
     });
 
-    const config: LegacyConfig = { provider: provider as 'openai' | 'deepseek', model, apiKey };
+    const config: LegacyConfig = { provider: provider as 'openai' | 'deepseek' | 'alibaba' | 'ark', model, apiKey };
     saveConfig(config);
 
     console.log(`\n✅ Configuration saved for ${providerInfo.name}`);
@@ -233,6 +280,10 @@ export function applyConfig() {
         process.env.OPENAI_API_KEY = model.apiKey;
       } else if (model.provider === 'deepseek') {
         process.env.DEEPSEEK_API_KEY = model.apiKey;
+      } else if (model.provider === 'alibaba') {
+        process.env.ALIBABA_API_KEY = model.apiKey;
+      } else if (model.provider === 'ark') {
+        process.env.ARK_API_KEY = model.apiKey;
       }
     }
   } else {
@@ -243,6 +294,10 @@ export function applyConfig() {
       process.env.OPENAI_API_KEY = config.apiKey;
     } else if (config.provider === 'deepseek') {
       process.env.DEEPSEEK_API_KEY = config.apiKey;
+    } else if (config.provider === 'alibaba') {
+      process.env.ALIBABA_API_KEY = config.apiKey;
+    } else if (config.provider === 'ark') {
+      process.env.ARK_API_KEY = config.apiKey;
     }
   }
 }

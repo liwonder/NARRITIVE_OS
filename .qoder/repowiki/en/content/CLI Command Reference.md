@@ -27,6 +27,7 @@
 - [packages/engine/src/agents/stateUpdater.ts](file://packages/engine/src/agents/stateUpdater.ts)
 - [packages/engine/src/pipeline/generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts)
 - [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts)
+- [packages/engine/src/memory/vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts)
 - [apps/cli/package.json](file://apps/cli/package.json)
 - [package.json](file://package.json)
 - [PROGRESS.md](file://PROGRESS.md)
@@ -34,11 +35,12 @@
 
 ## Update Summary
 **Changes Made**
-- Enhanced the config command section to reflect the new multi-model configuration system with reasoning and chat model support
-- Added comprehensive documentation for the new multi-model setup with backward compatibility
-- Updated configuration display to show model purpose indicators (reasoning, chat, fast)
-- Enhanced troubleshooting section to cover multi-model configuration scenarios
-- Added practical examples demonstrating both single-model and multi-model workflows
+- Enhanced the config command section to reflect the new multi-model configuration system with reasoning, chat, and embedding model support
+- Added comprehensive documentation for the new multi-model setup with OpenAI and DeepSeek provider integration
+- Updated configuration display to show model purpose indicators (reasoning, chat, fast, embedding)
+- Enhanced troubleshooting section to cover multi-model configuration scenarios including embedding setup
+- Added practical examples demonstrating both single-model and multi-model workflows with embedding configuration
+- Updated LLM client documentation to reflect task-based model selection and embedding support
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -102,11 +104,12 @@ CMD_CONTINUE --> STORY_STATE
 CMD_STATE --> STRUCTURED_STATE["Structured State<br/>packages/engine/src/story/structuredState.ts"]
 CMD_STATE --> STATE_UPDATER["State Updater<br/>packages/engine/src/agents/stateUpdater.ts"]
 CMD_CONFIG --> ENGINE_CLIENT["LLM Client<br/>packages/engine/src/llm/client.ts"]
+CMD_CONFIG --> VECTOR_STORE["Vector Store<br/>packages/engine/src/memory/vectorStore.ts"]
 ```
 
 **Diagram sources**
 - [apps/cli/src/index.ts:1-154](file://apps/cli/src/index.ts#L1-L154)
-- [apps/cli/src/commands/config.ts:1-215](file://apps/cli/src/commands/config.ts#L1-L215)
+- [apps/cli/src/commands/config.ts:1-249](file://apps/cli/src/commands/config.ts#L1-L249)
 - [apps/cli/src/commands/init.ts:1-90](file://apps/cli/src/commands/init.ts#L1-L90)
 - [apps/cli/src/commands/generate.ts:1-70](file://apps/cli/src/commands/generate.ts#L1-L70)
 - [apps/cli/src/commands/status.ts:1-55](file://apps/cli/src/commands/status.ts#L1-L55)
@@ -123,12 +126,13 @@ CMD_CONFIG --> ENGINE_CLIENT["LLM Client<br/>packages/engine/src/llm/client.ts"]
 - [apps/cli/src/commands/regenerate.ts:1-68](file://apps/cli/src/commands/regenerate.ts#L1-L68)
 - [apps/cli/src/commands/hint.ts:1-73](file://apps/cli/src/commands/hint.ts#L1-L73)
 - [apps/cli/src/config/store.ts:1-195](file://apps/cli/src/config/store.ts#L1-L195)
-- [packages/engine/src/types/index.ts:1-149](file://packages/engine/src/types/index.ts#L1-L149)
+- [packages/engine/src/types/index.ts:1-150](file://packages/engine/src/types/index.ts#L1-L150)
 - [packages/engine/src/story/bible.ts:1-73](file://packages/engine/src/story/bible.ts#L1-L73)
 - [packages/engine/src/story/state.ts:1-30](file://packages/engine/src/story/state.ts#L1-L30)
 - [packages/engine/src/story/structuredState.ts:1-235](file://packages/engine/src/story/structuredState.ts#L1-L235)
 - [packages/engine/src/agents/stateUpdater.ts:1-193](file://packages/engine/src/agents/stateUpdater.ts#L1-L193)
-- [packages/engine/src/llm/client.ts:1-200](file://packages/engine/src/llm/client.ts#L1-L200)
+- [packages/engine/src/llm/client.ts:1-211](file://packages/engine/src/llm/client.ts#L1-L211)
+- [packages/engine/src/memory/vectorStore.ts:1-237](file://packages/engine/src/memory/vectorStore.ts#L1-L237)
 
 **Section sources**
 - [apps/cli/src/index.ts:1-154](file://apps/cli/src/index.ts#L1-L154)
@@ -142,30 +146,32 @@ CMD_CONFIG --> ENGINE_CLIENT["LLM Client<br/>packages/engine/src/llm/client.ts"]
 - **New**: Structured state persistence system automatically initializes and manages character and plot thread states with comprehensive narrative tracking.
 - **New**: Interactive hints system provides contextual guidance and quick tips based on story progress and user context.
 - **New**: Enhanced init command with interactive prompts for story creation, replacing the previous static parameter approach.
-- **New**: Multi-model configuration system supporting separate reasoning and chat models with backward compatibility for single-model setups.
+- **New**: Multi-model configuration system supporting separate reasoning, chat, and embedding models with backward compatibility for single-model setups.
+- **New**: Task-based model selection system with automatic model assignment based on operation type (generation/planning, validation/summarization, extraction, embedding).
 
 Key runtime behaviors:
 - Interactive configuration via inquirer prompts.
 - Interactive story creation via inquirer prompts for title, genre, theme, setting, tone, premise, and target chapters.
 - Local persistence under ~/.narrative-os/{config.json, stories/<id>/} with automatic structured state initialization.
 - Structured state includes character emotional states, locations, relationships, plot thread tensions, and unresolved questions.
-- Memory systems support vector-based narrative recall and semantic search.
+- Memory systems support vector-based narrative recall and semantic search with OpenAI embeddings.
 - Exit codes: non-zero on errors (e.g., missing story ID, invalid chapter numbers).
 - **New**: Contextual help system provides intelligent suggestions based on story state and user actions.
-- **New**: Multi-model LLM client automatically selects appropriate models based on task type (reasoning for generation/planning, chat for validation/summarization).
+- **New**: Multi-model LLM client automatically selects appropriate models based on task type with embedding support.
 
 **Section sources**
 - [apps/cli/src/index.ts:11-53](file://apps/cli/src/index.ts#L11-L53)
 - [apps/cli/src/commands/config.ts:38-182](file://apps/cli/src/commands/config.ts#L38-L182)
 - [apps/cli/src/config/store.ts:15-49](file://apps/cli/src/config/store.ts#L15-L49)
-- [packages/engine/src/types/index.ts:1-149](file://packages/engine/src/types/index.ts#L1-L149)
+- [packages/engine/src/types/index.ts:1-150](file://packages/engine/src/types/index.ts#L1-L150)
 - [packages/engine/src/story/structuredState.ts:23-85](file://packages/engine/src/story/structuredState.ts#L23-L85)
 - [apps/cli/src/commands/hint.ts:3-47](file://apps/cli/src/commands/hint.ts#L3-L47)
 - [apps/cli/src/commands/init.ts:17-64](file://apps/cli/src/commands/init.ts#L17-L64)
 - [packages/engine/src/llm/client.ts:39-47](file://packages/engine/src/llm/client.ts#L39-L47)
+- [packages/engine/src/memory/vectorStore.ts:1-237](file://packages/engine/src/memory/vectorStore.ts#L1-L237)
 
 ## Architecture Overview
-The CLI orchestrates story lifecycle operations backed by the engine with enhanced structured state management and comprehensive story management capabilities. Configuration is applied at startup and injected into environment variables for downstream LLM clients, while structured state provides detailed narrative tracking and memory systems enable sophisticated narrative recall.
+The CLI orchestrates story lifecycle operations backed by the engine with enhanced structured state management and comprehensive story management capabilities. Configuration is applied at startup and injected into environment variables for downstream LLM clients, while structured state provides detailed narrative tracking and memory systems enable sophisticated narrative recall with embedding support.
 
 ```mermaid
 sequenceDiagram
@@ -176,12 +182,13 @@ participant Config as "config.ts"
 participant Store as "store.ts"
 participant Engine as "Engine (types/state/bible/structuredState)"
 participant LLMClient as "LLM Client"
+participant VectorStore as "Vector Store"
 User->>CLI : "nos config"
 CLI->>Config : "configCommand()"
 Config->>Config : "loadConfig()/select()/password()"
 Config->>Store : "saveConfig()"
 Store-->>Config : "write ~/.narrative-os/config.json"
-Config-->>User : "Saved provider/model"
+Config-->>User : "Saved provider/model/embedding"
 User->>CLI : "nos init [options]"
 CLI->>Init : "initCommand()"
 Init->>Init : "Interactive prompts for title, genre, theme, setting, tone, premise, chapters"
@@ -202,6 +209,9 @@ User->>CLI : "nos generate <story-id>"
 CLI->>LLMClient : "complete(prompt, { task : 'generation' })"
 LLMClient->>LLMClient : "select reasoning model for generation"
 LLMClient-->>User : "Generated chapter"
+User->>VectorStore : "VectorStore operations"
+VectorStore->>VectorStore : "Generate embeddings using embedding model"
+VectorStore-->>User : "Memory search results"
 ```
 
 **Diagram sources**
@@ -216,13 +226,13 @@ LLMClient-->>User : "Generated chapter"
 - [apps/cli/src/commands/init.ts:17-79](file://apps/cli/src/commands/init.ts#L17-L79)
 - [packages/engine/src/llm/client.ts:39-47](file://packages/engine/src/llm/client.ts#L39-L47)
 - [packages/engine/src/llm/client.ts:113-125](file://packages/engine/src/llm/client.ts#L113-L125)
+- [packages/engine/src/memory/vectorStore.ts:125-177](file://packages/engine/src/memory/vectorStore.ts#L125-L177)
 
 ## Detailed Component Analysis
 
 ### Command: nos config
 Purpose
-- Interactively configure the LLM provider, model(s), and API key(s). Supports both single-model and multi-model configurations with backward compatibility. Persists configuration to ~/.narrative-os/config.json and applies environment variables for the LLM client.
-- **New**: Can display current configuration without interactive setup using the `--show` flag with enhanced model purpose indicators.
+- Interactively configure the LLM provider, model(s), and API key(s). Supports both single-model and multi-model configurations with backward compatibility. Persists configuration to ~/.narrative-os/config.json and applies environment variables for the LLM client. **New**: Now supports separate reasoning, chat, and embedding models with OpenAI and DeepSeek provider integration.
 
 Syntax
 - nos config
@@ -234,7 +244,9 @@ Options
 Behavior
 - **Interactive mode** (default): Prompts for provider selection (OpenAI or DeepSeek), model selection based on provider, and API key (masked), then writes configuration.
 - **Display mode** (`--show`): Shows current configuration without prompting for interactive setup.
-- **New**: Multi-model configuration: User can choose to configure separate reasoning and chat models for different tasks.
+- **New**: Multi-model configuration: User can choose to configure separate reasoning and chat models for different tasks, plus optional embedding model for memory operations.
+- **New**: Provider integration: Supports OpenAI with GPT models and DeepSeek with specialized reasoning models.
+- **New**: Embedding configuration: Optional OpenAI embeddings setup for vector memory operations.
 - **New**: Backward compatibility: Automatically converts legacy single-model configurations to multi-model format.
 - Writes configuration and prints a confirmation summary in interactive mode.
 
@@ -245,6 +257,7 @@ Environment variables set
 - **New**: LLM_MODELS_CONFIG: JSON-encoded multi-model configuration for the LLM client
 - **Legacy**: LLM_PROVIDER, LLM_MODEL, OPENAI_API_KEY (when provider is OpenAI), DEEPSEEK_API_KEY (when provider is DeepSeek)
 - **New**: Individual API keys are also set for backward compatibility
+- **New**: Embedding model configuration accessible via LLM client for vector memory operations
 
 Exit codes
 - 0 on success; non-zero on IO or prompt failures.
@@ -252,15 +265,17 @@ Exit codes
 Common usage
 - Initial setup after installing the CLI.
 - **New**: Check current configuration without changing it using `nos config --show`.
-- **New**: Configure multi-model setup for advanced reasoning and chat separation.
+- **New**: Configure multi-model setup for advanced reasoning and chat separation with optional embeddings.
+- **New**: Set up embedding model for memory operations using OpenAI embeddings.
 
 Advanced usage
 - Re-run to change provider or model without manual edits.
 - Combine with CI setup by exporting environment variables prior to invoking nos generate/continue.
 - **New**: Use `nos config --show` in scripts to verify configuration before running story generation commands.
 - **New**: Multi-model configurations automatically integrate with the LLM client's task-based model selection.
+- **New**: Embedding configuration enables vector memory operations for advanced narrative recall.
 
-**Updated** Enhanced with multi-model configuration support and improved configuration display
+**Updated** Enhanced with multi-model configuration support, provider integration, and embedding setup
 
 **Section sources**
 - [apps/cli/src/index.ts:32-39](file://apps/cli/src/index.ts#L32-L39)
@@ -269,6 +284,7 @@ Advanced usage
 - [apps/cli/src/commands/config.ts:100-181](file://apps/cli/src/commands/config.ts#L100-L181)
 - [apps/cli/package.json:12-16](file://apps/cli/package.json#L12-L16)
 - [packages/engine/src/llm/client.ts:58-78](file://packages/engine/src/llm/client.ts#L58-L78)
+- [packages/engine/src/memory/vectorStore.ts:125-177](file://packages/engine/src/memory/vectorStore.ts#L125-L177)
 
 ### Command: nos init
 Purpose
@@ -336,6 +352,7 @@ Behavior
 - Builds a GenerationContext with target word count and invokes the engine pipeline.
 - **New**: Integrates structured state updates through the StateUpdater agent.
 - **New**: Uses multi-model LLM client with task-based model selection (reasoning model for generation).
+- **New**: Embedding operations supported for vector memory integration.
 - Saves updated state and chapters; prints chapter details and progress.
 - On failure, logs an error and exits with non-zero code.
 
@@ -392,6 +409,7 @@ Behavior
 - **Enhanced**: Automatically initializes structured state if it doesn't exist.
 - Iteratively generates chapters, integrating structured state updates through the StateUpdater agent.
 - **New**: Uses multi-model LLM client with task-based model selection for optimal performance.
+- **New**: Embedding operations supported for vector memory integration.
 - Saving state and printing per-chapter feedback.
 - On any failure, logs the error and exits with non-zero code.
 
@@ -589,7 +607,7 @@ Example
 
 ### Command: nos memories <story-id> [query]
 Purpose
-- Search or browse narrative memories stored in the vector memory system.
+- Search or browse narrative memories stored in the vector memory system with embedding support.
 
 Syntax
 - nos memories <story-id> [query]
@@ -598,6 +616,7 @@ Behavior
 - Loads vector store data for the target story.
 - Without query: lists all memories grouped by category with sample excerpts.
 - With query: searches for semantically similar memories and displays relevance scores.
+- **New**: Uses configured embedding model for vector memory operations.
 - Shows memory categories, chapter numbers, and content excerpts.
 - Handles cases where no memories exist for the story.
 
@@ -611,6 +630,7 @@ Example
 **Section sources**
 - [apps/cli/src/index.ts:130-136](file://apps/cli/src/index.ts#L130-L136)
 - [apps/cli/src/commands/memories.ts:1-66](file://apps/cli/src/commands/memories.ts#L1-L66)
+- [packages/engine/src/memory/vectorStore.ts:125-177](file://packages/engine/src/memory/vectorStore.ts#L125-L177)
 
 ### Command: nos validate <story-id>
 Purpose
@@ -648,6 +668,7 @@ Behavior
 - Initializes or loads vector store for memory consistency.
 - Creates generation context based on state before the target chapter.
 - **New**: Uses multi-model LLM client with reasoning model for regeneration.
+- **New**: Embedding operations supported for vector memory integration.
 - Generates replacement chapter with canonical validation.
 - Replaces the old chapter and updates story data.
 - Displays regeneration results including new title, word count, and any violations.
@@ -737,12 +758,13 @@ CMD_CONTINUE --> STORY_STATE
 CMD_STATE --> STRUCTURED_STATE["engine/story/structuredState.ts"]
 CMD_STATE --> STATE_UPDATER["engine/agents/stateUpdater.ts"]
 CMD_CONFIG --> ENGINE_CLIENT["engine/llm/client.ts"]
+CMD_CONFIG --> VECTOR_STORE["engine/memory/vectorStore.ts"]
 STORE --> GENERATE_PIPELINE["engine/pipeline/generateChapter.ts"]
 ```
 
 **Diagram sources**
 - [apps/cli/src/index.ts:1-154](file://apps/cli/src/index.ts#L1-L154)
-- [apps/cli/src/commands/config.ts:1-215](file://apps/cli/src/commands/config.ts#L1-L215)
+- [apps/cli/src/commands/config.ts:1-249](file://apps/cli/src/commands/config.ts#L1-L249)
 - [apps/cli/src/commands/init.ts:1-90](file://apps/cli/src/commands/init.ts#L1-L90)
 - [apps/cli/src/commands/generate.ts:1-70](file://apps/cli/src/commands/generate.ts#L1-L70)
 - [apps/cli/src/commands/status.ts:1-55](file://apps/cli/src/commands/status.ts#L1-L55)
@@ -759,19 +781,20 @@ STORE --> GENERATE_PIPELINE["engine/pipeline/generateChapter.ts"]
 - [apps/cli/src/commands/regenerate.ts:1-68](file://apps/cli/src/commands/regenerate.ts#L1-L68)
 - [apps/cli/src/commands/hint.ts:1-73](file://apps/cli/src/commands/hint.ts#L1-L73)
 - [apps/cli/src/config/store.ts:1-195](file://apps/cli/src/config/store.ts#L1-L195)
-- [packages/engine/src/types/index.ts:1-149](file://packages/engine/src/types/index.ts#L1-L149)
+- [packages/engine/src/types/index.ts:1-150](file://packages/engine/src/types/index.ts#L1-L150)
 - [packages/engine/src/story/bible.ts:1-73](file://packages/engine/src/story/bible.ts#L1-L73)
 - [packages/engine/src/story/state.ts:1-30](file://packages/engine/src/story/state.ts#L1-L30)
 - [packages/engine/src/story/structuredState.ts:1-235](file://packages/engine/src/story/structuredState.ts#L1-L235)
 - [packages/engine/src/agents/stateUpdater.ts:1-193](file://packages/engine/src/agents/stateUpdater.ts#L1-L193)
 - [packages/engine/src/pipeline/generateChapter.ts:1-108](file://packages/engine/src/pipeline/generateChapter.ts#L1-L108)
-- [packages/engine/src/llm/client.ts:1-200](file://packages/engine/src/llm/client.ts#L1-L200)
+- [packages/engine/src/llm/client.ts:1-211](file://packages/engine/src/llm/client.ts#L1-L211)
+- [packages/engine/src/memory/vectorStore.ts:1-237](file://packages/engine/src/memory/vectorStore.ts#L1-L237)
 
 **Section sources**
 - [apps/cli/src/index.ts:1-154](file://apps/cli/src/index.ts#L1-L154)
-- [apps/cli/src/commands/config.ts:1-215](file://apps/cli/src/commands/config.ts#L1-L215)
+- [apps/cli/src/commands/config.ts:1-249](file://apps/cli/src/commands/config.ts#L1-L249)
 - [apps/cli/src/config/store.ts:1-195](file://apps/cli/src/config/store.ts#L1-L195)
-- [packages/engine/src/types/index.ts:1-149](file://packages/engine/src/types/index.ts#L1-L149)
+- [packages/engine/src/types/index.ts:1-150](file://packages/engine/src/types/index.ts#L1-L150)
 
 ## Performance Considerations
 - Each nos generate invocation performs disk I/O to load/save story data; batching via nos continue reduces overhead.
@@ -781,6 +804,8 @@ STORE --> GENERATE_PIPELINE["engine/pipeline/generateChapter.ts"]
 - **New**: Validation operations scale with chapter count and constraint complexity; consider running selectively during development.
 - **New**: Multi-model configuration adds negligible overhead as models are cached in memory.
 - **New**: Task-based model selection ensures optimal performance by using appropriate models for each operation type.
+- **New**: Embedding operations use dedicated embedding models for vector memory operations.
+- **New**: Provider-specific optimizations (DeepSeek reasoning models, OpenAI embeddings) improve performance for specialized tasks.
 - Target word count is fixed for generation; adjust story length via --chapters during init to control total work.
 - Network latency dominates LLM calls; consider rate limits and provider quotas.
 - For large-scale automation, cache configuration and reuse environment variables to avoid repeated file reads.
@@ -789,6 +814,7 @@ STORE --> GENERATE_PIPELINE["engine/pipeline/generateChapter.ts"]
 - **New**: Configuration display operation is extremely fast as it only reads from local file system without any interactive prompts.
 - **New**: Interactive prompts are asynchronous and provide immediate feedback, making the CLI feel responsive even with user input.
 - **New**: Multi-model LLM client caches providers and models for efficient access during story generation.
+- **New**: Embedding model caching improves vector memory performance for repeated operations.
 
 ## Troubleshooting Guide
 Common issues and resolutions
@@ -800,7 +826,13 @@ Common issues and resolutions
   - Resolution: Run nos config to set provider, model, and API key.
 - **New**: Multi-model configuration issues
   - Cause: Corrupted or incomplete multi-model configuration.
-  - Resolution: Run `nos config` to reconfigure; use `nos config --show` to verify setup; check that both reasoning and chat models are properly configured.
+  - Resolution: Run `nos config` to reconfigure; use `nos config --show` to verify setup; check that both reasoning and chat models are properly configured; ensure embedding model is set if needed.
+- **New**: Provider-specific issues
+  - Cause: DeepSeek API key problems or OpenAI API key problems.
+  - Resolution: Verify API keys for selected provider; check provider-specific model availability; ensure correct base URLs for DeepSeek.
+- **New**: Embedding configuration issues
+  - Cause: Missing OpenAI API key for embeddings or DeepSeek not supporting embeddings.
+  - Resolution: Use `nos config --show` to check embedding configuration; if using DeepSeek, configure OpenAI separately for embeddings; verify embedding model availability.
 - **New**: Interactive prompt failures
   - Cause: Terminal not supporting interactive input or interrupted prompts.
   - Resolution: Use parameter-driven mode (e.g., `nos init --title "Story" --genre "Fantasy"`) or fix terminal environment.
@@ -809,7 +841,7 @@ Common issues and resolutions
   - Resolution: Run `nos config --show` to see current configuration status; if empty, run `nos config` to set up.
 - **New**: Model purpose confusion
   - Cause: Unclear which model is used for which task.
-  - Resolution: Use `nos config --show` to see model purposes; reasoning models are used for generation/planning, chat models for validation/summarization.
+  - Resolution: Use `nos config --show` to see model purposes; reasoning models are used for generation/planning, chat models for validation/summarization, embedding models for vector memory operations.
 - Generation failures
   - Cause: LLM API errors, network issues, or invalid context.
   - Resolution: Verify API credentials; retry; inspect recent summaries via nos status; reduce concurrency.
@@ -823,8 +855,8 @@ Common issues and resolutions
   - Cause: Legacy stories created before structured state feature.
   - Resolution: Run nos generate or nos continue on the story; it will automatically initialize structured state.
 - **New**: Memory system issues
-  - Cause: Missing or corrupted vector-store.json.
-  - Resolution: Run nos regenerate on problematic chapters to rebuild memory data; or delete vector-store.json to reset.
+  - Cause: Missing or corrupted vector-store.json or embedding model problems.
+  - Resolution: Run nos regenerate on problematic chapters to rebuild memory data; check embedding configuration; verify OpenAI API key if using embeddings.
 - **New**: Validation failures
   - Cause: Canon violations or constraint graph issues.
   - Resolution: Review validation output; fix narrative inconsistencies; run nos validate again to confirm resolution.
@@ -850,12 +882,12 @@ Exit codes summary
 - [apps/cli/src/commands/export.ts:7-10](file://apps/cli/src/commands/export.ts#L7-L10)
 
 ## Conclusion
-The nos CLI provides a comprehensive and powerful workflow for creating, generating, managing, and validating stories powered by the Narrative Operating System engine. With the addition of 12 new commands, enhanced structured state persistence, interactive hints system, sophisticated memory management, the new interactive init command with dynamic user prompts, and the revolutionary multi-model configuration system with separate reasoning and chat models, it now offers advanced narrative tracking capabilities, comprehensive story management, intelligent assistance, multi-model performance optimization, and an intuitive user experience while maintaining both beginner-friendly workflows and advanced automation scenarios.
+The nos CLI provides a comprehensive and powerful workflow for creating, generating, managing, and validating stories powered by the Narrative Operating System engine. With the addition of 12 new commands, enhanced structured state persistence, interactive hints system, sophisticated memory management, the new interactive init command with dynamic user prompts, and the revolutionary multi-model configuration system with separate reasoning, chat, and embedding models, it now offers advanced narrative tracking capabilities, comprehensive story management, intelligent assistance, multi-model performance optimization, embedding support for vector memory operations, and an intuitive user experience while maintaining both beginner-friendly workflows and advanced automation scenarios.
 
 ## Appendices
 
 ### Data Model Overview
-The CLI operates on core engine types that define story structure and generation context, now enhanced with structured state management and memory systems.
+The CLI operates on core engine types that define story structure and generation context, now enhanced with structured state management, memory systems, and multi-model configuration.
 
 ```mermaid
 classDiagram
@@ -879,6 +911,7 @@ class CharacterProfile {
 +string role
 +string[] personality
 +string[] goals
++string background?
 }
 class PlotThread {
 +string id
@@ -945,13 +978,13 @@ class GenerationContext {
 +targetWordCount number
 }
 class VectorMemory {
-+string id
++number id
 +string storyId
 +string content
 +string category
 +number chapterNumber
-+number[] embedding
-+Date createdAt
++number[] embedding?
++Date timestamp
 }
 class ConstraintGraph {
 +Map~string, ConstraintNode~ nodes
@@ -964,9 +997,9 @@ class ModelConfig {
 +string name
 +string provider
 +string apiKey
-+string baseURL
++string baseURL?
 +string model
-+'reasoning'|'chat'|'fast' purpose
++'reasoning'|'chat'|'fast'|'embedding' purpose
 }
 class MultiModelConfig {
 +ModelConfig[] models
@@ -979,6 +1012,20 @@ class LLMClient {
 +complete(prompt, config)
 +completeJSON(prompt, config)
 +getAvailableModels()
++getEmbeddingConfig()
+}
+class VectorStore {
++HierarchicalNSW index
++Map~number, NarrativeMemory~ memories
++number dimension
++string storyId
++number nextId
++initialize(maxElements)
++addMemory(memory)
++searchSimilar(query, k)
++searchByCategory(query, category, k)
++serialize()
++load(data)
 }
 StoryBible "1" o-- "many" CharacterProfile
 StoryBible "1" o-- "many" PlotThread
@@ -991,15 +1038,16 @@ VectorMemory --> StoryBible
 ConstraintGraph --> StoryBible
 LLMClient --> ModelConfig
 MultiModelConfig --> ModelConfig
+VectorStore --> VectorMemory
 ```
 
 **Diagram sources**
-- [packages/engine/src/types/index.ts:1-149](file://packages/engine/src/types/index.ts#L1-L149)
+- [packages/engine/src/types/index.ts:1-150](file://packages/engine/src/types/index.ts#L1-L150)
 - [packages/engine/src/story/structuredState.ts:23-235](file://packages/engine/src/story/structuredState.ts#L23-L235)
-- [packages/engine/src/memory/vectorStore.ts:1-200](file://packages/engine/src/memory/vectorStore.ts#L1-L200)
+- [packages/engine/src/memory/vectorStore.ts:1-237](file://packages/engine/src/memory/vectorStore.ts#L1-L237)
 - [packages/engine/src/constraints/constraintGraph.ts:1-150](file://packages/engine/src/constraints/constraintGraph.ts#L1-L150)
-- [packages/engine/src/types/index.ts:92-104](file://packages/engine/src/types/index.ts#L92-L104)
-- [packages/engine/src/llm/client.ts:49-190](file://packages/engine/src/llm/client.ts#L49-L190)
+- [packages/engine/src/types/index.ts:92-113](file://packages/engine/src/types/index.ts#L92-L113)
+- [packages/engine/src/llm/client.ts:49-201](file://packages/engine/src/llm/client.ts#L49-L201)
 
 ### Storage Layout
 Stories are persisted under ~/.narrative-os/stories/<id> with the following files:
@@ -1007,7 +1055,7 @@ Stories are persisted under ~/.narrative-os/stories/<id> with the following file
 - state.json: StoryState
 - chapters.json: Chapter[]
 - **New**: structured-state.json: StoryStructuredState (automatically initialized)
-- **New**: vector-store.json: VectorStore data (for memory)
+- **New**: vector-store.json: VectorStore data (for memory with embeddings)
 - **New**: constraint-graph.json: ConstraintGraph data (for validation)
 - canon.json: CanonStore (optional, extracted if missing)
 - **New**: command-history.json: Command execution history for hints system
@@ -1033,14 +1081,15 @@ Power-user techniques
 - Automation script: loop nos generate until completion; handle exit code 0
 - CI integration: pre-set environment variables for providers; run nos continue in a job
 - **New**: Advanced narrative tracking: monitor character development and plot thread progression through structured state
-- **New**: Memory management: search relevant story elements using nos memories
+- **New**: Memory management: search relevant story elements using nos memories with embedding support
 - **New**: Quality assurance: validate story consistency with nos validate
 - **New**: Story management: clone templates with nos clone, export finished works with nos export
 - **New**: Chapter correction: regenerate specific chapters with nos regenerate
 - **New**: Configuration verification: use `nos config --show` in deployment scripts to verify environment setup
 - **New**: Interactive workflow optimization: combine interactive prompts with parameter overrides for partial automation
-- **New**: Multi-model optimization: leverage separate reasoning and chat models for best performance
+- **New**: Multi-model optimization: leverage separate reasoning, chat, and embedding models for best performance
 - **New**: Task-based model selection: understand how different models are automatically selected for different operations
+- **New**: Embedding configuration: set up OpenAI embeddings for vector memory operations
 
 **Section sources**
 - [PROGRESS.md:126-137](file://PROGRESS.md#L126-L137)
@@ -1049,6 +1098,7 @@ Power-user techniques
 - [apps/cli/src/commands/hint.ts:25-46](file://apps/cli/src/commands/hint.ts#L25-L46)
 - [apps/cli/src/commands/init.ts:17-79](file://apps/cli/src/commands/init.ts#L17-L79)
 - [packages/engine/src/llm/client.ts:39-47](file://packages/engine/src/llm/client.ts#L39-L47)
+- [packages/engine/src/memory/vectorStore.ts:125-177](file://packages/engine/src/memory/vectorStore.ts#L125-L177)
 
 ### Interactive Prompts System Features
 **New**: The enhanced CLI now provides a comprehensive interactive prompts system for story creation:
@@ -1093,17 +1143,18 @@ Power-user techniques
 - [apps/cli/src/commands/hint.ts:49-73](file://apps/cli/src/commands/hint.ts#L49-L73)
 
 ### Memory System Capabilities
-**New**: The CLI integrates advanced memory management for narrative recall:
+**New**: The CLI integrates advanced memory management for narrative recall with embedding support:
 
 - **Vector Storage**: Semantic memory storage with embeddings for relevant content
 - **Search Functionality**: Query-based retrieval of narrative elements
 - **Category Organization**: Automatic grouping of memories by narrative categories
 - **Chapter Association**: Links memories to specific story chapters
 - **Relevance Scoring**: Provides confidence ratings for memory matches
+- **Embedding Integration**: Uses configured embedding models for vector operations
 
 **Section sources**
 - [apps/cli/src/commands/memories.ts:1-66](file://apps/cli/src/commands/memories.ts#L1-L66)
-- [packages/engine/src/memory/vectorStore.ts:1-200](file://packages/engine/src/memory/vectorStore.ts#L1-L200)
+- [packages/engine/src/memory/vectorStore.ts:1-237](file://packages/engine/src/memory/vectorStore.ts#L1-L237)
 
 ### Validation and Quality Assurance
 **New**: Comprehensive validation system ensures narrative consistency:
@@ -1123,7 +1174,7 @@ Power-user techniques
 **New**: The CLI now provides a convenient way to display current configuration without interactive setup:
 
 - **Non-Interactive Display**: The `--show` flag allows users to quickly check their current configuration
-- **Model Purpose Indicators**: Shows reasoning, chat, and fast model purposes with clear labeling
+- **Model Purpose Indicators**: Shows reasoning, chat, fast, and embedding model purposes with clear labeling
 - **Multi-Model Visualization**: Displays all configured models with their purposes and providers
 - **Immediate Feedback**: Shows provider, model, and API key status without any prompts
 - **File Path Information**: Displays the exact location of the configuration file
@@ -1139,28 +1190,30 @@ Power-user techniques
 **New**: The enhanced config command provides multiple configuration modes:
 
 - **Multi-Model Setup**: Interactive prompts for choosing reasoning and chat models with provider selection
-- **Single-Model Compatibility**: Automatic conversion from legacy single-model configurations
-- **Backward Compatibility**: Maintains support for existing LLM_PROVIDER/LLM_MODEL environment variables
-- **Non-Interactive Display**: `nos config --show` provides immediate configuration overview
-- **Model Purpose Management**: Clear indication of model purposes (reasoning, chat, fast)
+- **Embedding Configuration**: Optional OpenAI embeddings setup for vector memory operations
 - **Provider Integration**: Supports OpenAI and DeepSeek with appropriate model recommendations
+- **Backward Compatibility**: Automatic conversion from legacy single-model configurations
+- **Non-Interactive Display**: `nos config --show` provides immediate configuration overview
+- **Model Purpose Management**: Clear indication of model purposes (reasoning, chat, fast, embedding)
 - **Flexible Integration**: Works seamlessly with automation scripts and CI/CD pipelines
 
 **Section sources**
 - [apps/cli/src/commands/config.ts:55-182](file://apps/cli/src/commands/config.ts#L55-L182)
 - [apps/cli/src/index.ts:32-39](file://apps/cli/src/index.ts#L32-L39)
 - [packages/engine/src/llm/client.ts:58-111](file://packages/engine/src/llm/client.ts#L58-L111)
+- [packages/engine/src/memory/vectorStore.ts:125-177](file://packages/engine/src/memory/vectorStore.ts#L125-L177)
 
 ### Multi-Model Configuration Features
 **New**: Revolutionary multi-model configuration system:
 
-- **Separate Model Types**: Distinct reasoning models for complex creative tasks and chat models for validation
-- **Task-Based Selection**: Automatic model selection based on operation type (generation/planning vs validation/summarization)
+- **Separate Model Types**: Distinct reasoning models for complex creative tasks, chat models for validation, and embedding models for vector memory
+- **Task-Based Selection**: Automatic model selection based on operation type (generation/planning vs validation/summarization vs embedding)
 - **Backward Compatibility**: Seamless integration with existing single-model configurations
 - **Environment Integration**: Multi-model configuration stored in LLM_MODELS_CONFIG environment variable
 - **Provider Support**: OpenAI and DeepSeek with appropriate model recommendations
-- **Purpose Indicators**: Clear model purpose labeling (reasoning, chat, fast)
+- **Purpose Indicators**: Clear model purpose labeling (reasoning, chat, fast, embedding)
 - **Default Model Management**: Configurable default model for fallback operations
+- **Embedding Support**: Dedicated embedding models for vector memory operations
 
 **Section sources**
 - [apps/cli/src/commands/config.ts:8-30](file://apps/cli/src/commands/config.ts#L8-L30)
@@ -1175,6 +1228,7 @@ Power-user techniques
 - **Generation Tasks**: Uses reasoning models for complex creative writing and planning
 - **Validation Tasks**: Uses chat models for validation and summarization
 - **Extraction Tasks**: Uses chat models for memory/state extraction
+- **Embedding Tasks**: Uses embedding models for vector memory operations
 - **Default Fallback**: Uses chat models when no specific task is defined
 - **Fast Models**: Available for summarization and extraction tasks
 - **Automatic Selection**: Transparent model switching based on operation requirements
@@ -1184,3 +1238,19 @@ Power-user techniques
 - [packages/engine/src/llm/client.ts:39-47](file://packages/engine/src/llm/client.ts#L39-L47)
 - [packages/engine/src/llm/client.ts:113-125](file://packages/engine/src/llm/client.ts#L113-L125)
 - [packages/engine/src/llm/client.ts:182-189](file://packages/engine/src/llm/client.ts#L182-L189)
+
+### Embedding Configuration and Vector Memory
+**New**: Advanced embedding support for vector memory operations:
+
+- **Embedding Model Setup**: Optional OpenAI embeddings configuration for vector memory
+- **Provider Limitations**: DeepSeek doesn't support embeddings, requiring separate OpenAI configuration
+- **Vector Operations**: Semantic search and memory recall using embedding vectors
+- **Dimension Support**: text-embedding-3-small dimension (1536) for optimal performance
+- **Fallback Mechanisms**: Mock embeddings for testing environments
+- **API Integration**: Direct OpenAI embeddings API integration with error handling
+- **Memory Persistence**: Vector store data stored in vector-store.json for efficient retrieval
+
+**Section sources**
+- [apps/cli/src/commands/config.ts:126-147](file://apps/cli/src/commands/config.ts#L126-L147)
+- [packages/engine/src/memory/vectorStore.ts:21-237](file://packages/engine/src/memory/vectorStore.ts#L21-L237)
+- [packages/engine/src/llm/client.ts:192-200](file://packages/engine/src/llm/client.ts#L192-L200)

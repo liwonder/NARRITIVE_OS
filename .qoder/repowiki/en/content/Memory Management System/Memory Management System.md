@@ -26,17 +26,18 @@
 - [memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts)
 - [vector-memory.test.ts](file://packages/engine/src/test/vector-memory.test.ts)
 - [store.ts](file://apps/cli/src/config/store.ts)
+- [config.ts](file://apps/cli/src/commands/config.ts)
+- [index.ts](file://packages/engine/src/types/index.ts)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Enhanced VectorStore implementation with improved HNSW algorithms, auto-resizing capabilities, and better embedding generation
-- Integrated MemoryRetriever with advanced contextual query generation and category-based filtering
-- Added MemoryExtractor agent with dual extraction modes (full chapter and summary-based)
-- Enhanced StateUpdaterPipeline with comprehensive vector memory integration and constraint graph updates
-- Improved generation pipeline with scene-level generation and enhanced memory extraction
-- Added CLI persistence support with vector store serialization and deserialization
-- Expanded memory lifecycle to include vector memory extraction, storage, and retrieval with improved performance
+- Enhanced VectorStore implementation with flexible embedding provider architecture supporting multiple providers (OpenAI, DeepSeek) and improved mock embedding fallback mechanisms
+- Integrated LLM client with multi-model configuration system enabling embedding provider selection and task-specific model routing
+- Added comprehensive embedding provider flexibility with configurable embedding models, API keys, and base URLs
+- Enhanced performance considerations for embedding generation with provider switching and fallback strategies
+- Updated CLI configuration to support embedding provider selection with DeepSeek compatibility
+- Improved embedding generation cost optimization and provider switching capabilities
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -51,20 +52,21 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document describes the Memory Management System with a focus on Canonical Fact Storage, Enhanced Vector Memory System with HNSW Algorithms, Memory Validation, and Comprehensive State Management. The system now includes a sophisticated vector memory system that enables semantic search capabilities for AI-powered narrative features, allowing the AI to retrieve relevant past events, character developments, world details, and plot information based on meaning rather than exact keywords. The enhanced vector memory system integrates seamlessly with the canonical fact storage, memory validation, and state management components to provide a comprehensive memory infrastructure for narrative coherence and intelligent story generation.
+This document describes the Memory Management System with a focus on Canonical Fact Storage, Enhanced Vector Memory System with Flexible Embedding Providers, Memory Validation, and Comprehensive State Management. The system now includes a sophisticated vector memory system with flexible embedding provider architecture that enables seamless switching between multiple providers (OpenAI, DeepSeek) for embedding generation, while maintaining backward compatibility and robust fallback mechanisms. The enhanced vector memory system integrates seamlessly with the canonical fact storage, memory validation, and state management components to provide a comprehensive memory infrastructure for narrative coherence and intelligent story generation.
 
 ## Project Structure
-The memory system now encompasses a comprehensive vector memory infrastructure with enhanced state management capabilities:
+The memory system now encompasses a comprehensive vector memory infrastructure with enhanced state management capabilities and flexible embedding provider architecture:
 - Memory: Canonical fact representation, vector-based memory storage, memory extraction, and retrieval
 - Story: Structured story state with characters, plot threads, and unresolved questions
 - Agents: Writers, completeness checker, summarizer, canonical validator, state updater, and memory extractor
 - Pipeline: Orchestration of chapter generation with optional canonical validation, vector memory extraction, and state updates
 - CLI: Command-line integration for iterative chapter generation with enhanced persistence including vector stores
+- LLM Client: Multi-model configuration system supporting embedding provider flexibility and task-specific model routing
 
 ```mermaid
 graph TB
 subgraph "Enhanced Vector Memory System"
-VS["VectorStore<br/>HNSW Index<br/>Auto-resize()<br/>searchSimilar()<br/>serialize()/load()"]
+VS["VectorStore<br/>Flexible Embedding Providers<br/>Auto-resize()<br/>searchSimilar()<br/>serialize()/load()"]
 MR["MemoryRetriever<br/>retrieveForChapter()<br/>retrieveForCharacter()<br/>formatMemoriesForPrompt()"]
 ME["MemoryExtractor<br/>extract()<br/>extractFromSummary()"]
 end
@@ -87,6 +89,10 @@ subgraph "Enhanced Pipeline & CLI"
 G["generateChapter()<br/>scene-level generation<br/>enhanced orchestration"]
 CMD["generateCommand()"]
 end
+subgraph "LLM Client & Embedding Providers"
+LC["LLMClient<br/>Multi-Model Config<br/>Provider Routing<br/>getEmbeddingConfig()"]
+EP["Embedding Provider<br/>OpenAI/DeepSeek<br/>Flexible API Keys"]
+end
 subgraph "Constraint Management"
 CG["ConstraintGraph<br/>addNode()/addEdge()<br/>checkConstraints()<br/>addEvent()"]
 end
@@ -107,6 +113,8 @@ S --> G
 CMD --> G
 CMD --> VS
 CMD --> CG
+LC --> VS
+EP --> LC
 ```
 
 **Diagram sources**
@@ -125,18 +133,21 @@ CMD --> CG
 - [constraintGraph.ts:29-245](file://packages/engine/src/constraints/constraintGraph.ts#L29-L245)
 - [generateChapter.ts:20-71](file://packages/engine/src/pipeline/generateChapter.ts#L20-L71)
 - [generate.ts:4-54](file://apps/cli/src/commands/generate.ts#L4-L54)
+- [client.ts:50-210](file://packages/engine/src/llm/client.ts#L50-L210)
+- [config.ts:125-170](file://apps/cli/src/commands/config.ts#L125-L170)
 
 **Section sources**
 - [index.ts:1-23](file://packages/engine/src/index.ts#L1-L23)
 
 ## Core Components
-- **VectorStore**: Enhanced HNSW (Hierarchical Navigable Small World) algorithm-based vector memory storage with semantic similarity search, embedding generation, auto-resizing capabilities, and full persistence support.
+- **VectorStore**: Enhanced HNSW (Hierarchical Navigable Small World) algorithm-based vector memory storage with semantic similarity search, flexible embedding generation supporting multiple providers, auto-resizing capabilities, and full persistence support.
 - **MemoryRetriever**: Advanced contextual memory retrieval system that searches vector stores for relevant past events, character memories, plot threads, and world details with intelligent query generation.
 - **MemoryExtractor**: Sophisticated automated narrative memory extraction agent that identifies and categorizes important facts from chapters into four categories: events, characters, world, and plot.
 - **CanonStore**: Immutable store of canonical facts with helpers to extract, add, update, filter, and format facts for prompts.
 - **StateUpdaterPipeline**: Comprehensive post-chapter state management pipeline that extracts narrative changes, updates constraint graphs, maintains recent events, and integrates vector memory extraction with enhanced performance.
 - **StructuredState**: Rich story state representation with characters, plot threads, unresolved questions, and recent events tracking.
 - **StoryBible**: Central story definition containing characters and plot threads used to seed canonical facts and initialize structured state.
+- **LLMClient**: Multi-model configuration system supporting embedding provider flexibility with task-specific model routing, embedding configuration management, and provider switching capabilities.
 - **Agents**:
   - ChapterWriter: Generates chapter content with optional memory injection for contextual awareness.
   - CompletenessChecker: Ensures chapters end at natural stopping points.
@@ -144,7 +155,7 @@ CMD --> CG
   - CanonValidator: Validates generated chapters against canonical facts using LLM reasoning.
   - StateUpdater: Extracts and applies state changes for unresolved questions and recent events.
 - **Enhanced Pipeline**: Orchestrates generation, optional canonical validation, vector memory extraction, and comprehensive state updates with scene-level generation capabilities.
-- **CLI**: Iteratively generates chapters, updates state, persists progress, and manages vector store persistence with enhanced memory and constraint graph persistence.
+- **CLI**: Iteratively generates chapters, updates state, persists progress, and manages vector store persistence with enhanced memory and constraint graph persistence, including embedding provider configuration.
 
 **Section sources**
 - [vectorStore.ts:4-17](file://packages/engine/src/memory/vectorStore.ts#L4-L17)
@@ -161,16 +172,19 @@ CMD --> CG
 - [stateUpdater.ts:85-193](file://packages/engine/src/agents/stateUpdater.ts#L85-L193)
 - [generateChapter.ts:14-71](file://packages/engine/src/pipeline/generateChapter.ts#L14-L71)
 - [generate.ts:4-54](file://apps/cli/src/commands/generate.ts#L4-L54)
+- [client.ts:50-210](file://packages/engine/src/llm/client.ts#L50-L210)
 
 ## Architecture Overview
-The enhanced memory system integrates comprehensive vector memory capabilities with the generation pipeline as follows:
+The enhanced memory system integrates comprehensive vector memory capabilities with flexible embedding provider architecture and the generation pipeline as follows:
 - StoryBible seeds both CanonStore and StructuredState via extraction and initialization.
+- VectorStore integrates with LLM client for flexible embedding generation supporting multiple providers.
 - VectorStore and MemoryRetriever are integrated into the writer to provide contextual memory injection.
 - MemoryExtractor automatically extracts narrative memories from generated chapters and adds them to the vector store.
 - After writing, the pipeline checks completeness and optionally validates against canonical facts.
 - StateUpdaterPipeline processes the chapter to extract narrative changes, update constraint graphs, maintain recent events, and integrate vector memory extraction.
 - Summaries trigger memory extraction for vector store persistence.
-- CLI orchestrates iteration, persistence of chapters, state, vector stores, and constraint graphs.
+- CLI orchestrates iteration, persistence of chapters, state, vector stores, and constraint graphs with embedding provider configuration.
+- LLMClient manages multi-model configuration with embedding provider flexibility and task-specific model routing.
 
 ```mermaid
 sequenceDiagram
@@ -184,6 +198,7 @@ participant StateUp as "StateUpdaterPipeline"
 participant ME as "MemoryExtractor"
 participant VS as "VectorStore"
 participant MR as "MemoryRetriever"
+participant LC as "LLMClient"
 participant CG as "ConstraintGraph"
 CLI->>Pipe : "generateChapter(context, { canon, vectorStore })"
 Pipe->>Writer : "write(context, canon, memoryRetriever)"
@@ -204,6 +219,8 @@ Pipe->>Sum : "summarize(content, n)"
 Sum-->>Pipe : "ChapterSummary"
 Pipe->>ME : "extract(chapter, bible)"
 ME->>VS : "addMemory(memory)"
+VS->>LC : "getEmbeddingConfig()"
+LC-->>VS : "EmbeddingConfig"
 VS-->>ME : "memory stored"
 Pipe->>StateUp : "update(context with new chapter)"
 StateUp-->>Pipe : "StateUpdateResult"
@@ -221,19 +238,19 @@ Pipe-->>CLI : "GenerateChapterResult"
 - [memoryExtractor.ts:52-68](file://packages/engine/src/agents/memoryExtractor.ts#L52-L68)
 - [vectorStore.ts:66-93](file://packages/engine/src/memory/vectorStore.ts#L66-L93)
 - [memoryRetriever.ts:25-41](file://packages/engine/src/memory/memoryRetriever.ts#L25-L41)
+- [client.ts:192-200](file://packages/engine/src/llm/client.ts#L192-L200)
 
 ## Detailed Component Analysis
 
-### Enhanced VectorStore: HNSW Algorithm-Based Vector Memory System
-The VectorStore provides sophisticated vector memory management with enhanced HNSW (Hierarchical Navigable Small World) algorithms for efficient semantic search:
+### Enhanced VectorStore: Flexible Embedding Provider Architecture
+The VectorStore provides sophisticated vector memory management with enhanced embedding provider flexibility and improved fallback mechanisms:
 
-- **Enhanced HNSW Index Implementation**: Uses hnswlib-node with native bindings for high-performance nearest neighbor search with cosine distance metric and auto-resizing capabilities.
-- **Improved Memory Model**: Stores narrative memories with categories (event, character, world, plot), chapter numbers, timestamps, and vector embeddings with better dimension handling.
-- **Advanced Embedding Generation**: Integrates with OpenAI text-embedding-3-small model for semantic vector generation with automatic mock fallback for testing environments and support for DeepSeek API.
-- **Optimized Similarity Search**: Implements efficient KNN search with configurable result counts, category filtering, and improved performance through better indexing strategies.
-- **Intelligent Auto-Resizing**: Dynamically resizes index capacity as memory count approaches limits with 50% capacity increases to maintain optimal performance.
-- **Enhanced Serialization**: Full persistence support for vector stores across sessions with index rebuilding on load and improved memory management.
-- **Robust Mock Embeddings**: Includes deterministic fallback mechanism for environments without API access with better vector normalization and seed-based generation.
+- **Flexible Embedding Provider Support**: Supports multiple embedding providers (OpenAI, DeepSeek) through LLM client configuration with automatic provider switching and fallback strategies.
+- **Enhanced Embedding Generation**: Integrates with LLM client's getEmbeddingConfig() for dynamic embedding model selection with configurable API keys, base URLs, and model names.
+- **Improved Mock Embedding Fallback**: Robust fallback mechanism for environments without API access with deterministic vector generation and seed-based normalization.
+- **Advanced Provider Switching**: Automatic provider switching when embedding API fails, with graceful degradation to mock embeddings while maintaining system functionality.
+- **Enhanced Error Handling**: Comprehensive error handling for embedding API failures with logging and automatic fallback to mock embeddings.
+- **Optimized Provider Configuration**: Supports both configured embedding models and environment variable fallback for maximum compatibility.
 
 ```mermaid
 classDiagram
@@ -253,30 +270,63 @@ class VectorStore {
 +getAllMemories() NarrativeMemory[]
 +serialize() string
 +load(data) Promise~void~
+-generateEmbedding(text) Promise~number[]~
+-generateMockEmbedding(text) number[]
 }
-class NarrativeMemory {
-+number id
-+string storyId
-+number chapterNumber
-+string content
-+('event'|'character'|'world'|'plot') category
-+Date timestamp
-+number[] embedding
+class LLMClient {
++getEmbeddingConfig() ModelConfig | null
++getAvailableModels() ModelConfig[]
 }
-class MemorySearchResult {
-+NarrativeMemory memory
-+number score
+class ModelConfig {
++string name
++'openai'|'deepseek'|string provider
++string apiKey
++string baseURL
++string model
++'reasoning'|'chat'|'fast'|'embedding' purpose
 }
-VectorStore --> NarrativeMemory : "manages"
-VectorStore --> MemorySearchResult : "returns"
+VectorStore --> LLMClient : "uses for embedding config"
+LLMClient --> ModelConfig : "returns"
 ```
 
 **Diagram sources**
 - [vectorStore.ts:19-58](file://packages/engine/src/memory/vectorStore.ts#L19-L58)
-- [vectorStore.ts:135-157](file://packages/engine/src/memory/vectorStore.ts#L135-L157)
+- [vectorStore.ts:125-177](file://packages/engine/src/memory/vectorStore.ts#L125-L177)
+- [client.ts:192-200](file://packages/engine/src/llm/client.ts#L192-L200)
+- [index.ts:92-104](file://packages/engine/src/types/index.ts#L92-L104)
 
 **Section sources**
-- [vectorStore.ts:1-221](file://packages/engine/src/memory/vectorStore.ts#L1-L221)
+- [vectorStore.ts:1-237](file://packages/engine/src/memory/vectorStore.ts#L1-L237)
+
+### Enhanced LLM Client: Multi-Model Configuration System
+The LLM Client provides comprehensive multi-model configuration management with embedding provider flexibility:
+
+- **Multi-Model Architecture**: Supports multiple models with different purposes (reasoning, chat, fast, embedding) through JSON configuration with enhanced model routing.
+- **Task-Specific Model Routing**: Automatic model selection based on task type with embedding-specific routing for vector memory operations.
+- **Embedding Provider Configuration**: Dedicated embedding model configuration with separate API keys and provider settings for maximum flexibility.
+- **Provider Flexibility**: Supports both OpenAI and DeepSeek providers with configurable base URLs and model names.
+- **Backward Compatibility**: Maintains legacy single-model configuration while enabling enhanced multi-model setups.
+- **Dynamic Model Loading**: Loads models dynamically from environment configuration with JSON parsing support.
+
+```mermaid
+flowchart TD
+A["LLMClient Configuration"] --> B["Multi-Model Config JSON"]
+B --> C["Parse Models Array"]
+C --> D["Load Provider Config"]
+D --> E["Create Model Config"]
+E --> F["Register Provider"]
+F --> G["Task-Based Routing"]
+G --> H["Embedding Provider Selection"]
+H --> I["Model Execution"]
+```
+
+**Diagram sources**
+- [client.ts:59-112](file://packages/engine/src/llm/client.ts#L59-L112)
+- [client.ts:114-126](file://packages/engine/src/llm/client.ts#L114-L126)
+- [client.ts:192-200](file://packages/engine/src/llm/client.ts#L192-L200)
+
+**Section sources**
+- [client.ts:1-211](file://packages/engine/src/llm/client.ts#L1-L211)
 
 ### Enhanced MemoryRetriever: Advanced Contextual Memory Retrieval System
 The MemoryRetriever provides intelligent memory retrieval with enhanced contextual awareness and filtering capabilities:
@@ -403,7 +453,7 @@ VectorStore --> NarrativeMemory : "manages"
 - [vectorStore.ts:135-157](file://packages/engine/src/memory/vectorStore.ts#L135-L157)
 
 **Section sources**
-- [vectorStore.ts:1-221](file://packages/engine/src/memory/vectorStore.ts#L1-L221)
+- [vectorStore.ts:1-237](file://packages/engine/src/memory/vectorStore.ts#L1-L237)
 
 ### Enhanced StructuredState: Rich Story State Representation
 StructuredState provides comprehensive narrative state management with improved capabilities:
@@ -488,7 +538,7 @@ END
 - [constraintGraph.ts:29-471](file://packages/engine/src/constraints/constraintGraph.ts#L29-L471)
 
 ### Enhanced Memory Lifecycle: Extraction → Validation → Integration → State Updates → Vector Memory
-The enhanced memory lifecycle now includes comprehensive vector memory integration with improved performance:
+The enhanced memory lifecycle now includes comprehensive vector memory integration with improved performance and flexible embedding providers:
 
 - **Enhanced Extraction**: extractCanonFromBible reads characters and plot threads from the story bible and writes canonical facts into CanonStore with better extraction logic.
 - **Advanced Vector Memory Extraction**: MemoryExtractor automatically extracts narrative memories from generated chapters and adds them to VectorStore with improved extraction accuracy.
@@ -496,6 +546,7 @@ The enhanced memory lifecycle now includes comprehensive vector memory integrati
 - **Advanced Integration**: The pipeline passes CanonStore, VectorStore, and MemoryRetriever to the writer and optionally invokes validation; summaries trigger memory extraction with better integration.
 - **Enhanced State Updates**: StateUpdaterPipeline processes chapters to extract narrative changes, update constraint graphs, maintain recent events, and integrate vector memory extraction with improved performance.
 - **Enhanced Persistence**: Enhanced CLI functions persist chapters, state, vector stores, and constraint graph data with better persistence mechanisms.
+- **Flexible Embedding Providers**: VectorStore supports multiple embedding providers with automatic configuration and fallback mechanisms for maximum compatibility.
 
 ```mermaid
 sequenceDiagram
@@ -508,16 +559,21 @@ participant SU as "StateUpdaterPipeline"
 participant ME as "MemoryExtractor"
 participant VS as "VectorStore"
 participant MR as "MemoryRetriever"
+participant LC as "LLMClient"
 participant CG as "ConstraintGraph"
 B->>E : "bible"
 E-->>S : "CanonStore"
 W->>MR : "retrieveForChapter()"
 MR->>VS : "searchSimilar()"
+VS->>LC : "getEmbeddingConfig()"
+LC-->>VS : "EmbeddingConfig"
 VS-->>MR : "similar memories"
 MR-->>W : "formatted memories"
 W-->>SU : "chapter content"
 SU->>ME : "extractMemories()"
 ME->>VS : "addMemory()"
+VS->>LC : "getEmbeddingConfig()"
+LC-->>VS : "EmbeddingConfig"
 VS-->>ME : "memories stored"
 SU->>CG : "addEvent()"
 CG-->>SU : "graph updated"
@@ -533,6 +589,7 @@ SU-->>W : "state updates applied"
 - [vectorStore.ts:37-58](file://packages/engine/src/memory/vectorStore.ts#L37-L58)
 - [memoryRetriever.ts:25-41](file://packages/engine/src/memory/memoryRetriever.ts#L25-L41)
 - [constraintGraph.ts:163-192](file://packages/engine/src/constraints/constraintGraph.ts#L163-L192)
+- [client.ts:192-200](file://packages/engine/src/llm/client.ts#L192-L200)
 
 **Section sources**
 - [canonStore.ts:24-58](file://packages/engine/src/memory/canonStore.ts#L24-L58)
@@ -540,13 +597,15 @@ SU-->>W : "state updates applied"
 - [generateChapter.ts:20-71](file://packages/engine/src/pipeline/generateChapter.ts#L20-L71)
 - [stateUpdater.ts:94-248](file://packages/engine/src/memory/stateUpdater.ts#L94-L248)
 - [memoryExtractor.ts:52-68](file://packages/engine/src/agents/memoryExtractor.ts#L52-L68)
+- [client.ts:192-200](file://packages/engine/src/llm/client.ts#L192-L200)
 
 ### Enhanced Practical Examples: Chapter Generation with Enhanced Vector Memory Integration
-Enhanced CLI-driven generation now includes comprehensive vector memory management:
+Enhanced CLI-driven generation now includes comprehensive vector memory management with flexible embedding providers:
 
 - **Enhanced CLI-driven generation**: The CLI command constructs a GenerationContext, loads or initializes VectorStore, calls generateChapter with CanonStore and VectorStore, and persists the new chapter, updated state, and vector store.
 - **Advanced Memory extraction automation**: The pipeline automatically extracts memories from generated chapters using MemoryExtractor and adds them to the vector store with improved extraction accuracy.
 - **Enhanced Test-driven example**: Demonstrates creating a story bible, adding a character, building a CanonStore, generating a chapter with validation and summarization, extracting memories, and processing state updates.
+- **Flexible Embedding Provider Configuration**: CLI supports embedding provider selection with DeepSeek compatibility and mock embedding fallback for testing environments.
 
 ```mermaid
 sequenceDiagram
@@ -559,6 +618,7 @@ participant Store as "CanonStore"
 participant Mem as "VectorStore"
 participant MR as "MemoryRetriever"
 participant StateUp as "StateUpdaterPipeline"
+participant LC as "LLMClient"
 CLI->>Engine : "generateChapter(context, { canon : Store, vectorStore : Mem })"
 Engine->>Writer : "write(context, Store, MR)"
 Writer-->>Engine : "WriterOutput"
@@ -567,6 +627,8 @@ Sum-->>Engine : "ChapterSummary"
 Engine->>ME : "extract(chapter, bible)"
 ME-->>Engine : "memories extracted"
 Engine->>Mem : "addMemory(memory)"
+Mem->>LC : "getEmbeddingConfig()"
+LC-->>Mem : "EmbeddingConfig"
 Mem-->>Engine : "memories stored"
 Engine->>StateUp : "update(context)"
 StateUp-->>Engine : "StateUpdateResult"
@@ -581,6 +643,7 @@ Engine-->>CLI : "GenerateChapterResult"
 - [memoryExtractor.ts:52-68](file://packages/engine/src/agents/memoryExtractor.ts#L52-L68)
 - [stateUpdater.ts:94-248](file://packages/engine/src/memory/stateUpdater.ts#L94-L248)
 - [vectorStore.ts:66-93](file://packages/engine/src/memory/vectorStore.ts#L66-L93)
+- [client.ts:192-200](file://packages/engine/src/llm/client.ts#L192-L200)
 
 **Section sources**
 - [generate.ts:1-81](file://apps/cli/src/commands/generate.ts#L1-L81)
@@ -595,6 +658,7 @@ Enhanced prioritization and growth strategies leverage comprehensive state manag
 - **Dynamic updates**: updateFact allows evolving canonical facts over time; use chapterEstablished to track provenance and manage conflicts with better fact management.
 - **Enhanced Constraint integration**: New facts from state updates are automatically integrated into the constraint graph for logical consistency with improved graph updates.
 - **Advanced Memory categorization**: Vector memories are categorized (event, character, world, plot) enabling targeted retrieval and context-aware writing with better categorization.
+- **Flexible Embedding Provider Support**: Enhanced vector memory system supports multiple embedding providers with automatic configuration and fallback mechanisms for maximum compatibility.
 
 ```mermaid
 flowchart TD
@@ -630,17 +694,18 @@ OptionalUpdate --> Next
 - [stateUpdater.ts:94-248](file://packages/engine/src/memory/stateUpdater.ts#L94-L248)
 
 ## Dependency Analysis
-Enhanced dependency relationships now include comprehensive vector memory integration:
+Enhanced dependency relationships now include comprehensive vector memory integration and flexible embedding provider architecture:
 
 - CanonStore depends on StoryBible for initial extraction and on the pipeline for integration.
-- VectorStore depends on LLM client for embeddings and supports serialization for persistence with enhanced capabilities.
+- VectorStore depends on LLM client for embedding configuration and supports serialization for persistence with enhanced provider flexibility.
 - MemoryRetriever depends on VectorStore for semantic search and on LLM client for contextual query generation.
 - MemoryExtractor depends on LLM client for memory extraction and on StoryBible for context.
 - StateUpdaterPipeline depends on all core components: Chapter, StoryBible, StoryStructuredState, CanonStore, VectorStore, MemoryExtractor, and ConstraintGraph.
 - ConstraintGraph integrates with StateUpdaterPipeline for automatic updates and with StateUpdater for manual state changes.
 - Agents depend on LLMClient for completions; CanonValidator, StateUpdater, and MemoryExtractor additionally depend on their respective data structures.
 - Enhanced Pipeline composes agents and manages optional validation, memory extraction, and state updates with improved orchestration.
-- CLI depends on the engine exports to orchestrate generation, persistence, vector store management, and enhanced state management.
+- CLI depends on the engine exports to orchestrate generation, persistence, vector store management, and enhanced state management with embedding provider configuration.
+- LLMClient manages multi-model configuration with embedding provider flexibility and task-specific model routing.
 
 ```mermaid
 graph LR
@@ -664,9 +729,11 @@ V --> LLM
 SU --> LLM
 ME --> LLM
 MR --> LLM
+LC["LLMClient"] --> VS
 CMD["CLI generateCommand"] --> G
 CMD --> VS
 CMD --> CG
+CMD --> LC
 ```
 
 **Diagram sources**
@@ -674,7 +741,7 @@ CMD --> CG
 - [canonStore.ts:24-58](file://packages/engine/src/memory/canonStore.ts#L24-L58)
 - [structuredState.ts:33-85](file://packages/engine/src/story/structuredState.ts#L33-L85)
 - [stateUpdater.ts:90-248](file://packages/engine/src/memory/stateUpdater.ts#L90-L248)
-- [vectorStore.ts:1-221](file://packages/engine/src/memory/vectorStore.ts#L1-L221)
+- [vectorStore.ts:1-237](file://packages/engine/src/memory/vectorStore.ts#L1-L237)
 - [memoryRetriever.ts:1-174](file://packages/engine/src/memory/memoryRetriever.ts#L1-L174)
 - [memoryExtractor.ts:1-99](file://packages/engine/src/agents/memoryExtractor.ts#L1-L99)
 - [constraintGraph.ts:29-471](file://packages/engine/src/constraints/constraintGraph.ts#L29-L471)
@@ -683,18 +750,19 @@ CMD --> CG
 - [completeness.ts:37-52](file://packages/engine/src/agents/completeness.ts#L37-L52)
 - [summarizer.ts:24-38](file://packages/engine/src/agents/summarizer.ts#L24-L38)
 - [canonValidator.ts:32-55](file://packages/engine/src/agents/canonValidator.ts#L32-L55)
-- [client.ts:31-105](file://packages/engine/src/llm/client.ts#L31-L105)
+- [client.ts:50-210](file://packages/engine/src/llm/client.ts#L50-L210)
 - [generate.ts:4-54](file://apps/cli/src/commands/generate.ts#L4-L54)
 
 **Section sources**
 - [index.ts:1-116](file://packages/engine/src/index.ts#L1-L116)
-- [client.ts:1-106](file://packages/engine/src/llm/client.ts#L1-L106)
+- [client.ts:1-211](file://packages/engine/src/llm/client.ts#L1-L211)
 
 ## Performance Considerations
-Enhanced performance considerations for the expanded vector memory system:
+Enhanced performance considerations for the expanded vector memory system with flexible embedding providers:
 
 - **Advanced HNSW Index Performance**: HNSW algorithm provides O(log N) search complexity with configurable efConstruction and efSearch parameters for balancing recall and speed with improved performance tuning.
 - **Enhanced Embedding Generation Costs**: OpenAI embeddings have token limits and costs; consider batching and caching strategies for repeated embeddings with better cost optimization.
+- **Flexible Provider Performance**: Multiple embedding providers offer different performance characteristics; choose providers based on cost, speed, and quality requirements with improved provider selection strategies.
 - **Intelligent Index Resizing Strategy**: VectorStore auto-resizes indexes by 50% when capacity is reached; monitor memory usage and adjust initial capacity estimates with better capacity planning.
 - **Robust Mock Embedding Fallback**: Mock embeddings provide deterministic but non-semantic vectors for testing; ensure proper environment configuration for production with better fallback mechanisms.
 - **Enhanced Memory Persistence**: VectorStore serialization/deserialization can be expensive for large memory stores; implement incremental persistence strategies with better persistence optimization.
@@ -703,14 +771,17 @@ Enhanced performance considerations for the expanded vector memory system:
 - **Enhanced Constraint graph complexity**: Large constraint graphs impact validation performance; consider periodic graph cleanup and optimization with better graph management.
 - **Advanced Iterative continuation**: CompletenessChecker retries improve quality but increase cost; cap maxContinuationAttempts with better retry management.
 - **Immutable updates**: CanonStore, VectorStore, and StateUpdaterPipeline operations return new objects; ensure minimal copying and avoid unnecessary re-renders in UI contexts with better memory management.
+- **Provider Switching Overhead**: Embedding provider switching introduces overhead; cache embedding configurations and minimize provider switching frequency with better provider caching strategies.
+- **Embedding API Reliability**: Different providers have varying reliability; implement circuit breaker patterns and graceful degradation with better error handling for provider failures.
 
 ## Troubleshooting Guide
-Enhanced troubleshooting guidance for the expanded vector memory system:
+Enhanced troubleshooting guidance for the expanded vector memory system with flexible embedding providers:
 
 - **VectorStore Initialization Failures**: Ensure HNSW library is properly installed with native bindings; check node version compatibility with better installation verification.
 - **Enhanced Memory Extraction Failures**: If MemoryExtractor returns empty results, check LLM availability and API keys; verify chapter content length limits with better error handling.
 - **Vector Search Performance Issues**: Monitor HNSW index size and search parameters; consider rebuilding index with different efConstruction values with better performance monitoring.
-- **Enhanced Embedding Generation Errors**: Verify OpenAI API key configuration; check rate limits and network connectivity; ensure USE_MOCK_EMBEDDINGS is set appropriately with better API configuration.
+- **Enhanced Embedding Generation Errors**: Verify embedding provider configuration and API keys; check rate limits and network connectivity; ensure USE_MOCK_EMBEDDINGS is set appropriately with better API configuration.
+- **Flexible Provider Configuration Issues**: If embedding provider switching fails, check LLM client configuration and model routing; verify embedding model configuration with better provider configuration validation.
 - **Memory Persistence Issues**: Verify VectorStore serialization format and ensure proper embedding generation; check file permissions for vector-store.json with better persistence validation.
 - **Enhanced Validation failures**: If CanonValidator returns violations, review canonical facts and regenerate content. Consider adjusting chapter goals or writer constraints with better validation feedback.
 - **Enhanced State update failures**: If StateUpdaterPipeline fails, check LLM responses for malformed JSON and validate chapter content format with better error handling.
@@ -718,9 +789,11 @@ Enhanced troubleshooting guidance for the expanded vector memory system:
 - **Incomplete chapters**: CompletenessChecker may mark content as incomplete; use writer.continue to extend until completion with better completion handling.
 - **JSON parsing errors**: StateUpdaterPipeline and validators fall back to valid structures when parsing fails; verify prompt formatting and LLM behavior with better error recovery.
 - **Enhanced CLI progress**: Ensure state updates, memory persistence, and constraint graph updates occur after each generation; confirm currentChapter increments and totalChapters thresholds with better progress tracking.
+- **Provider Switching Failures**: If embedding provider switching fails, check LLM client configuration and model availability; verify API credentials and network connectivity with better provider switching diagnostics.
+- **Mock Embedding Issues**: If mock embeddings cause semantic issues, verify USE_MOCK_EMBEDDINGS environment variable and ensure deterministic behavior with better mock embedding validation.
 
 **Section sources**
-- [vectorStore.ts:125-148](file://packages/engine/src/memory/vectorStore.ts#L125-L148)
+- [vectorStore.ts:125-177](file://packages/engine/src/memory/vectorStore.ts#L125-L177)
 - [memoryExtractor.ts:62-65](file://packages/engine/src/agents/memoryExtractor.ts#L62-L65)
 - [memoryRetriever.ts:117-132](file://packages/engine/src/memory/memoryRetriever.ts#L117-L132)
 - [canonValidator.ts:49-55](file://packages/engine/src/agents/canonValidator.ts#L49-L55)
@@ -729,9 +802,10 @@ Enhanced troubleshooting guidance for the expanded vector memory system:
 - [generate.ts:28-53](file://apps/cli/src/commands/generate.ts#L28-L53)
 - [stateUpdater.ts:297-308](file://packages/engine/src/memory/stateUpdater.ts#L297-L308)
 - [constraintGraph.ts:229-245](file://packages/engine/src/constraints/constraintGraph.ts#L229-L245)
+- [client.ts:192-200](file://packages/engine/src/llm/client.ts#L192-L200)
 
 ## Conclusion
-The enhanced Memory Management System centers on a robust CanonStore that seeds canonical facts from the story bible, an advanced VectorStore with enhanced HNSW algorithms for semantic memory search, comprehensive MemoryRetriever for contextual memory access, and the powerful StateUpdaterPipeline that provides complete post-chapter state management with vector memory integration. The system now includes automatic constraint graph updates, recent events tracking, enhanced CLI persistence for vector stores, and automated memory extraction capabilities with improved performance and reliability. Together, these components maintain narrative coherence across iterations, enable intelligent semantic search for relevant past events, enforce logical consistency through constraint validation, and support scalable, efficient chapter generation with comprehensive state management and vector memory capabilities.
+The enhanced Memory Management System centers on a robust CanonStore that seeds canonical facts from the story bible, an advanced VectorStore with flexible embedding provider architecture for semantic memory search, comprehensive MemoryRetriever for contextual memory access, and the powerful StateUpdaterPipeline that provides complete post-chapter state management with vector memory integration. The system now includes automatic constraint graph updates, recent events tracking, enhanced CLI persistence for vector stores, automated memory extraction capabilities with improved performance and reliability, and comprehensive embedding provider flexibility supporting multiple providers (OpenAI, DeepSeek) with automatic configuration and fallback mechanisms. Together, these components maintain narrative coherence across iterations, enable intelligent semantic search for relevant past events, enforce logical consistency through constraint validation, and support scalable, efficient chapter generation with comprehensive state management and vector memory capabilities optimized for various embedding provider configurations.
 
 ## Appendices
 

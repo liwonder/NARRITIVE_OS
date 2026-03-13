@@ -13,6 +13,7 @@ import { readCommand } from './commands/read.js';
 import { bibleCommand } from './commands/bible.js';
 import { stateCommand } from './commands/state.js';
 import { showHint, showWelcome } from './commands/hint.js';
+import { versionCommand } from './commands/version.js';
 
 applyConfig();
 
@@ -149,5 +150,11 @@ program
   .action((storyId?: string) => {
     showHint({ storyId });
   });
+
+program
+  .command('version')
+  .alias('v')
+  .description('Show version information')
+  .action(versionCommand);
 
 program.parse();
