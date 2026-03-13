@@ -42,20 +42,21 @@ export function assembleChapter(
 }
 
 function generateChapterTitle(scenePlan: ScenePlan, chapterNumber: number): string {
-  // Try to extract a meaningful title from the chapter goal
-  const goal = scenePlan.chapterGoal;
-  
-  // If goal is descriptive enough, use it
-  if (goal && goal.length > 10 && goal.length < 60) {
-    // Capitalize first letter
-    return goal.charAt(0).toUpperCase() + goal.slice(1);
+  // Use the chapter title from the plan if available
+  if (scenePlan.chapterTitle && scenePlan.chapterTitle.length > 0) {
+    return scenePlan.chapterTitle;
   }
   
-  // Otherwise use a generic title with tension indicator
-  const tensionLevel = scenePlan.targetTension > 7 ? 'Crisis' : 
-                       scenePlan.targetTension > 5 ? 'Rising' : 'Calm';
+  // Fallback to first scene's purpose
+  const firstScene = scenePlan.scenes[0];
+  if (firstScene && firstScene.purpose) {
+    const purpose = firstScene.purpose;
+    const shortPurpose = purpose.length > 30 ? purpose.substring(0, 30) + '...' : purpose;
+    return shortPurpose;
+  }
   
-  return `Chapter ${chapterNumber}: ${tensionLevel}`;
+  // Final fallback
+  return `Chapter ${chapterNumber}`;
 }
 
 function combineScenes(sceneOutputs: SceneOutput[]): string {

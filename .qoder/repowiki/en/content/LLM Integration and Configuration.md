@@ -20,14 +20,12 @@
 
 ## Update Summary
 **Changes Made**
-- Enhanced LLM client with comprehensive multi-model configuration system supporting reasoning, chat, fast, and embedding models across multiple providers
-- Added Alibaba Cloud (Qwen) and ByteDance Ark providers with dedicated embedding support
-- Expanded configuration system with provider-specific base URLs and model recommendations
-- Enhanced CLI configuration with multi-provider setup wizard including Alibaba Cloud and ByteDance Ark
-- Integrated vector store with provider-specific embedding model configuration for memory management
-- Improved task-specific model mapping with embedding support for vector operations
-- Added environment variable support for new providers (ALIBABA_API_KEY, ARK_API_KEY)
-- Enhanced embedding model routing for provider-specific embedding models
+- Enhanced CLI configuration system now supports comprehensive multi-provider embedding setup with automatic base URL detection for Alibaba DashScope and Ark Storm providers
+- Improved vector memory integration with dynamic dimension detection for embedding models across all providers
+- Added automatic base URL configuration for Alibaba Cloud DashScope (https://dashscope.aliyuncs.com/compatible-mode/v1) and ByteDance Ark Storm (https://ark.cn-beijing.volces.com/api/v3)
+- Enhanced embedding model routing with provider-specific base URL support for seamless API integration
+- Improved vector store initialization with dynamic embedding dimension detection and automatic index sizing
+- Enhanced CLI wizard with provider-specific embedding model recommendations and base URL configuration
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -40,40 +38,43 @@
 8. [Enhanced Configuration System](#enhanced-configuration-system)
 9. [Multi-Provider Support](#multi-provider-support)
 10. [Embedding Model Integration](#embedding-model-integration)
-11. [Scene-Level Generation Pipeline](#scene-level-generation-pipeline)
-12. [Dependency Analysis](#dependency-analysis)
-13. [Performance Considerations](#performance-considerations)
-14. [Troubleshooting Guide](#troubleshooting-guide)
-15. [Conclusion](#conclusion)
-16. [Appendices](#appendices)
+11. [Dynamic Dimension Detection](#dynamic-dimension-detection)
+12. [Scene-Level Generation Pipeline](#scene-level-generation-pipeline)
+13. [Dependency Analysis](#dependency-analysis)
+14. [Performance Considerations](#performance-considerations)
+15. [Troubleshooting Guide](#troubleshooting-guide)
+16. [Conclusion](#conclusion)
+17. [Appendices](#appendices)
 
 ## Introduction
 This document explains the enhanced LLM integration and configuration within the Narrative Operating System. The system now features a comprehensive multi-model architecture supporting reasoning, chat, fast, and embedding models across multiple providers including OpenAI, DeepSeek, Alibaba Cloud (Qwen), and ByteDance Ark. The enhanced system provides intelligent model selection based on task requirements, sophisticated embedding model routing for vector operations, and robust configuration management with provider-specific settings.
 
-The enhanced system introduces intelligent model selection based on task requirements, embedding model routing for vector operations, improved JSON content extraction from markdown code blocks, and a robust scene-level generation pipeline that leverages specialized models for different narrative components. The CLI configuration system now supports both single-model and multi-model setups with interactive wizards, embedding model configuration, and comprehensive show configuration capabilities across all supported providers.
+The enhanced system introduces intelligent model selection based on task requirements, embedding model routing for vector operations, improved JSON content extraction from markdown code blocks, and a robust scene-level generation pipeline that leverages specialized models for different narrative components. The CLI configuration system now supports both single-model and multi-model setups with interactive wizards, embedding model configuration with automatic base URL detection, and comprehensive show configuration capabilities across all supported providers.
+
+**Updated** Enhanced with automatic base URL detection for Alibaba DashScope and Ark Storm providers, plus improved vector memory integration with dynamic dimension detection.
 
 ## Project Structure
 The enhanced LLM integration spans five primary areas:
 - Engine LLM client and types define the provider abstraction, multi-model configuration, task-specific model mapping, and embedding model support across multiple providers.
 - Agents consume the LLM client with automatic model selection based on task requirements including embedding tasks.
 - CLI configuration manages both legacy single-model and modern multi-model setups with interactive wizards and embedding model configuration across all providers.
-- Vector store integrates embedding model configuration for memory management and semantic search.
+- Vector store integrates embedding model configuration for memory management and semantic search with dynamic dimension detection.
 - Scene-level pipeline orchestrates generation with integrated multi-model support for planning, writing, and validation.
 
 ```mermaid
 graph TB
 subgraph "CLI"
 IDX["index.ts<br/>Application entry point<br/>Auto-apply configuration"]
-CFG["config.ts<br/>Multi-model config wizard<br/>Multi-provider setup<br/>Embedding setup<br/>Show configuration feature"]
+CFG["config.ts<br/>Multi-model config wizard<br/>Multi-provider setup<br/>Embedding setup<br/>Show configuration feature<br/>Automatic base URL detection"]
 end
 subgraph "Engine"
 TYPES["types/index.ts<br/>ModelConfig, MultiModelConfig<br/>TaskType enumeration<br/>Multi-provider support"]
 CLIENT["llm/client.ts<br/>LLMClient with multi-model support<br/>Provider-specific models<br/>Embedding config retrieval<br/>Task mapping & model selection"]
 PIPE["pipeline/generateChapter.ts<br/>Scene-level generation<br/>Multi-model orchestration"]
-end
+END
 subgraph "Memory"
-VECTOR["memory/vectorStore.ts<br/>Vector store with embedding integration<br/>Provider-specific embedding<br/>Embedding model configuration"]
-end
+VECTOR["memory/vectorStore.ts<br/>Vector store with embedding integration<br/>Dynamic dimension detection<br/>Provider-specific embedding<br/>Embedding model configuration<br/>Automatic index sizing"]
+END
 subgraph "Agents"
 WR["agents/writer.ts<br/>Generation task (reasoning model)"]
 SUM["agents/summarizer.ts<br/>Summarization task (fast model)"]
@@ -81,9 +82,9 @@ VAL["agents/canonValidator.ts<br/>Validation task (chat model)"]
 MEM["agents/memoryExtractor.ts<br/>Extraction task (chat model)"]
 PLAN["agents/scenePlanner.ts<br/>Planning task (reasoning model)"]
 WRITE["agents/sceneWriter.ts<br/>Writing task (reasoning model)"]
-end
+END
 subgraph "Configuration"
-MODELS["Multi-Model Config<br/>Providers: OpenAI, DeepSeek, Alibaba Cloud, ByteDance Ark<br/>reasoning: provider-specific models<br/>chat: provider-specific models<br/>fast: provider-specific models<br/>embedding: provider-specific embedding models"]
+MODELS["Multi-Model Config<br/>Providers: OpenAI, DeepSeek, Alibaba Cloud, ByteDance Ark<br/>reasoning: provider-specific models<br/>chat: provider-specific models<br/>fast: provider-specific models<br/>embedding: provider-specific embedding models<br/>Automatic base URL detection"]
 LEGACY["Legacy Config<br/>Single model fallback"]
 END
 IDX --> CFG
@@ -132,17 +133,19 @@ CLIENT --> LEGACY
 - **Advanced Types**: ModelConfig and MultiModelConfig define comprehensive runtime configuration with purpose-based model categorization including multi-provider support.
 - **Intelligent Agents**: All agents now support task parameter for automatic model selection based on their requirements, including embedding tasks.
 - **Dual Configuration System**: Backward compatibility with legacy single-model configs while supporting modern multi-model setups with provider-specific embedding model configuration.
-- **Vector Store Integration**: Memory management system with provider-specific embedding model configuration for semantic search and vector operations.
-- **Provider-Specific Base URLs**: Support for provider-specific API endpoints including Alibaba Cloud and ByteDance Ark base URLs.
+- **Vector Store Integration**: Memory management system with provider-specific embedding model configuration for semantic search and vector operations, featuring dynamic dimension detection.
+- **Provider-Specific Base URLs**: Support for provider-specific API endpoints including Alibaba Cloud DashScope (https://dashscope.aliyuncs.com/compatible-mode/v1) and ByteDance Ark Storm (https://ark.cn-beijing.volces.com/api/v3) with automatic configuration.
+- **Dynamic Dimension Detection**: Automatic embedding dimension detection and vector index sizing for optimal performance across different embedding models.
 
 Key responsibilities:
-- Dynamic model loading from environment variables or persisted CLI config with JSON configuration support including provider-specific embedding models.
+- Dynamic model loading from environment variables or persisted CLI config with JSON configuration support including provider-specific embedding models and automatic base URL detection.
 - Task-aware model selection using predefined mapping rules for optimal performance and cost, including embedding model routing across providers.
 - Provider selection and instantiation based on model configuration with support for multiple providers including OpenAI, DeepSeek, Alibaba Cloud, and ByteDance Ark.
 - Intelligent JSON parsing with extraction from markdown code blocks and robust error handling.
 - Comprehensive backward compatibility with legacy single-model configurations.
 - Scene-level generation pipeline integration with specialized model assignment for different phases.
 - Provider-specific embedding model configuration retrieval and integration with vector store operations.
+- Dynamic vector index initialization with automatic dimension detection and capacity management.
 
 **Section sources**
 - [client.ts:49-210](file://packages/engine/src/llm/client.ts#L49-L210)
@@ -157,10 +160,10 @@ Key responsibilities:
 
 ## Architecture Overview
 The enhanced system follows a sophisticated layered design with intelligent model selection and multi-provider embedding integration:
-- CLI layer provides dual configuration modes (single-model legacy and multi-model modern) with interactive wizards including multi-provider setup and embedding model configuration.
+- CLI layer provides dual configuration modes (single-model legacy and multi-model modern) with interactive wizards including multi-provider setup, embedding model configuration, and automatic base URL detection.
 - Engine layer dynamically loads multi-model configuration from environment variables or JSON config, with automatic fallback to legacy single-model setup and provider-specific embedding model configuration retrieval.
 - Agent layer automatically selects appropriate models based on task requirements using predefined mapping rules including embedding tasks across all providers.
-- Vector store integrates provider-specific embedding model configuration for memory management and semantic search operations.
+- Vector store integrates provider-specific embedding model configuration for memory management and semantic search operations with dynamic dimension detection.
 - Pipeline orchestrates scene-level generation with specialized models for planning, writing, and validation phases.
 
 ```mermaid
@@ -180,12 +183,14 @@ User->>CLI : Run config (interactive)
 CLI->>CLI : Prompt for multi-model setup
 CLI->>CLI : Ask about provider selection
 CLI->>CLI : Ask about embedding model
+CLI->>CLI : Automatic base URL detection for Alibaba/Ark
 CLI->>Env : Set LLM_MODELS_CONFIG JSON
 CLI->>Env : Set provider-specific API keys
 User->>Engine : Call getLLM().complete(..., {task : 'embedding'})
 Engine->>Engine : Load multi-model config
 Engine->>Embed : getEmbeddingConfig()
 Embed->>Vector : Retrieve embedding config
+Vector->>Vector : Detect embedding dimension automatically
 Vector->>Provider : Use provider-specific embedding model for vectors
 Provider->>LLM : embeddings.create(...) via provider API
 LLM-->>Provider : Embedding vectors
@@ -302,7 +307,7 @@ Emb --> Embedding["Provider-specific embedding models:<br/>OpenAI: text-embeddin
 ### Enhanced Configuration Management
 The CLI configuration system now supports both single-model and multi-model setups with comprehensive provider support:
 - **Multi-Provider Wizard**: Interactive setup for configuring reasoning, chat, fast, and embedding models with provider selection including Alibaba Cloud and ByteDance Ark.
-- **Provider-Specific Embedding Setup**: Dedicated embedding configuration wizard for provider-specific embedding models with API key management.
+- **Provider-Specific Embedding Setup**: Dedicated embedding configuration wizard for provider-specific embedding models with API key management and automatic base URL detection.
 - **Backward Compatibility**: Automatic detection and migration from legacy single-model configurations.
 - **Show Configuration**: Comprehensive display of current configuration status including provider-specific embedding model setup.
 - **Environment Integration**: Automatic application of configuration to environment variables at startup including provider-specific API keys.
@@ -341,21 +346,21 @@ The enhanced system supports four distinct model purposes with intelligent assig
 - ByteDance Ark: doubao-embedding (1024 dimensions)
 
 ### Provider-Specific Configuration Loading
-The system implements hierarchical configuration loading with provider-specific embedding model support:
+The system implements hierarchical configuration loading with provider-specific embedding model support and automatic base URL detection:
 
 ```mermaid
 flowchart TD
 Start["Load Configuration"] --> CheckEnv{"LLM_MODELS_CONFIG exists?"}
 CheckEnv --> |Yes| ParseJSON["Parse JSON configuration"]
-ParseJSON --> LoadModels["Load models into registry<br/>including provider-specific embedding models"]
+ParseJSON --> LoadModels["Load models into registry<br/>including provider-specific embedding models<br/>with automatic base URL detection"]
 CheckEnv --> |No| LoadLegacy["Load legacy single-model config"]
 LoadLegacy --> CheckProvider{"Provider type?"}
 CheckProvider --> |OpenAI/DeepSeek| CheckReasoning{"API key set?"}
-CheckProvider --> |Alibaba/Ark| AddProviderModels["Add provider-specific models"]
+CheckProvider --> |Alibaba/Ark| AddProviderModels["Add provider-specific models<br/>with automatic base URL detection"]
 CheckReasoning --> |Yes| AddReasoning["Add reasoning model"]
 CheckReasoning --> |No| UseChatOnly["Use chat model only"]
 AddReasoning --> CheckEmbedding{"Embedding support available?"}
-CheckEmbedding --> |Yes| AddEmbedding["Add provider-specific embedding model"]
+CheckEmbedding --> |Yes| AddEmbedding["Add provider-specific embedding model<br/>with base URL configuration"]
 CheckEmbedding --> |No| SkipEmbedding["Skip embedding model"]
 AddProviderModels --> Complete["Configuration ready"]
 AddReasoning --> Complete
@@ -424,7 +429,7 @@ The CLI now provides an interactive wizard for comprehensive multi-model setup i
 **API Key Management**: Secure input with masking and validation for provider-specific API keys
 **Model Assignment**: Configure reasoning, chat, fast, and embedding models separately with provider-specific model recommendations
 **Purpose-Based Configuration**: Explicit model purpose assignment for optimal performance across all providers
-**Provider-Specific Embedding Setup**: Dedicated embedding configuration wizard for provider-specific embedding models
+**Provider-Specific Embedding Setup**: Dedicated embedding configuration wizard for provider-specific embedding models with automatic base URL detection
 
 ### Show Configuration Feature
 Comprehensive configuration display with multi-provider support including provider-specific embedding models:
@@ -442,7 +447,7 @@ Comprehensive configuration display with multi-provider support including provid
 ## Multi-Provider Support
 
 ### Provider Configuration and Base URLs
-The system now supports four major LLM providers with provider-specific configurations:
+The system now supports four major LLM providers with provider-specific configurations and automatic base URL detection:
 
 **OpenAI Provider**
 - Models: gpt-4o, gpt-4o-mini, gpt-4-turbo, text-embedding-3-small
@@ -456,12 +461,12 @@ The system now supports four major LLM providers with provider-specific configur
 
 **Alibaba Cloud (Qwen) Provider**
 - Models: qwen-max, qwen-plus, qwen-turbo, text-embedding-v3
-- Base URL: https://dashscope.aliyuncs.com/compatible-mode/v1
+- Base URL: https://dashscope.aliyuncs.com/compatible-mode/v1 (automatically detected)
 - Embedding: Native Alibaba Cloud embedding support
 
 **ByteDance Ark Provider**
 - Models: doubao-pro-128k, doubao-lite-128k, doubao-embedding
-- Base URL: https://ark.cn-beijing.volces.com/api/v3
+- Base URL: https://ark.cn-beijing.volces.com/api/v3 (automatically detected)
 - Embedding: Native ByteDance Ark embedding support
 
 ### Environment Variable Support
@@ -496,13 +501,13 @@ The system now supports dedicated embedding models for vector operations across 
 **Alibaba Cloud Embedding Models**:
 - Primary: text-embedding-v3 (1024 dimensions)
 - Provider: Alibaba Cloud native support
-- Base URL: https://dashscope.aliyuncs.com/compatible-mode/v1
+- Base URL: https://dashscope.aliyuncs.com/compatible-mode/v1 (automatically configured)
 - Use cases: Memory storage, semantic search, vector operations
 
 **ByteDance Ark Embedding Models**:
 - Primary: doubao-embedding (1024 dimensions)
 - Provider: ByteDance Ark native support
-- Base URL: https://ark.cn-beijing.volces.com/api/v3
+- Base URL: https://ark.cn-beijing.volces.com/api/v3 (automatically configured)
 - Use cases: Memory storage, semantic search, vector operations
 
 **DeepSeek Embedding Models**: 
@@ -522,7 +527,7 @@ The system now supports dedicated embedding models for vector operations across 
 - Robust error handling for provider embedding API failures
 
 ### Provider-Specific Embedding Setup Process
-The CLI wizard guides users through provider-specific embedding model configuration:
+The CLI wizard guides users through provider-specific embedding model configuration with automatic base URL detection:
 
 ```mermaid
 flowchart TD
@@ -538,8 +543,8 @@ AskEmbed2 --> |No| SkipEmbed
 AskEmbed3 --> |Yes| GetArkKey["Get ByteDance API key"]
 AskEmbed3 --> |No| SkipEmbed
 GetKey --> CreateEmbed["Create OpenAI embedding model config"]
-GetAlibabaKey --> CreateAlibabaEmbed["Create Alibaba embedding model config"]
-GetArkKey --> CreateArkEmbed["Create ByteDance embedding model config"]
+GetAlibabaKey --> CreateAlibabaEmbed["Create Alibaba embedding model config<br/>with automatic base URL detection"]
+GetArkKey --> CreateArkEmbed["Create ByteDance embedding model config<br/>with automatic base URL detection"]
 CreateEmbed --> Complete["Setup complete"]
 CreateAlibabaEmbed --> Complete
 CreateArkEmbed --> Complete
@@ -555,6 +560,56 @@ SkipEmbed --> Complete
 - [config.ts:126-191](file://apps/cli/src/commands/config.ts#L126-L191)
 - [client.ts:192-200](file://packages/engine/src/llm/client.ts#L192-L200)
 - [vectorStore.ts:131-154](file://packages/engine/src/memory/vectorStore.ts#L131-L154)
+
+## Dynamic Dimension Detection
+
+### Automatic Embedding Dimension Detection
+The vector store now features sophisticated dynamic dimension detection for optimal performance across different embedding models:
+
+**Dimension Detection**: Automatic detection of embedding vector dimensions from the first embedding
+- **Initialization**: Vector store waits for the first embedding to determine dimension size
+- **Index Creation**: Creates HNSW index with correct dimension matching the embedding model
+- **Runtime Detection**: Supports multiple embedding models with different dimensions (1536 for OpenAI, 1024 for Alibaba/Ark)
+
+**Automatic Index Sizing**: Intelligent capacity management for vector operations
+- **Initial Capacity**: Starts with 10,000 elements capacity
+- **Auto-Resizing**: Automatically increases capacity by 50% when nearing limits
+- **Memory Efficiency**: Prevents unnecessary resizing while ensuring optimal performance
+
+**Cross-Dimensional Compatibility**: Handles dimension mismatches gracefully
+- **Dimension Validation**: Checks query embedding dimension against stored dimension
+- **Error Handling**: Warns and returns empty results for dimension mismatches
+- **Fallback Behavior**: Uses mock embeddings when dimension detection fails
+
+```mermaid
+flowchart TD
+Start["VectorStore Initialization"] --> WaitFirst{"First Embedding Received?"}
+WaitFirst --> |No| InitDefault["Initialize with default dimension (1536)"]
+WaitFirst --> |Yes| DetectDim["Detect embedding dimension from first vector"]
+DetectDim --> CreateIndex["Create HNSW index with detected dimension"]
+CreateIndex --> Ready["VectorStore Ready"]
+InitDefault --> Ready
+Ready --> AddMemories["Add Memories"]
+AddMemories --> CheckCapacity{"Near capacity limit?"}
+CheckCapacity --> |Yes| Resize["Resize index by 50%"]
+CheckCapacity --> |No| Continue["Continue normal operation"]
+Resize --> Continue
+Continue --> Search["Perform semantic search"]
+Search --> DimCheck{"Query dimension matches?"}
+DimCheck --> |Yes| ReturnResults["Return search results"]
+DimCheck --> |No| Warn["Warn about dimension mismatch"]
+Warn --> EmptyResults["Return empty results"]
+```
+
+**Diagram sources**
+- [vectorStore.ts:31-46](file://packages/engine/src/memory/vectorStore.ts#L31-L46)
+- [vectorStore.ts:77-105](file://packages/engine/src/memory/vectorStore.ts#L77-L105)
+- [vectorStore.ts:107-127](file://packages/engine/src/memory/vectorStore.ts#L107-L127)
+
+**Section sources**
+- [vectorStore.ts:20-46](file://packages/engine/src/memory/vectorStore.ts#L20-L46)
+- [vectorStore.ts:77-105](file://packages/engine/src/memory/vectorStore.ts#L77-L105)
+- [vectorStore.ts:107-127](file://packages/engine/src/memory/vectorStore.ts#L107-L127)
 
 ## Scene-Level Generation Pipeline
 
@@ -607,6 +662,7 @@ Pipeline->>Extractor : extractMemories(content)
 Extractor->>Extractor : Use provider-specific chat model for extraction
 Extractor-->>Pipeline : Extracted memories
 Pipeline->>Vector : Store memories with provider-specific embeddings
+Vector->>Vector : Automatic dimension detection and index creation
 Vector->>Vector : Use provider-specific embedding model for vectors
 Vector-->>Pipeline : Stored memories
 ```
@@ -628,10 +684,10 @@ Vector-->>Pipeline : Stored memories
 - [vectorStore.ts:125-202](file://packages/engine/src/memory/vectorStore.ts#L125-L202)
 
 ## Dependency Analysis
-The enhanced system maintains clean dependency relationships with multi-provider embedding model integration:
+The enhanced system maintains clean dependency relationships with multi-provider embedding model integration and dynamic dimension detection:
 - LLM client depends on types for configuration interfaces and model definitions including multi-provider support.
 - Agents depend on LLM client with automatic task-based model selection including embedding tasks across all providers.
-- Vector store integrates with LLM client for provider-specific embedding model configuration retrieval.
+- Vector store integrates with LLM client for provider-specific embedding model configuration retrieval and dynamic dimension detection.
 - Pipeline orchestrates agents with integrated multi-model support including provider-specific embedding operations.
 - CLI configuration manages both legacy and multi-model setups with environment variable application and provider-specific embedding model configuration.
 
@@ -644,14 +700,14 @@ CLIENT --> WRITE["agents/sceneWriter.ts<br/>Writing with task mapping"]
 CLIENT --> VAL["agents/canonValidator.ts<br/>Validation with task mapping"]
 CLIENT --> SUM["agents/summarizer.ts<br/>Summarization with task mapping"]
 CLIENT --> MEM["agents/memoryExtractor.ts<br/>Extraction with task mapping"]
-CLIENT --> VECTOR["memory/vectorStore.ts<br/>Vector store with provider-specific embedding"]
+CLIENT --> VECTOR["memory/vectorStore.ts<br/>Vector store with dynamic dimension detection<br/>Provider-specific embedding"]
 PIPE["pipeline/generateChapter.ts<br/>Scene-level orchestration"] --> WR
 PIPE --> PLAN
 PIPE --> WRITE
 PIPE --> VAL
 PIPE --> SUM
 PIPE --> MEM
-CFG["cli/config.ts<br/>Multi-provider configuration<br/>Embedding setup"] --> CLIENT
+CFG["cli/config.ts<br/>Multi-provider configuration<br/>Embedding setup<br/>Automatic base URL detection"] --> CLIENT
 CFG --> PIPE
 CFG --> VECTOR
 ```
@@ -692,9 +748,11 @@ CFG --> VECTOR
   - Leverage multi-provider setup for optimal performance-cost balance.
 - **Throughput**: Scene-level generation with integrated model selection maximizes efficiency.
 - **Memory Management**: Automatic model cleanup and provider reuse through singleton pattern.
-- **Provider-Specific Performance**: Vector store uses optimized embedding models for semantic search operations across all providers.
+- **Provider-Specific Performance**: Vector store uses optimized embedding models for semantic search operations across all providers with automatic dimension detection.
 - **Backward Compatibility**: Legacy single-model configurations continue to work without performance impact.
 - **Provider Latency**: Consider provider-specific API latency and choose providers based on geographic location and performance requirements.
+- **Dynamic Dimension Optimization**: Automatic dimension detection eliminates manual configuration overhead and prevents dimension mismatch errors.
+- **Auto-Resizing Efficiency**: Intelligent capacity management prevents frequent resizing while ensuring optimal vector search performance.
 
 ## Troubleshooting Guide
 Common issues and resolutions:
@@ -709,6 +767,8 @@ Common issues and resolutions:
 - **Performance Issues**: Monitor model selection and adjust task mapping if needed across all providers.
 - **Configuration Loading Failures**: System automatically falls back to legacy single-model setup with provider-specific support.
 - **Provider-Specific Issues**: Check provider-specific base URLs and model availability for the selected provider.
+- **Dimension Mismatch Errors**: Vector store automatically detects dimensions; ensure consistent embedding models across providers.
+- **Base URL Configuration Issues**: Automatic base URL detection handles Alibaba DashScope and Ark Storm endpoints; verify network connectivity.
 
 **Section sources**
 - [client.ts:127-133](file://packages/engine/src/llm/client.ts#L127-L133)
@@ -722,9 +782,11 @@ The enhanced Narrative Operating System provides a sophisticated multi-provider 
 
 The addition of provider-specific embedding model routing enables sophisticated memory management and semantic search capabilities through vector operations across all supported providers. The scene-level generation pipeline demonstrates the power of specialized model assignment, with reasoning models handling complex creative tasks, chat models managing validation and extraction, fast models optimizing summarization workflows, and provider-specific embedding models enabling vector-based memory operations.
 
-The enhanced CLI configuration system provides both interactive setup wizards and comprehensive show configuration capabilities, including dedicated provider-specific embedding model setup for all supported providers. The vector store integration ensures seamless provider-specific embedding model configuration retrieval and robust error handling for embedding operations across all providers.
+The enhanced CLI configuration system provides both interactive setup wizards and comprehensive show configuration capabilities, including dedicated provider-specific embedding model setup for all supported providers with automatic base URL detection. The vector store integration ensures seamless provider-specific embedding model configuration retrieval, robust error handling for embedding operations across all providers, and intelligent dimension detection for optimal performance.
 
-By leveraging task-specific model mapping, intelligent configuration loading, and provider-specific embedding model integration, teams can achieve optimal balance between narrative quality, cost efficiency, and performance while maintaining full backward compatibility with existing implementations and supporting multiple global providers.
+The new dynamic dimension detection feature eliminates manual configuration overhead and prevents dimension mismatch errors across different embedding models, while the automatic base URL detection for Alibaba DashScope and Ark Storm providers ensures seamless API integration without manual configuration. The improved vector store initialization with automatic index sizing and capacity management provides optimal performance for vector operations across all providers.
+
+By leveraging task-specific model mapping, intelligent configuration loading, provider-specific embedding model integration, and dynamic dimension detection, teams can achieve optimal balance between narrative quality, cost efficiency, and performance while maintaining full backward compatibility with existing implementations and supporting multiple global providers.
 
 ## Appendices
 
@@ -742,6 +804,7 @@ By leveraging task-specific model mapping, intelligent configuration loading, an
 - **Task Types**: generation, validation, summarization, extraction, planning, embedding, default
 - **Model Purposes**: reasoning (complex tasks), chat (structured tasks), fast (efficiency), embedding (vector operations)
 - **Supported Providers**: openai, deepseek, alibaba, ark
+- **Automatic Base URLs**: Alibaba DashScope (https://dashscope.aliyuncs.com/compatible-mode/v1), Ark Storm (https://ark.cn-beijing.volces.com/api/v3)
 
 **Section sources**
 - [client.ts:58-111](file://packages/engine/src/llm/client.ts#L58-L111)
@@ -749,7 +812,7 @@ By leveraging task-specific model mapping, intelligent configuration loading, an
 - [config.ts:192-214](file://apps/cli/src/commands/config.ts#L192-L214)
 
 ### Enhanced Configuration Commands
-- **Interactive Setup**: `nos config` - Multi-provider wizard with provider selection, model assignment, and provider-specific embedding model setup
+- **Interactive Setup**: `nos config` - Multi-provider wizard with provider selection, model assignment, provider-specific embedding model setup, and automatic base URL detection
 - **Show Configuration**: `nos config --show` - Comprehensive display of current multi-provider setup including provider-specific embedding configuration
 - **Automatic Application**: Configuration applied to environment variables at startup including provider-specific API keys
 - **Migration Support**: Seamless upgrade from legacy single-model configurations with provider-specific model support
@@ -777,12 +840,13 @@ By leveraging task-specific model mapping, intelligent configuration loading, an
 
 ### Provider-Specific Embedding Model Configuration
 - **OpenAI Provider**: Native embedding support with text-embedding-3-small (1536 dimensions)
-- **Alibaba Cloud Provider**: Native embedding support with text-embedding-v3 (1024 dimensions) and base URL https://dashscope.aliyuncs.com/compatible-mode/v1
-- **ByteDance Ark Provider**: Native embedding support with doubao-embedding (1024 dimensions) and base URL https://ark.cn-beijing.volces.com/api/v3
+- **Alibaba Cloud Provider**: Native embedding support with text-embedding-v3 (1024 dimensions) and base URL https://dashscope.aliyuncs.com/compatible-mode/v1 (automatically configured)
+- **ByteDance Ark Provider**: Native embedding support with doubao-embedding (1024 dimensions) and base URL https://ark.cn-beijing.volces.com/api/v3 (automatically configured)
 - **DeepSeek Provider**: Requires OpenAI embedding fallback with text-embedding-3-small (1536 dimensions)
 - **Configuration**: Through CLI wizard or LLM_MODELS_CONFIG JSON with provider-specific settings
 - **Fallback**: Mock embeddings for testing without provider API
 - **Integration**: Automatic retrieval through getEmbeddingConfig() method with provider-specific model selection
+- **Dimension Detection**: Automatic embedding dimension detection for optimal vector store performance
 
 **Section sources**
 - [config.ts:126-191](file://apps/cli/src/commands/config.ts#L126-L191)

@@ -35,6 +35,8 @@ export async function writeScene(input: SceneWriterInput): Promise<SceneOutput> 
     scene.characters.includes(c.name)
   );
   
+  const languageName = bible.language === 'zh' ? 'Chinese' : bible.language === 'ja' ? 'Japanese' : bible.language === 'ko' ? 'Korean' : bible.language === 'ar' ? 'Arabic' : bible.language === 'ru' ? 'Russian' : bible.language === 'es' ? 'Spanish' : bible.language === 'fr' ? 'French' : bible.language === 'de' ? 'German' : 'English';
+  
   const prompt = `You are a professional novelist writing immersive narrative prose.
 
 Write Scene ${scene.id} of Chapter ${chapterNumber} for "${bible.title}".
@@ -46,6 +48,7 @@ Scene Purpose: ${scene.purpose}
 ${scene.conflict ? `Conflict: ${scene.conflict}` : ''}
 Target Tension: ${scene.tension}/10
 Scene Type: ${scene.type || 'narrative'}
+Language: ${languageName}
 
 ## Character Details
 ${sceneCharacters.map(c => `- ${c.name}: ${c.personality.join(', ')}. Goals: ${c.goals.join(', ')}`).join('\n')}
@@ -54,6 +57,9 @@ ${sceneCharacters.map(c => `- ${c.name}: ${c.personality.join(', ')}. Goals: ${c
 Genre: ${bible.genre}
 Tone: ${bible.tone}
 Theme: ${bible.theme}
+Language: ${languageName}
+
+IMPORTANT: Write this scene in ${languageName} language.
 
 ${previousSceneSummary ? `## Previous Scene Summary\n${previousSceneSummary}\n` : ''}
 

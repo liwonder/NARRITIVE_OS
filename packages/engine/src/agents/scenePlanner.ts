@@ -18,14 +18,19 @@ export async function planScenes(input: ScenePlannerInput): Promise<ScenePlan> {
   
   const llm = getLLM();
   
+  const languageName = bible.language === 'zh' ? 'Chinese' : bible.language === 'ja' ? 'Japanese' : bible.language === 'ko' ? 'Korean' : bible.language === 'ar' ? 'Arabic' : bible.language === 'ru' ? 'Russian' : bible.language === 'es' ? 'Spanish' : bible.language === 'fr' ? 'French' : bible.language === 'de' ? 'German' : 'English';
+  
   const prompt = `You are a professional story planner. Break down Chapter ${chapterNumber} into ${targetSceneCount} scenes.
 
 Story Title: ${bible.title}
 Genre: ${bible.genre}
 Theme: ${bible.theme}
 Tone: ${bible.tone}
+Language: ${languageName}
 
 Story Premise: ${bible.premise}
+
+IMPORTANT: All scene descriptions and content should be in ${languageName} language.
 
 Characters:
 ${bible.characters.map(c => `- ${c.name} (${c.role}): ${c.personality.join(', ')}`).join('\n')}
@@ -66,6 +71,7 @@ Return a JSON object with this structure:
       "type": "dialogue|action|reveal|investigation|transition"
     }
   ],
+  "chapterTitle": "A compelling, short chapter title (3-6 words)",
   "chapterGoal": "overall goal for this chapter",
   "targetTension": 7
 }
@@ -163,6 +169,7 @@ function createFallbackScenePlan(bible: StoryBible, chapterNumber: number, targe
   
   return {
     scenes: scenes.slice(0, targetSceneCount),
+    chapterTitle: `Chapter ${chapterNumber}: The Journey Begins`,
     chapterGoal: `Advance ${mainCharacter}'s journey in Chapter ${chapterNumber}`,
     targetTension: 7
   };

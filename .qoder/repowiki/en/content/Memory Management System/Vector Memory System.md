@@ -19,10 +19,12 @@
 ## Update Summary
 **Changes Made**
 - Enhanced embedding provider system with comprehensive OpenAI embeddings integration
+- Added intelligent dimension detection that automatically adapts to embedding provider dimensions
+- Implemented improved initialization process with delayed index creation until first embedding
+- Enhanced capacity management for handling variable-length embeddings from different providers
 - Added mock embedding fallback mechanisms for testing scenarios
 - Implemented provider detection through LLM client configuration system
 - Improved error handling with graceful degradation from real embeddings to mock embeddings
-- Added embedding dimension support (1536 dimensions for text-embedding-3-small)
 - Updated Vector Storage Implementation section to cover new embedding provider architecture
 - Enhanced Performance Considerations section with multi-provider capacity management strategies
 - Added new subsection on Multi-Provider Embedding Architecture
@@ -45,7 +47,7 @@ The Vector Memory System is a sophisticated narrative memory management framewor
 
 The system operates on the principle that meaningful narrative content can be represented as high-dimensional vectors that capture semantic meaning, enabling similarity-based retrieval of relevant past experiences. By organizing memories into categories (events, characters, world, plot), the system provides both broad semantic recall and targeted categorical filtering for specific storytelling needs.
 
-**Updated** Enhanced with comprehensive multi-provider AI embedding support that automatically detects and switches between OpenAI and DeepSeek APIs based on available credentials, providing robust fallback mechanisms and improved reliability for long-form narrative generation.
+**Updated** Enhanced with comprehensive multi-provider AI embedding support that automatically detects and switches between OpenAI and DeepSeek APIs based on available credentials, providing robust fallback mechanisms and improved reliability for long-form narrative generation. The system now features intelligent dimension detection that adapts to different embedding provider outputs and enhanced initialization processes for optimal performance.
 
 ## System Architecture
 
@@ -117,6 +119,7 @@ class VectorStore {
 -number dimension
 -string storyId
 -number nextId
+-boolean isInitialized
 +initialize(maxElements) Promise~void~
 +resizeIndex(newMaxElements) void
 +ensureCapacity(additionalMemories) void
@@ -129,6 +132,7 @@ class VectorStore {
 +load(data) Promise~void~
 -generateEmbedding(text) Promise~number[]~
 -generateMockEmbedding(text) number[]
+-ensureInitialized(embedding) void
 }
 class NarrativeMemory {
 +number id
@@ -151,7 +155,7 @@ VectorStore --> MemorySearchResult : "returns"
 - [vectorStore.ts:19-161](file://packages/engine/src/memory/vectorStore.ts#L19-L161)
 
 **Section sources**
-- [vectorStore.ts:1-237](file://packages/engine/src/memory/vectorStore.ts#L1-L237)
+- [vectorStore.ts:1-258](file://packages/engine/src/memory/vectorStore.ts#L1-L258)
 
 ### MemoryRetriever Class
 
@@ -213,6 +217,50 @@ ThreadLoop --> |No| Done
 
 ## Vector Storage Implementation
 
+### Intelligent Dimension Detection and Dynamic Initialization
+
+The VectorStore now implements a revolutionary intelligent dimension detection system that automatically adapts to different embedding provider outputs. The system delays index creation until the first embedding is processed, allowing it to detect the exact dimensionality of the embedding vectors produced by the chosen provider.
+
+```mermaid
+flowchart TD
+Init[VectorStore.initialize] --> DelayInit[Delay Index Creation]
+DelayInit --> AddMemory[addMemory Called]
+AddMemory --> GenEmbed[generateEmbedding]
+GenEmbed --> CheckMock{"USE_MOCK_EMBEDDINGS?"}
+CheckMock --> |Yes| MockGen[generateMockEmbedding]
+CheckMock --> |No| CheckConfig[Check LLM Embedding Config]
+CheckConfig --> HasConfig{Embedding Config Found?}
+HasConfig --> |Yes| UseConfig[Use Configured Provider]
+HasConfig --> |No| CheckEnv[Check Environment Variables]
+CheckEnv --> OpenAIKey{OPENAI_API_KEY?}
+OpenAIKey --> |Yes| OpenAI[Use OpenAI Embeddings]
+OpenAIKey --> |No| MockGen
+UseConfig --> TryAPI{API Success?}
+TryAPI --> |Yes| ReturnReal[Return Real Embedding]
+TryAPI --> |No| MockGen
+OpenAI --> TryAPI2{API Success?}
+TryAPI2 --> |Yes| ReturnReal2[Return Real Embedding]
+TryAPI2 --> |No| MockGen
+MockGen --> Deterministic[Seed-based Generation]
+Deterministic --> Normalize[Vector Normalization]
+Normalize --> ReturnMock[Return Mock Embedding]
+ReturnReal --> DetectDim[Detect Dimension from Embedding]
+ReturnReal2 --> DetectDim
+ReturnMock --> DetectDim
+DetectDim --> EnsureInit[ensureInitialized]
+EnsureInit --> CreateIndex[Create HNSW Index with Detected Dimension]
+CreateIndex --> StoreMemories[Store Memory with Embedding]
+StoreMemories --> Complete([Ready for Use])
+```
+
+**Diagram sources**
+- [vectorStore.ts:31-46](file://packages/engine/src/memory/vectorStore.ts#L31-L46)
+- [vectorStore.ts:145-198](file://packages/engine/src/memory/vectorStore.ts#L145-L198)
+
+**Section sources**
+- [vectorStore.ts:31-46](file://packages/engine/src/memory/vectorStore.ts#L31-L46)
+- [vectorStore.ts:145-198](file://packages/engine/src/memory/vectorStore.ts#L145-L198)
+
 ### Comprehensive Embedding Provider Architecture
 
 The VectorStore now implements a sophisticated multi-provider embedding system that automatically detects and utilizes the most appropriate embedding service based on available credentials and configuration. The system prioritizes real embeddings from configured providers with graceful fallback to mock embeddings.
@@ -245,10 +293,10 @@ Store --> Complete([Embedding Ready])
 ```
 
 **Diagram sources**
-- [vectorStore.ts:125-177](file://packages/engine/src/memory/vectorStore.ts#L125-L177)
+- [vectorStore.ts:145-198](file://packages/engine/src/memory/vectorStore.ts#L145-L198)
 
 **Section sources**
-- [vectorStore.ts:125-177](file://packages/engine/src/memory/vectorStore.ts#L125-L177)
+- [vectorStore.ts:145-198](file://packages/engine/src/memory/vectorStore.ts#L145-L198)
 
 ### Enhanced Embedding Generation and Indexing
 
@@ -260,12 +308,14 @@ The VectorStore implements a robust multi-provider embedding system that gracefu
 - **Mock Embeddings**: Deterministic generation for testing without external API dependencies
 - **Automatic Fallback**: Graceful degradation from real embeddings to mock embeddings when APIs fail
 - **Error Handling**: Comprehensive error catching with logging and fallback mechanisms
+- **Intelligent Dimension Detection**: Automatically detects embedding dimension from first embedding
+- **Dynamic Index Creation**: Creates HNSW index with correct dimension after first embedding
 
-The system uses a 1536-dimensional embedding space optimized for the `text-embedding-3-small` model, with HNSW indexing providing efficient similarity search capabilities.
+The system now supports variable-length embeddings from different providers, with the dimension determined dynamically rather than being hardcoded. This allows seamless integration with various embedding providers while maintaining optimal performance characteristics.
 
 **Section sources**
 - [vectorStore.ts:20-35](file://packages/engine/src/memory/vectorStore.ts#L20-L35)
-- [vectorStore.ts:125-177](file://packages/engine/src/memory/vectorStore.ts#L125-L177)
+- [vectorStore.ts:145-198](file://packages/engine/src/memory/vectorStore.ts#L145-L198)
 
 ### Dynamic Index Resizing Capabilities
 
@@ -288,21 +338,21 @@ StoreMemories --> Complete([Capacity Managed])
 ```
 
 **Diagram sources**
-- [vectorStore.ts:39-63](file://packages/engine/src/memory/vectorStore.ts#L39-L63)
+- [vectorStore.ts:48-75](file://packages/engine/src/memory/vectorStore.ts#L48-L75)
 
 **Section sources**
-- [vectorStore.ts:39-63](file://packages/engine/src/memory/vectorStore.ts#L39-L63)
+- [vectorStore.ts:48-75](file://packages/engine/src/memory/vectorStore.ts#L48-L75)
 
 ### Memory Persistence and Serialization
 
 The VectorStore implements robust persistence mechanisms for production deployment:
 
 - **Serialization**: Complete memory state export including story metadata, next ID counter, and all stored memories
-- **Deserialization**: Full state restoration with automatic HNSW index rebuilding
+- **Deserialization**: Full state restoration with automatic HNSW index rebuilding using detected dimensions
 - **Story Isolation**: Factory pattern ensures separate stores per story ID
 
 **Section sources**
-- [vectorStore.ts:200-221](file://packages/engine/src/memory/vectorStore.ts#L200-L221)
+- [vectorStore.ts:220-242](file://packages/engine/src/memory/vectorStore.ts#L220-L242)
 
 ## Memory Retrieval System
 
@@ -446,6 +496,7 @@ The VectorStore employs advanced multi-provider embedding strategies to ensure o
 - **Graceful Degradation**: Real embeddings are used when available, with automatic fallback to mock embeddings when APIs fail
 - **Provider Priority**: Configured providers take precedence over environment-based detection
 - **Environment-Based Configuration**: Flexible configuration through environment variables for different deployment scenarios
+- **Intelligent Dimension Detection**: Automatically adapts to embedding provider dimensions for optimal performance
 
 ### Dynamic Capacity Management
 
@@ -461,7 +512,7 @@ The VectorStore employs advanced capacity management strategies to ensure optima
 The VectorStore employs several optimization strategies:
 
 - **HNSW Index**: Hierarchical Navigable Small World graph for efficient similarity search
-- **Dimension Management**: Fixed 1536-dimensional embedding space for consistency
+- **Dynamic Dimension Management**: Variable embedding dimensions based on provider output
 - **Memory Mapping**: Efficient in-memory storage with O(1) lookup performance
 - **Batch Operations**: Optimized for bulk memory addition and retrieval
 - **Capacity Monitoring**: Real-time tracking of memory usage versus index capacity
@@ -474,10 +525,11 @@ The system implements intelligent multi-provider fallback mechanisms:
 - **API Fallback**: Automatic switching to mock embeddings when external APIs fail or are unavailable
 - **Environment Control**: Configurable embedding generation through environment variables
 - **Provider Priority**: Automatic selection of configured providers over environment variables
+- **Intelligent Dimension Adaptation**: Automatic adjustment to embedding provider output dimensions
 
 **Section sources**
-- [vectorStore.ts:39-63](file://packages/engine/src/memory/vectorStore.ts#L39-L63)
-- [vectorStore.ts:125-177](file://packages/engine/src/memory/vectorStore.ts#L125-L177)
+- [vectorStore.ts:48-75](file://packages/engine/src/memory/vectorStore.ts#L48-L75)
+- [vectorStore.ts:145-198](file://packages/engine/src/memory/vectorStore.ts#L145-L198)
 
 ## Testing and Validation
 
@@ -485,13 +537,14 @@ The system implements intelligent multi-provider fallback mechanisms:
 
 The Vector Memory System includes extensive testing covering:
 
-- **Initialization and Persistence**: Store lifecycle management
+- **Initialization and Persistence**: Store lifecycle management with dynamic dimension detection
 - **Semantic Search**: Vector similarity accuracy and performance with multi-provider embeddings
 - **Category Filtering**: Correct categorization and retrieval
 - **Memory Extraction**: LLM-based memory generation quality
 - **Integration Testing**: End-to-end pipeline functionality
 - **Capacity Management**: Dynamic resizing and growth strategies
 - **Multi-Provider Testing**: Embedding provider switching and fallback mechanisms
+- **Dimension Detection Testing**: Variable embedding dimension handling
 
 ```mermaid
 flowchart TD
@@ -503,6 +556,7 @@ TestSuite --> ExtractionTest[Memory Extraction]
 TestSuite --> IntegrationTest[Integration Tests]
 TestSuite --> CapacityTest[Capacity Management Tests]
 TestSuite --> ProviderTest[Multi-Provider Tests]
+TestSuite --> DimensionTest[Dimension Detection Tests]
 InitTest --> Pass[Pass/Fail Status]
 MemoryTest --> Pass
 SearchTest --> Pass
@@ -511,13 +565,14 @@ ExtractionTest --> Pass
 IntegrationTest --> Pass
 CapacityTest --> Pass
 ProviderTest --> Pass
+DimensionTest --> Pass
 ```
 
 **Diagram sources**
 - [vector-memory.test.ts:31-174](file://packages/engine/src/test/vector-memory.test.ts#L31-L174)
 
 **Section sources**
-- [vector-memory.test.ts:1-244](file://packages/engine/src/test/vector-memory.test.ts#L1-L244)
+- [vector-memory.test.ts:1-266](file://packages/engine/src/test/vector-memory.test.ts#L1-L266)
 
 ### Test Configuration and Environment
 
@@ -533,6 +588,7 @@ The Vector Memory System represents a sophisticated approach to narrative memory
 Key strengths of the system include:
 
 - **Robust Multi-Provider Embedding**: Automatic detection and utilization of configured embedding providers with graceful fallback to mock embeddings
+- **Intelligent Dimension Detection**: Automatic adaptation to embedding provider dimensions for optimal performance
 - **Dynamic Provider Selection**: Intelligent credential-based provider selection with automatic API failure handling
 - **Advanced Vector Indexing**: Efficient similarity search using HNSW with configurable parameters
 - **Dynamic Capacity Management**: Automatic resizing capabilities that scale with memory requirements
@@ -540,6 +596,7 @@ Key strengths of the system include:
 - **Structured Memory Organization**: Clear categorization enabling targeted retrieval
 - **Production-Ready Persistence**: Complete serialization and deserialization capabilities
 - **Comprehensive Testing**: Extensive test coverage ensuring reliability and correctness across multiple embedding providers
+- **Variable-Length Embedding Support**: Seamless handling of different embedding dimensions from various providers
 
 The system's design supports both research and production deployment scenarios, with clear pathways for customization and extension. The addition of comprehensive embedding system integration significantly enhances reliability and accessibility for long-form narrative generation, making it suitable for extended story arcs and complex narrative structures across different AI service providers.
 

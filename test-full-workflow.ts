@@ -9,7 +9,8 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
-const TEST_STORY_TITLE = 'Test Mystery Story';
+// Test with Chinese title to verify language detection
+const TEST_STORY_TITLE = '失踪之谜';
 const TEST_DIR = path.join(os.homedir(), '.narrative-os');
 
 // Use globally installed CLI
@@ -91,7 +92,7 @@ async function main() {
   console.log('\n🎭 Step 1: Testing nos init...');
   cleanup();
   
-  runCommand(`${CLI_CMD} init --title "${TEST_STORY_TITLE}" --genre "Mystery" --theme "Redemption" --setting "Modern City" --tone "Suspenseful" --premise "A detective investigates disappearances." --chapters 3`, { timeout: 30000 });
+  runCommand(`${CLI_CMD} init --title "${TEST_STORY_TITLE}" --genre "悬疑" --theme "救赎" --setting "现代都市" --tone "紧张悬疑" --premise "一位侦探调查一系列神秘失踪案件，在追寻真相的过程中面对自己的过去。" --chapters 3`, { timeout: 30000 });
 
   // Step 2: Find the story ID (look for the one with our test title)
   console.log('\n🔍 Step 2: Finding story ID...');
@@ -148,8 +149,24 @@ async function main() {
     throw new Error('No chapters generated');
   }
 
-  // Step 6: Check memories were extracted
-  console.log('\n🧠 Step 6: Checking narrative memories...');
+  // Step 6: Verify Chinese content
+  console.log('\n🇨🇳 Step 6: Verifying Chinese language generation...');
+  const chapter1Content = chapters[0].content;
+  const chineseCharCount = (chapter1Content.match(/[\u4e00-\u9fa5]/g) || []).length;
+  const totalCharCount = chapter1Content.length;
+  const chineseRatio = chineseCharCount / totalCharCount;
+  
+  console.log(`  Chinese characters: ${chineseCharCount}`);
+  console.log(`  Total characters: ${totalCharCount}`);
+  console.log(`  Chinese ratio: ${(chineseRatio * 100).toFixed(1)}%`);
+  
+  if (chineseRatio < 0.3) {
+    throw new Error(`Content does not appear to be in Chinese (only ${(chineseRatio * 100).toFixed(1)}% Chinese characters)`);
+  }
+  console.log('  ✅ Content verified as Chinese!');
+
+  // Step 7: Check memories were extracted
+  console.log('\n🧠 Step 7: Checking narrative memories...');
   runCommand(`${CLI_CMD} memories ${storyId}`, { timeout: 10000 });
 
   console.log('\n═══════════════════════════════════════════════════════');

@@ -7,6 +7,7 @@ export interface StoryBible {
   tone: string;
   targetChapters: number;
   premise: string;
+  language: string; // Auto-detected from title/premise
   characters: CharacterProfile[];
   plotThreads: PlotThread[];
   createdAt: Date;
@@ -127,6 +128,7 @@ export interface Scene {
 export interface ScenePlan {
   scenes: Scene[];
   chapterGoal: string;
+  chapterTitle: string;
   targetTension: number;
 }
 

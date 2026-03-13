@@ -15,6 +15,7 @@ Write Chapter {{chapterNumber}} of the novel.
 **Genre:** {{genre}}
 **Setting:** {{setting}}
 **Tone:** {{tone}}
+**Language:** {{language}}
 
 **Premise:**
 {{premise}}
@@ -41,6 +42,7 @@ Write Chapter {{chapterNumber}} of the novel.
 
 ## Writing Guidelines
 
+- Write in {{language}} language
 - Write in third person limited perspective
 - Show, don't tell
 - Maintain consistent character voices
@@ -48,6 +50,13 @@ Write Chapter {{chapterNumber}} of the novel.
 - End at a natural stopping point (not mid-scene)
 - Reference relevant past memories naturally when appropriate
 - Target length: {{targetWordCount}} words
+
+## Format
+
+Start your response with a chapter title on the first line, formatted as:
+# Chapter Title Here
+
+Then write the chapter content.
 
 Write the full chapter now.`;
 
@@ -92,6 +101,7 @@ export class ChapterWriter {
       .replace('{{genre}}', bible.genre)
       .replace('{{setting}}', bible.setting)
       .replace('{{tone}}', bible.tone)
+      .replace('{{language}}', bible.language === 'zh' ? 'Chinese' : bible.language === 'ja' ? 'Japanese' : bible.language === 'ko' ? 'Korean' : bible.language === 'ar' ? 'Arabic' : bible.language === 'ru' ? 'Russian' : bible.language === 'es' ? 'Spanish' : bible.language === 'fr' ? 'French' : bible.language === 'de' ? 'German' : 'English')
       .replace('{{premise}}', bible.premise)
       .replace('{{characters}}', characters)
       .replace('{{memories}}', memoriesSection)

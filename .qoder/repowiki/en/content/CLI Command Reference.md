@@ -36,12 +36,12 @@
 
 ## Update Summary
 **Changes Made**
-- Added comprehensive documentation for the new `version` command that displays detailed version information for CLI and engine modules
 - Enhanced the `config` command section to reflect the new multi-model configuration system with reasoning, chat, and embedding model support
 - Updated supported providers list to include Alibaba Cloud (Qwen) and ByteDance Ark alongside OpenAI and DeepSeek
 - Added practical examples demonstrating both single-model and multi-model workflows with embedding configuration
 - Updated LLM client documentation to reflect task-based model selection and embedding support
 - Enhanced troubleshooting section to cover multi-model configuration scenarios including embedding setup
+- Added comprehensive documentation for the new `version` command that displays detailed version information for CLI and engine modules
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -136,7 +136,7 @@ CMD_CONFIG --> VECTOR_STORE["Vector Store<br/>packages/engine/src/memory/vectorS
 - [packages/engine/src/story/structuredState.ts:1-235](file://packages/engine/src/story/structuredState.ts#L1-L235)
 - [packages/engine/src/agents/stateUpdater.ts:1-193](file://packages/engine/src/agents/stateUpdater.ts#L1-L193)
 - [packages/engine/src/llm/client.ts:1-211](file://packages/engine/src/llm/client.ts#L1-L211)
-- [packages/engine/src/memory/vectorStore.ts:1-237](file://packages/engine/src/memory/vectorStore.ts#L1-L237)
+- [packages/engine/src/memory/vectorStore.ts:1-258](file://packages/engine/src/memory/vectorStore.ts#L1-L258)
 
 **Section sources**
 - [apps/cli/src/index.ts:1-161](file://apps/cli/src/index.ts#L1-L161)
@@ -174,7 +174,7 @@ Key runtime behaviors:
 - [apps/cli/src/commands/hint.ts:3-47](file://apps/cli/src/commands/hint.ts#L3-L47)
 - [apps/cli/src/commands/init.ts:17-64](file://apps/cli/src/commands/init.ts#L17-L64)
 - [packages/engine/src/llm/client.ts:39-47](file://packages/engine/src/llm/client.ts#L39-L47)
-- [packages/engine/src/memory/vectorStore.ts:1-237](file://packages/engine/src/memory/vectorStore.ts#L1-L237)
+- [packages/engine/src/memory/vectorStore.ts:1-258](file://packages/engine/src/memory/vectorStore.ts#L1-L258)
 - [apps/cli/src/commands/version.ts:64-123](file://apps/cli/src/commands/version.ts#L64-123)
 
 ## Architecture Overview
@@ -845,7 +845,7 @@ STORE --> GENERATE_PIPELINE["engine/pipeline/generateChapter.ts"]
 - [packages/engine/src/agents/stateUpdater.ts:1-193](file://packages/engine/src/agents/stateUpdater.ts#L1-L193)
 - [packages/engine/src/pipeline/generateChapter.ts:1-108](file://packages/engine/src/pipeline/generateChapter.ts#L1-L108)
 - [packages/engine/src/llm/client.ts:1-211](file://packages/engine/src/llm/client.ts#L1-L211)
-- [packages/engine/src/memory/vectorStore.ts:1-237](file://packages/engine/src/memory/vectorStore.ts#L1-L237)
+- [packages/engine/src/memory/vectorStore.ts:1-258](file://packages/engine/src/memory/vectorStore.ts#L1-L258)
 
 **Section sources**
 - [apps/cli/src/index.ts:1-161](file://apps/cli/src/index.ts#L1-L161)
@@ -941,7 +941,7 @@ Exit codes summary
 - [apps/cli/src/config/store.ts:139-151](file://apps/cli/src/config/store.ts#L139-L151)
 - [apps/cli/src/commands/regenerate.ts:17-21](file://apps/cli/src/commands/regenerate.ts#L17-L21)
 - [apps/cli/src/commands/export.ts:7-10](file://apps/cli/src/commands/export.ts#L7-L10)
-- [apps/cli/src/commands/version.ts:64-123](file://apps/cli/src/commands/version.ts#L64-123)
+- [apps/cli/src/commands/version.ts:64-123](file://apps/cli/src/commands/version.ts#L64-L123)
 
 ## Conclusion
 The nos CLI provides a comprehensive and powerful workflow for creating, generating, managing, and validating stories powered by the Narrative Operating System engine. With the addition of 13 new commands, enhanced structured state persistence, interactive hints system, sophisticated memory management, the new interactive init command with dynamic user prompts, the revolutionary multi-model configuration system with separate reasoning, chat, and embedding models, and the new version command for detailed version information, it now offers advanced narrative tracking capabilities, comprehensive story management, intelligent assistance, multi-model performance optimization, embedding support for vector memory operations, an intuitive user experience, and detailed version management while maintaining both beginner-friendly workflows and advanced automation scenarios.
@@ -1106,7 +1106,7 @@ VectorStore --> VectorMemory
 **Diagram sources**
 - [packages/engine/src/types/index.ts:1-150](file://packages/engine/src/types/index.ts#L1-L150)
 - [packages/engine/src/story/structuredState.ts:23-235](file://packages/engine/src/story/structuredState.ts#L23-L235)
-- [packages/engine/src/memory/vectorStore.ts:1-237](file://packages/engine/src/memory/vectorStore.ts#L1-L237)
+- [packages/engine/src/memory/vectorStore.ts:1-258](file://packages/engine/src/memory/vectorStore.ts#L1-L258)
 - [packages/engine/src/constraints/constraintGraph.ts:1-150](file://packages/engine/src/constraints/constraintGraph.ts#L1-L150)
 - [packages/engine/src/types/index.ts:92-113](file://packages/engine/src/types/index.ts#L92-L113)
 - [packages/engine/src/llm/client.ts:49-201](file://packages/engine/src/llm/client.ts#L49-L201)
@@ -1163,7 +1163,7 @@ Power-user techniques
 - [apps/cli/src/commands/init.ts:17-79](file://apps/cli/src/commands/init.ts#L17-L79)
 - [packages/engine/src/llm/client.ts:39-47](file://packages/engine/src/llm/client.ts#L39-L47)
 - [packages/engine/src/memory/vectorStore.ts:125-177](file://packages/engine/src/memory/vectorStore.ts#L125-L177)
-- [apps/cli/src/commands/version.ts:64-123](file://apps/cli/src/commands/version.ts#L64-123)
+- [apps/cli/src/commands/version.ts:64-123](file://apps/cli/src/commands/version.ts#L64-L123)
 
 ### Interactive Prompts System Features
 **New**: The enhanced CLI now provides a comprehensive interactive prompts system for story creation:
@@ -1219,7 +1219,7 @@ Power-user techniques
 
 **Section sources**
 - [apps/cli/src/commands/memories.ts:1-66](file://apps/cli/src/commands/memories.ts#L1-L66)
-- [packages/engine/src/memory/vectorStore.ts:1-237](file://packages/engine/src/memory/vectorStore.ts#L1-L237)
+- [packages/engine/src/memory/vectorStore.ts:1-258](file://packages/engine/src/memory/vectorStore.ts#L1-L258)
 
 ### Validation and Quality Assurance
 **New**: Comprehensive validation system ensures narrative consistency:
@@ -1317,7 +1317,7 @@ Power-user techniques
 
 **Section sources**
 - [apps/cli/src/commands/config.ts:126-147](file://apps/cli/src/commands/config.ts#L126-L147)
-- [packages/engine/src/memory/vectorStore.ts:21-237](file://packages/engine/src/memory/vectorStore.ts#L21-L237)
+- [packages/engine/src/memory/vectorStore.ts:21-258](file://packages/engine/src/memory/vectorStore.ts#L21-L258)
 - [packages/engine/src/llm/client.ts:192-200](file://packages/engine/src/llm/client.ts#L192-L200)
 
 ### Version Command Features
@@ -1332,5 +1332,21 @@ Power-user techniques
 - **Cross-Platform Support**: Works across different Node.js environments
 
 **Section sources**
-- [apps/cli/src/commands/version.ts:64-123](file://apps/cli/src/commands/version.ts#L64-123)
+- [apps/cli/src/commands/version.ts:64-123](file://apps/cli/src/commands/version.ts#L64-L123)
 - [apps/cli/package.json:1-50](file://apps/cli/package.json#L1-L50)
+
+### Enhanced Provider Integration
+**New**: Comprehensive provider support system:
+
+- **OpenAI**: Full embedding support with text-embedding-3-small (1536 dimensions)
+- **DeepSeek**: Specialized reasoning models (deepseek-reasoner) with separate embedding configuration
+- **Alibaba Cloud (Qwen)**: Native embedding support with text-embedding-v3 model
+- **ByteDance Ark**: Native embedding support with doubao-embedding model
+- **Base URL Configuration**: Provider-specific base URLs for API compatibility
+- **Model Recommendations**: Intelligent default model selection based on provider capabilities
+- **API Key Management**: Separate API key handling for each provider with masked display
+
+**Section sources**
+- [apps/cli/src/commands/config.ts:32-37](file://apps/cli/src/commands/config.ts#L32-L37)
+- [apps/cli/src/commands/config.ts:194-207](file://apps/cli/src/commands/config.ts#L194-L207)
+- [packages/engine/src/memory/vectorStore.ts:200-218](file://packages/engine/src/memory/vectorStore.ts#L200-L218)
