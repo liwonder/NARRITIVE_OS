@@ -53,19 +53,42 @@ export function showWelcome() {
   
   const stories = listStories();
   
+  // Show available commands
+  console.log('📚 Available Commands:\n');
+  console.log('  Story Management:');
+  console.log('    nos init              Create a new story');
+  console.log('    nos list              List all stories');
+  console.log('    nos use <id>          Set active story (for shortcut commands)');
+  console.log('    nos status [id]       Show story progress');
+  console.log('    nos delete <id>       Delete a story');
+  console.log('');
+  console.log('  Writing:');
+  console.log('    nos generate [id]     Generate next chapter');
+  console.log('    nos continue [id]     Generate all remaining chapters');
+  console.log('    nos read [id] [num]   Read chapter content');
+  console.log('');
+  console.log('  Story Bible:');
+  console.log('    nos bible [id]        View characters & setting');
+  console.log('    nos state [id]        View structured story state');
+  console.log('    nos memories [id]     Search narrative memories');
+  console.log('');
+  console.log('  Export & Tools:');
+  console.log('    nos export [id]       Export story to file');
+  console.log('    nos validate [id]     Check story consistency');
+  console.log('    nos config            Configure LLM settings');
+  console.log('    nos version           Show version info');
+  console.log('');
+  
   if (stories.length === 0) {
-    console.log('Welcome! Let\'s create your first story.\n');
-    console.log('💡 Quick Start:');
+    console.log('💡 Get Started:');
     console.log('   nos init --title "My Adventure" --chapters 10');
-    console.log('\nOr explore options:');
-    console.log('   nos init --help');
   } else {
-    console.log(`You have ${stories.length} story(s).\n`);
-    console.log('💡 Quick Commands:');
-    console.log('   nos list              See all stories');
-    console.log('   nos status            Check story status');
-    console.log('   nos generate <id>     Write next chapter');
-    console.log('   nos --help            All commands');
+    const activeStory = stories.find(s => s.currentChapter < s.totalChapters);
+    if (activeStory) {
+      console.log(`💡 Continue Writing: "${activeStory.title}" (${activeStory.currentChapter}/${activeStory.totalChapters})`);
+      console.log(`   nos use ${activeStory.id}`);
+      console.log(`   nos generate`);
+    }
   }
   
   console.log('');
