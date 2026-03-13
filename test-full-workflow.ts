@@ -12,8 +12,8 @@ import os from 'os';
 const TEST_STORY_TITLE = 'Test Mystery Story';
 const TEST_DIR = path.join(os.homedir(), '.narrative-os');
 
-// Use local CLI (built from source)
-const CLI_PATH = path.join(process.cwd(), 'apps/cli/dist/index.js');
+// Use globally installed CLI
+const CLI_CMD = 'nos';
 
 // Load multi-model config if available
 const configPath = path.join(TEST_DIR, 'config.json');
@@ -91,7 +91,7 @@ async function main() {
   console.log('\n🎭 Step 1: Testing nos init...');
   cleanup();
   
-  runCommand(`node "${CLI_PATH}" init --title "${TEST_STORY_TITLE}" --genre "Mystery" --theme "Redemption" --setting "Modern City" --tone "Suspenseful" --premise "A detective investigates disappearances." --chapters 3`, { timeout: 30000 });
+  runCommand(`${CLI_CMD} init --title "${TEST_STORY_TITLE}" --genre "Mystery" --theme "Redemption" --setting "Modern City" --tone "Suspenseful" --premise "A detective investigates disappearances." --chapters 3`, { timeout: 30000 });
 
   // Step 2: Find the story ID (look for the one with our test title)
   console.log('\n🔍 Step 2: Finding story ID...');
@@ -116,11 +116,11 @@ async function main() {
 
   // Step 3: Check status
   console.log('\n📊 Step 3: Checking story status...');
-  runCommand(`node "${CLI_PATH}" status ${storyId}`, { timeout: 10000 });
+  runCommand(`${CLI_CMD} status ${storyId}`, { timeout: 10000 });
 
   // Step 4: Generate Chapter 1 (generates next chapter automatically)
   console.log('\n✍️  Step 4: Generating Chapter 1...');
-  runCommand(`node "${CLI_PATH}" generate ${storyId}`, { timeout: 600000 }); // 10 min timeout
+  runCommand(`${CLI_CMD} generate ${storyId}`, { timeout: 600000 }); // 10 min timeout
 
   // Step 5: Verify chapter was created
   console.log('\n✅ Step 5: Verifying chapter output...');
@@ -155,7 +155,7 @@ async function main() {
 
   // Step 6: Check memories were extracted
   console.log('\n🧠 Step 6: Checking narrative memories...');
-  runCommand(`node "${CLI_PATH}" memories ${storyId}`, { timeout: 10000 });
+  runCommand(`${CLI_CMD} memories ${storyId}`, { timeout: 10000 });
 
   console.log('\n═══════════════════════════════════════════════════════');
   console.log('  All tests passed! ✅');

@@ -6,14 +6,36 @@ import { homedir } from 'os';
 const configPath = join(homedir(), '.narrative-os', 'config.json');
 if (existsSync(configPath)) {
   const config = JSON.parse(readFileSync(configPath, 'utf-8'));
-  process.env.LLM_PROVIDER = config.provider;
-  process.env.LLM_MODEL = 'deepseek-chat';
-  if (config.provider === 'openai') {
-    process.env.OPENAI_API_KEY = config.apiKey;
-  } else if (config.provider === 'deepseek') {
-    process.env.DEEPSEEK_API_KEY = config.apiKey;
+  
+  // Check if it's multi-model config
+  if (config.models && Array.isArray(config.models)) {
+    // Multi-model config - set the full config
+    process.env.LLM_MODELS_CONFIG = JSON.stringify(config);
+    
+    // Also set individual API keys for backward compatibility
+    for (const model of config.models) {
+      if (model.provider === 'openai') {
+        process.env.OPENAI_API_KEY = model.apiKey;
+      } else if (model.provider === 'deepseek') {
+        process.env.DEEPSEEK_API_KEY = model.apiKey;
+      } else if (model.provider === 'alibaba') {
+        process.env.ALIBABA_API_KEY = model.apiKey;
+      } else if (model.provider === 'ark') {
+        process.env.ARK_API_KEY = model.apiKey;
+      }
+    }
+    console.log(`Loaded multi-model config with ${config.models.length} models`);
+  } else {
+    // Legacy single-model config
+    process.env.LLM_PROVIDER = config.provider;
+    process.env.LLM_MODEL = config.model || 'deepseek-chat';
+    if (config.provider === 'openai') {
+      process.env.OPENAI_API_KEY = config.apiKey;
+    } else if (config.provider === 'deepseek') {
+      process.env.DEEPSEEK_API_KEY = config.apiKey;
+    }
+    console.log(`Loaded config: ${config.provider} / ${config.model}`);
   }
-  console.log(`Loaded config: ${config.provider} / ${config.model}`);
 }
 
 import { describe, it, expect } from 'vitest';
@@ -29,7 +51,7 @@ import {
 } from '../index.js';
 import type { NarrativeMemory } from '../index.js';
 
-describe('Vector Narrative Memory (Phase 3)', () => {
+describe('Vector Narrative Memory (Phase 3)', { timeout: 30000 }, () => {
   it('should initialize vector store', async () => {
     const storyId = 'test-vector-memory-' + Date.now();
     const vectorStore = getVectorStore(storyId);

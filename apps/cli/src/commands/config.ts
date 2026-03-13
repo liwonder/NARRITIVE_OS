@@ -166,10 +166,24 @@ export async function configCommand(showOnly = false) {
             ? 'doubao-embedding' 
             : 'text-embedding-3-small';
         
+        // Set baseURL for embedding config based on provider
+        let embedBaseURL: string | undefined;
+        switch (provider) {
+          case 'alibaba':
+            embedBaseURL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
+            break;
+          case 'ark':
+            embedBaseURL = 'https://ark.cn-beijing.volces.com/api/v3';
+            break;
+          default:
+            embedBaseURL = undefined;
+        }
+        
         embeddingConfig = {
           name: 'embedding',
           provider: provider as 'openai' | 'alibaba' | 'ark',
           apiKey,
+          baseURL: embedBaseURL,
           model: embedModel,
           purpose: 'embedding',
         };

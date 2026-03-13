@@ -19,19 +19,30 @@ export interface MemorySearchResult {
 export class VectorStore {
   private index: HierarchicalNSW | null = null;
   private memories: Map<number, NarrativeMemory> = new Map();
-  private dimension: number = 1536; // text-embedding-3-small dimension
+  private dimension: number = 1536; // Default: text-embedding-3-small dimension
   private storyId: string;
   private nextId: number = 0;
+  private isInitialized: boolean = false;
 
   constructor(storyId: string) {
     this.storyId = storyId;
   }
 
   async initialize(maxElements: number = 10000): Promise<void> {
-    this.index = new HierarchicalNSW('cosine', this.dimension);
-    this.index.initIndex(maxElements, 16, 200);
+    // Delay initialization until we know the embedding dimension
+    this.isInitialized = false;
     this.nextId = 0;
     this.memories.clear();
+  }
+
+  private ensureInitialized(embedding: number[]): void {
+    if (!this.isInitialized) {
+      // Detect dimension from first embedding
+      this.dimension = embedding.length;
+      this.index = new HierarchicalNSW('cosine', this.dimension);
+      this.index.initIndex(10000, 16, 200);
+      this.isInitialized = true;
+    }
   }
 
   /**
@@ -64,20 +75,21 @@ export class VectorStore {
   }
 
   async addMemory(memory: Omit<NarrativeMemory, 'id' | 'embedding'>): Promise<NarrativeMemory> {
-    if (!this.index) {
-      throw new Error('VectorStore not initialized. Call initialize() first.');
-    }
-
-    // Auto-resize if we're near capacity (add 50% more)
-    const currentCapacity = this.index.getMaxElements();
-    if (this.memories.size >= currentCapacity - 1) {
-      this.resizeIndex(Math.floor(currentCapacity * 1.5));
-    }
-
     const id = this.nextId++;
     
-    // Generate embedding using OpenAI
+    // Generate embedding first to detect dimension
     const embedding = await this.generateEmbedding(memory.content);
+    
+    // Initialize index with correct dimension if not already done
+    this.ensureInitialized(embedding);
+
+    // Auto-resize if we're near capacity (add 50% more)
+    if (this.index) {
+      const currentCapacity = this.index.getMaxElements();
+      if (this.memories.size >= currentCapacity - 1) {
+        this.resizeIndex(Math.floor(currentCapacity * 1.5));
+      }
+    }
     
     const fullMemory: NarrativeMemory = {
       ...memory,
@@ -86,7 +98,7 @@ export class VectorStore {
     };
 
     // Add to HNSW index
-    this.index.addPoint(embedding, id);
+    this.index!.addPoint(embedding, id);
     this.memories.set(id, fullMemory);
 
     return fullMemory;
@@ -94,10 +106,18 @@ export class VectorStore {
 
   async searchSimilar(query: string, k: number = 5): Promise<MemorySearchResult[]> {
     if (!this.index) {
-      throw new Error('VectorStore not initialized. Call initialize() first.');
+      // No memories added yet, return empty
+      return [];
     }
 
     const queryEmbedding = await this.generateEmbedding(query);
+    
+    // Ensure dimensions match
+    if (queryEmbedding.length !== this.dimension) {
+      console.warn(`[VectorStore] Query embedding dimension ${queryEmbedding.length} doesn't match index dimension ${this.dimension}`);
+      return [];
+    }
+    
     const results = this.index.searchKnn(queryEmbedding, k);
 
     return results.neighbors.map((id: number, i: number) => ({
@@ -147,8 +167,9 @@ export class VectorStore {
           input: text,
         });
         return response.data[0].embedding;
-      } catch (error) {
-        console.log('  [VectorStore] Embedding API failed, using mock embeddings');
+      } catch (error: any) {
+        console.log(`  [VectorStore] Embedding API failed: ${error.message || error}`);
+        console.log(`    Model: ${embedConfig.model}, Provider: ${embedConfig.provider}`);
         return this.generateMockEmbedding(text);
       }
     }
