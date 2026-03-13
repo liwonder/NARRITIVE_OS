@@ -20,12 +20,13 @@
 
 ## Update Summary
 **Changes Made**
-- Enhanced CLI configuration system now supports comprehensive multi-provider embedding setup with automatic base URL detection for Alibaba DashScope and Ark Storm providers
-- Improved vector memory integration with dynamic dimension detection for embedding models across all providers
-- Added automatic base URL configuration for Alibaba Cloud DashScope (https://dashscope.aliyuncs.com/compatible-mode/v1) and ByteDance Ark Storm (https://ark.cn-beijing.volces.com/api/v3)
-- Enhanced embedding model routing with provider-specific base URL support for seamless API integration
-- Improved vector store initialization with dynamic embedding dimension detection and automatic index sizing
-- Enhanced CLI wizard with provider-specific embedding model recommendations and base URL configuration
+- Enhanced LLM client configuration with task-based model routing system
+- Implemented multi-model management system with intelligent model aliasing for different task types
+- Added comprehensive task-specific model mapping supporting generation, planning, validation, summarization, extraction, and embedding tasks
+- Improved model aliasing system that automatically creates aliases for generation, chat, and fast models based on purpose
+- Enhanced CLI configuration with multi-provider embedding setup and automatic base URL detection
+- Added robust task-based model selection algorithm with fallback mechanisms
+- Implemented comprehensive backward compatibility with legacy single-model configurations
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -33,30 +34,31 @@
 3. [Core Components](#core-components)
 4. [Architecture Overview](#architecture-overview)
 5. [Detailed Component Analysis](#detailed-component-analysis)
-6. [Multi-Model Configuration System](#multi-model-configuration-system)
-7. [Task-Specific Model Mapping](#task-specific-model-mapping)
-8. [Enhanced Configuration System](#enhanced-configuration-system)
-9. [Multi-Provider Support](#multi-provider-support)
-10. [Embedding Model Integration](#embedding-model-integration)
-11. [Dynamic Dimension Detection](#dynamic-dimension-detection)
-12. [Scene-Level Generation Pipeline](#scene-level-generation-pipeline)
-13. [Dependency Analysis](#dependency-analysis)
-14. [Performance Considerations](#performance-considerations)
-15. [Troubleshooting Guide](#troubleshooting-guide)
-16. [Conclusion](#conclusion)
-17. [Appendices](#appendices)
+6. [Enhanced Task-Based Model Routing](#enhanced-task-based-model-routing)
+7. [Multi-Model Management System](#multi-model-management-system)
+8. [Model Aliasing and Purpose-Based Configuration](#model-aliasing-and-purpose-based-configuration)
+9. [Enhanced Configuration System](#enhanced-configuration-system)
+10. [Multi-Provider Support](#multi-provider-support)
+11. [Embedding Model Integration](#embedding-model-integration)
+12. [Dynamic Dimension Detection](#dynamic-dimension-detection)
+13. [Scene-Level Generation Pipeline](#scene-level-generation-pipeline)
+14. [Dependency Analysis](#dependency-analysis)
+15. [Performance Considerations](#performance-considerations)
+16. [Troubleshooting Guide](#troubleshooting-guide)
+17. [Conclusion](#conclusion)
+18. [Appendices](#appendices)
 
 ## Introduction
-This document explains the enhanced LLM integration and configuration within the Narrative Operating System. The system now features a comprehensive multi-model architecture supporting reasoning, chat, fast, and embedding models across multiple providers including OpenAI, DeepSeek, Alibaba Cloud (Qwen), and ByteDance Ark. The enhanced system provides intelligent model selection based on task requirements, sophisticated embedding model routing for vector operations, and robust configuration management with provider-specific settings.
+This document explains the enhanced LLM integration and configuration within the Narrative Operating System. The system now features a sophisticated task-based model routing system with comprehensive multi-model management, intelligent model aliasing, and robust configuration management across multiple providers including OpenAI, DeepSeek, Alibaba Cloud (Qwen), and ByteDance Ark.
 
-The enhanced system introduces intelligent model selection based on task requirements, embedding model routing for vector operations, improved JSON content extraction from markdown code blocks, and a robust scene-level generation pipeline that leverages specialized models for different narrative components. The CLI configuration system now supports both single-model and multi-model setups with interactive wizards, embedding model configuration with automatic base URL detection, and comprehensive show configuration capabilities across all supported providers.
+The enhanced system introduces intelligent task-based model selection based on specific task requirements, comprehensive multi-model configuration with purpose-based categorization, advanced model aliasing for different task types, and seamless backward compatibility with legacy single-model setups. The system now supports six distinct task types (generation, planning, validation, summarization, extraction, embedding) with automatic model selection and routing, while maintaining full provider flexibility and embedding model integration.
 
-**Updated** Enhanced with automatic base URL detection for Alibaba DashScope and Ark Storm providers, plus improved vector memory integration with dynamic dimension detection.
+**Updated** Enhanced with comprehensive task-based model routing, multi-model management system, and improved model aliasing for different task types.
 
 ## Project Structure
 The enhanced LLM integration spans five primary areas:
-- Engine LLM client and types define the provider abstraction, multi-model configuration, task-specific model mapping, and embedding model support across multiple providers.
-- Agents consume the LLM client with automatic model selection based on task requirements including embedding tasks.
+- Engine LLM client and types define the provider abstraction, multi-model configuration, task-based model routing, and embedding model support across multiple providers.
+- Agents consume the LLM client with automatic task-based model selection including embedding tasks.
 - CLI configuration manages both legacy single-model and modern multi-model setups with interactive wizards and embedding model configuration across all providers.
 - Vector store integrates embedding model configuration for memory management and semantic search with dynamic dimension detection.
 - Scene-level pipeline orchestrates generation with integrated multi-model support for planning, writing, and validation.
@@ -69,23 +71,24 @@ CFG["config.ts<br/>Multi-model config wizard<br/>Multi-provider setup<br/>Embedd
 end
 subgraph "Engine"
 TYPES["types/index.ts<br/>ModelConfig, MultiModelConfig<br/>TaskType enumeration<br/>Multi-provider support"]
-CLIENT["llm/client.ts<br/>LLMClient with multi-model support<br/>Provider-specific models<br/>Embedding config retrieval<br/>Task mapping & model selection"]
+CLIENT["llm/client.ts<br/>LLMClient with task-based routing<br/>Multi-model management<br/>Model aliasing system<br/>Embedding config retrieval"]
 PIPE["pipeline/generateChapter.ts<br/>Scene-level generation<br/>Multi-model orchestration"]
 END
 subgraph "Memory"
 VECTOR["memory/vectorStore.ts<br/>Vector store with embedding integration<br/>Dynamic dimension detection<br/>Provider-specific embedding<br/>Embedding model configuration<br/>Automatic index sizing"]
 END
 subgraph "Agents"
-WR["agents/writer.ts<br/>Generation task (reasoning model)"]
-SUM["agents/summarizer.ts<br/>Summarization task (fast model)"]
-VAL["agents/canonValidator.ts<br/>Validation task (chat model)"]
-MEM["agents/memoryExtractor.ts<br/>Extraction task (chat model)"]
-PLAN["agents/scenePlanner.ts<br/>Planning task (reasoning model)"]
-WRITE["agents/sceneWriter.ts<br/>Writing task (reasoning model)"]
+WR["agents/writer.ts<br/>Generation task (reasoning model)<br/>Task parameter: 'generation'"]
+SUM["agents/summarizer.ts<br/>Summarization task (fast model)<br/>Task parameter: 'summarization'"]
+VAL["agents/canonValidator.ts<br/>Validation task (chat model)<br/>Task parameter: 'validation'"]
+MEM["agents/memoryExtractor.ts<br/>Extraction task (chat model)<br/>Task parameter: 'extraction'"]
+PLAN["agents/scenePlanner.ts<br/>Planning task (reasoning model)<br/>Task parameter: 'planning'"]
+WRITE["agents/sceneWriter.ts<br/>Writing task (reasoning model)<br/>Task parameter: 'generation'"]
 END
 subgraph "Configuration"
 MODELS["Multi-Model Config<br/>Providers: OpenAI, DeepSeek, Alibaba Cloud, ByteDance Ark<br/>reasoning: provider-specific models<br/>chat: provider-specific models<br/>fast: provider-specific models<br/>embedding: provider-specific embedding models<br/>Automatic base URL detection"]
 LEGACY["Legacy Config<br/>Single model fallback"]
+TASK_ALIAS["Task Aliasing System<br/>generation → reasoning<br/>chat → default<br/>fast → fast/fallback"]
 END
 IDX --> CFG
 CFG --> CLIENT
@@ -104,6 +107,7 @@ MEM --> CLIENT
 VECTOR --> CLIENT
 CLIENT --> MODELS
 CLIENT --> LEGACY
+CLIENT --> TASK_ALIAS
 ```
 
 **Diagram sources**
@@ -127,11 +131,12 @@ CLIENT --> LEGACY
 - [vectorStore.ts:125-202](file://packages/engine/src/memory/vectorStore.ts#L125-L202)
 
 ## Core Components
-- **Multi-Provider LLM Client**: Enhanced LLMClient supporting multiple providers (OpenAI, DeepSeek, Alibaba Cloud, ByteDance Ark) with provider-specific model configurations and embedding support.
-- **Task-Specific Model Mapping**: Intelligent model selection based on task types (generation, validation, summarization, extraction, planning, embedding) with provider-aware routing.
-- **Enhanced LLMClient**: Centralizes provider creation, multi-model configuration loading, completion helpers, and embedding configuration retrieval with robust JSON parsing.
-- **Advanced Types**: ModelConfig and MultiModelConfig define comprehensive runtime configuration with purpose-based model categorization including multi-provider support.
-- **Intelligent Agents**: All agents now support task parameter for automatic model selection based on their requirements, including embedding tasks.
+- **Enhanced LLM Client**: Centralizes provider creation, multi-model configuration loading, task-based model selection, completion helpers, and embedding configuration retrieval with robust JSON parsing.
+- **Task-Based Model Routing**: Intelligent model selection based on task types (generation, validation, summarization, extraction, planning, embedding, default) with provider-aware routing and automatic aliasing.
+- **Multi-Model Management System**: Comprehensive model registry supporting multiple providers with purpose-based categorization (reasoning, chat, fast, embedding) and automatic fallback mechanisms.
+- **Advanced Types**: ModelConfig and MultiModelConfig define comprehensive runtime configuration with purpose-based model categorization including multi-provider support and task type enumeration.
+- **Model Aliasing System**: Automatic creation of model aliases for different task types (generation → reasoning, chat → default, fast → fast/fallback) with fallback to default models.
+- **Intelligent Agents**: All agents now support task parameter for automatic model selection based on their requirements, including embedding tasks with explicit task specification.
 - **Dual Configuration System**: Backward compatibility with legacy single-model configs while supporting modern multi-model setups with provider-specific embedding model configuration.
 - **Vector Store Integration**: Memory management system with provider-specific embedding model configuration for semantic search and vector operations, featuring dynamic dimension detection.
 - **Provider-Specific Base URLs**: Support for provider-specific API endpoints including Alibaba Cloud DashScope (https://dashscope.aliyuncs.com/compatible-mode/v1) and ByteDance Ark Storm (https://ark.cn-beijing.volces.com/api/v3) with automatic configuration.
@@ -146,6 +151,7 @@ Key responsibilities:
 - Scene-level generation pipeline integration with specialized model assignment for different phases.
 - Provider-specific embedding model configuration retrieval and integration with vector store operations.
 - Dynamic vector index initialization with automatic dimension detection and capacity management.
+- Automatic model alias creation for different task types with fallback mechanisms.
 
 **Section sources**
 - [client.ts:49-210](file://packages/engine/src/llm/client.ts#L49-L210)
@@ -159,7 +165,7 @@ Key responsibilities:
 - [vectorStore.ts:125-202](file://packages/engine/src/memory/vectorStore.ts#L125-L202)
 
 ## Architecture Overview
-The enhanced system follows a sophisticated layered design with intelligent model selection and multi-provider embedding integration:
+The enhanced system follows a sophisticated layered design with intelligent task-based model routing and multi-provider embedding integration:
 - CLI layer provides dual configuration modes (single-model legacy and multi-model modern) with interactive wizards including multi-provider setup, embedding model configuration, and automatic base URL detection.
 - Engine layer dynamically loads multi-model configuration from environment variables or JSON config, with automatic fallback to legacy single-model setup and provider-specific embedding model configuration retrieval.
 - Agent layer automatically selects appropriate models based on task requirements using predefined mapping rules including embedding tasks across all providers.
@@ -188,6 +194,9 @@ CLI->>Env : Set LLM_MODELS_CONFIG JSON
 CLI->>Env : Set provider-specific API keys
 User->>Engine : Call getLLM().complete(..., {task : 'embedding'})
 Engine->>Engine : Load multi-model config
+Engine->>Engine : setupTaskModelAliases()
+Engine->>Engine : getModelForTask('embedding')
+Engine->>Engine : Find model with purpose 'embedding'
 Engine->>Embed : getEmbeddingConfig()
 Embed->>Vector : Retrieve embedding config
 Vector->>Vector : Detect embedding dimension automatically
@@ -208,10 +217,11 @@ Engine-->>User : Task-appropriate response
 
 ## Detailed Component Analysis
 
-### Enhanced LLM Client with Multi-Provider Support
-The LLMClient now features comprehensive multi-provider architecture with embedding model integration:
-- **Multi-Provider Configuration**: Loads models from JSON environment variable or falls back to legacy single-model setup including provider-specific embedding models.
-- **Provider Registry**: Maintains separate registry for models with different providers (OpenAI, DeepSeek, Alibaba Cloud, ByteDance Ark).
+### Enhanced LLM Client with Task-Based Model Routing
+The LLMClient now features comprehensive task-based model routing with multi-provider architecture and embedding model integration:
+- **Task-Based Model Mapping**: Defines explicit mapping between task types and model purposes using TASK_MODEL_MAPPING constant.
+- **Multi-Model Configuration Loading**: Loads models from JSON environment variable or falls back to legacy single-model setup including provider-specific embedding models.
+- **Model Alias System**: Automatically creates aliases for different task types (generation → reasoning, chat → default, fast → fast/fallback) with fallback mechanisms.
 - **Task-Aware Selection**: Automatically selects appropriate model based on task type using predefined mapping rules including embedding tasks.
 - **Enhanced JSON Parsing**: Robust extraction from markdown code blocks with fallback to direct JSON parsing.
 - **Provider Management**: Manages multiple providers with different API keys, base URLs, and model configurations.
@@ -226,6 +236,7 @@ class LLMClient {
 -private defaultModelName string
 -loadMultiModelConfig()
 -loadSingleModelConfig()
+-setupTaskModelAliases()
 -getModelForTask(task) ModelConfig
 -complete(prompt, config) Promise~string~
 -completeJSON(prompt, config) Promise~T~
@@ -251,8 +262,19 @@ class TaskType {
 -embedding
 -default
 }
+class TaskModelMapping {
+<<constant>>
+-generation → reasoning
+-validation → chat
+-summarization → fast
+-extraction → chat
+-planning → reasoning
+-embedding → embedding
+-default → chat
+}
 LLMClient --> ModelConfig : "manages"
 LLMClient --> TaskType : "maps"
+LLMClient --> TaskModelMapping : "uses"
 ```
 
 **Diagram sources**
@@ -263,24 +285,25 @@ LLMClient --> TaskType : "maps"
 - [client.ts:49-210](file://packages/engine/src/llm/client.ts#L49-L210)
 - [types/index.ts:91-115](file://packages/engine/src/types/index.ts#L91-L115)
 
-### Advanced Task-Specific Model Mapping
-The system implements intelligent model selection based on task requirements including embedding tasks across all providers:
+### Enhanced Task-Based Model Routing
+The system implements sophisticated task-based model selection with automatic aliasing and fallback mechanisms:
 - **Generation Tasks**: Use reasoning models (provider-specific reasoning models) for complex creative writing and planning.
+- **Planning Tasks**: Use reasoning models for scene and chapter planning with automatic aliasing to reasoning models.
 - **Validation Tasks**: Use chat models (provider-specific chat models) for structured validation and JSON parsing.
 - **Summarization Tasks**: Use fast models (provider-specific fast models) for efficient content summarization.
 - **Extraction Tasks**: Use chat models for memory and narrative extraction.
-- **Planning Tasks**: Use reasoning models for scene and chapter planning.
 - **Embedding Tasks**: Use provider-specific embedding models (OpenAI text-embedding-3-small, Alibaba text-embedding-v3, ByteDance doubao-embedding) for vector operations and semantic search.
+- **Default Tasks**: Use chat models as fallback for unspecified tasks.
 
 ```mermaid
 flowchart TD
-Task["Task Type"] --> Gen["generation<br/>→ reasoning model"]
-Task --> Plan["planning<br/>→ reasoning model"]
-Task --> Val["validation<br/>→ chat model"]
-Task --> Sum["summarization<br/>→ fast model"]
-Task --> Ext["extraction<br/>→ chat model"]
-Task --> Emb["embedding<br/>→ provider-specific embedding model"]
-Task --> Def["default<br/>→ chat model"]
+Task["Task Type"] --> Gen["generation<br/>→ reasoning model<br/>→ alias: generation → reasoning"]
+Task --> Plan["planning<br/>→ reasoning model<br/>→ alias: planning → reasoning"]
+Task --> Val["validation<br/>→ chat model<br/>→ alias: validation → chat"]
+Task --> Sum["summarization<br/>→ fast model<br/>→ alias: summarization → fast"]
+Task --> Ext["extraction<br/>→ chat model<br/>→ alias: extraction → chat"]
+Task --> Emb["embedding<br/>→ embedding model"]
+Task --> Def["default<br/>→ chat model<br/>→ alias: default → chat"]
 Gen --> Reasoning["Provider-specific reasoning models"]
 Plan --> Reasoning
 Val --> Chat["Provider-specific chat models"]
@@ -292,6 +315,7 @@ Emb --> Embedding["Provider-specific embedding models:<br/>OpenAI: text-embeddin
 
 **Diagram sources**
 - [client.ts:40-48](file://packages/engine/src/llm/client.ts#L40-L48)
+- [client.ts:84-106](file://packages/engine/src/llm/client.ts#L84-L106)
 - [writer.ts:103-107](file://packages/engine/src/agents/writer.ts#L103-L107)
 - [summarizer.ts:27-31](file://packages/engine/src/agents/summarizer.ts#L27-L31)
 - [canonValidator.ts:44-48](file://packages/engine/src/agents/canonValidator.ts#L44-L48)
@@ -299,122 +323,74 @@ Emb --> Embedding["Provider-specific embedding models:<br/>OpenAI: text-embeddin
 
 **Section sources**
 - [client.ts:40-48](file://packages/engine/src/llm/client.ts#L40-L48)
+- [client.ts:84-106](file://packages/engine/src/llm/client.ts#L84-L106)
 - [writer.ts:103-107](file://packages/engine/src/agents/writer.ts#L103-L107)
 - [summarizer.ts:27-31](file://packages/engine/src/agents/summarizer.ts#L27-L31)
 - [canonValidator.ts:44-48](file://packages/engine/src/agents/canonValidator.ts#L44-L48)
 - [memoryExtractor.ts:62-66](file://packages/engine/src/agents/memoryExtractor.ts#L62-L66)
 
-### Enhanced Configuration Management
-The CLI configuration system now supports both single-model and multi-model setups with comprehensive provider support:
-- **Multi-Provider Wizard**: Interactive setup for configuring reasoning, chat, fast, and embedding models with provider selection including Alibaba Cloud and ByteDance Ark.
-- **Provider-Specific Embedding Setup**: Dedicated embedding configuration wizard for provider-specific embedding models with API key management and automatic base URL detection.
-- **Backward Compatibility**: Automatic detection and migration from legacy single-model configurations.
-- **Show Configuration**: Comprehensive display of current configuration status including provider-specific embedding model setup.
-- **Environment Integration**: Automatic application of configuration to environment variables at startup including provider-specific API keys.
+### Multi-Model Management System
+The enhanced system implements a comprehensive multi-model management system with purpose-based categorization and automatic aliasing:
+- **Model Registry**: Centralized storage of all configured models with name-based indexing.
+- **Purpose-Based Categorization**: Models categorized by purpose (reasoning, chat, fast, embedding) for intelligent selection.
+- **Provider Integration**: Support for multiple providers (OpenAI, DeepSeek, Alibaba Cloud, ByteDance Ark) with provider-specific configurations.
+- **Automatic Alias Creation**: Dynamic creation of model aliases for different task types with fallback mechanisms.
+- **Fallback Mechanisms**: Graceful fallback to default models when specific purpose models are unavailable.
+- **Configuration Validation**: Robust validation of multi-model configurations with error handling.
 
 **Section sources**
-- [config.ts:57-277](file://apps/cli/src/commands/config.ts#L57-L277)
-- [index.ts:17-17](file://apps/cli/src/index.ts#L17-L17)
-- [client.ts:58-111](file://packages/engine/src/llm/client.ts#L58-L111)
+- [client.ts:59-82](file://packages/engine/src/llm/client.ts#L59-L82)
+- [client.ts:84-106](file://packages/engine/src/llm/client.ts#L84-L106)
+- [client.ts:152-164](file://packages/engine/src/llm/client.ts#L152-L164)
 
-## Multi-Model Configuration System
-
-### Comprehensive Multi-Provider Architecture
-The enhanced system supports four distinct model purposes with intelligent assignment across multiple providers:
-
-**Reasoning Models**: Optimized for complex creative tasks and planning
-- OpenAI: gpt-4o, gpt-4o-mini, gpt-4-turbo
-- DeepSeek: deepseek-reasoner
-- Alibaba Cloud: qwen-max, qwen-plus, qwen-turbo
-- ByteDance Ark: doubao-pro-128k, doubao-lite-128k
-
-**Chat Models**: Balanced for validation and extraction tasks  
-- OpenAI: gpt-4o, gpt-4o-mini, gpt-4-turbo
-- DeepSeek: deepseek-chat
-- Alibaba Cloud: qwen-max, qwen-plus, qwen-turbo
-- ByteDance Ark: doubao-pro-128k, doubao-lite-128k
-
-**Fast Models**: Optimized for summarization and quick tasks
-- OpenAI: gpt-4o-mini
-- DeepSeek: deepseek-chat
-- Alibaba Cloud: qwen-turbo
-- ByteDance Ark: doubao-lite-128k
-
-**Embedding Models**: Specialized for vector operations and semantic search
-- OpenAI: text-embedding-3-small (1536 dimensions)
-- Alibaba Cloud: text-embedding-v3 (1024 dimensions)
-- ByteDance Ark: doubao-embedding (1024 dimensions)
-
-### Provider-Specific Configuration Loading
-The system implements hierarchical configuration loading with provider-specific embedding model support and automatic base URL detection:
-
-```mermaid
-flowchart TD
-Start["Load Configuration"] --> CheckEnv{"LLM_MODELS_CONFIG exists?"}
-CheckEnv --> |Yes| ParseJSON["Parse JSON configuration"]
-ParseJSON --> LoadModels["Load models into registry<br/>including provider-specific embedding models<br/>with automatic base URL detection"]
-CheckEnv --> |No| LoadLegacy["Load legacy single-model config"]
-LoadLegacy --> CheckProvider{"Provider type?"}
-CheckProvider --> |OpenAI/DeepSeek| CheckReasoning{"API key set?"}
-CheckProvider --> |Alibaba/Ark| AddProviderModels["Add provider-specific models<br/>with automatic base URL detection"]
-CheckReasoning --> |Yes| AddReasoning["Add reasoning model"]
-CheckReasoning --> |No| UseChatOnly["Use chat model only"]
-AddReasoning --> CheckEmbedding{"Embedding support available?"}
-CheckEmbedding --> |Yes| AddEmbedding["Add provider-specific embedding model<br/>with base URL configuration"]
-CheckEmbedding --> |No| SkipEmbedding["Skip embedding model"]
-AddProviderModels --> Complete["Configuration ready"]
-AddReasoning --> Complete
-UseChatOnly --> CheckEmbedding
-AddEmbedding --> Complete
-SkipEmbedding --> Complete
-LoadModels --> Complete
-```
-
-**Diagram sources**
-- [client.ts:58-111](file://packages/engine/src/llm/client.ts#L58-L111)
-- [config.ts:192-214](file://apps/cli/src/commands/config.ts#L192-L214)
-
-**Section sources**
-- [client.ts:58-111](file://packages/engine/src/llm/client.ts#L58-L111)
-- [config.ts:192-214](file://apps/cli/src/commands/config.ts#L192-L214)
-
-## Task-Specific Model Mapping
+## Enhanced Task-Based Model Routing
 
 ### Intelligent Model Selection Algorithm
-The system uses a sophisticated mapping algorithm to select appropriate models based on task requirements including embedding tasks across all providers:
+The system uses a sophisticated mapping algorithm to select appropriate models based on task requirements with automatic aliasing:
 
 **Generation Phase**: Uses reasoning models for complex creative writing
 - High cognitive load tasks requiring step-by-step reasoning
 - Creative narrative generation with character development
 - Complex plot advancement and world-building using provider-specific reasoning models
+- Automatic aliasing: generation → reasoning model with fallback to default
 
 **Planning Phase**: Uses reasoning models for structural planning
 - Scene breakdown and narrative structure
 - Character interaction pattern recognition
 - Plot thread integration and advancement using provider-specific reasoning models
+- Automatic aliasing: planning → reasoning model with fallback to default
 
 **Validation Phase**: Uses chat models for structured validation
 - JSON parsing and structured output validation
 - Fact-checking against canonical database
 - Quality assurance and consistency checks using provider-specific chat models
+- Automatic aliasing: validation → chat model with fallback to default
 
 **Summarization Phase**: Uses fast models for efficient processing
 - Rapid content analysis and summarization
 - Memory extraction and key event identification
 - Cost-effective processing for large volumes using provider-specific fast models
+- Automatic aliasing: summarization → fast model with fallback to default
 
 **Extraction Phase**: Uses chat models for contextual extraction
 - Narrative memory identification
 - Character development tracking
 - Plot thread monitoring using provider-specific chat models
+- Automatic aliasing: extraction → chat model with fallback to default
 
 **Embedding Phase**: Uses provider-specific embedding models for vector operations
 - Semantic search and memory retrieval
 - Vector space operations for memory management
 - Contextual similarity analysis using provider-specific embedding models
 
+**Default Phase**: Uses chat models as fallback
+- Unspecified tasks or when specific models are unavailable
+- Graceful degradation to default chat models
+- Automatic aliasing: default → chat model
+
 **Section sources**
 - [client.ts:40-48](file://packages/engine/src/llm/client.ts#L40-L48)
+- [client.ts:84-106](file://packages/engine/src/llm/client.ts#L84-L106)
 - [writer.ts:103-107](file://packages/engine/src/agents/writer.ts#L103-L107)
 - [summarizer.ts:27-31](file://packages/engine/src/agents/summarizer.ts#L27-L31)
 - [canonValidator.ts:44-48](file://packages/engine/src/agents/canonValidator.ts#L44-L48)
@@ -693,7 +669,7 @@ The enhanced system maintains clean dependency relationships with multi-provider
 
 ```mermaid
 graph LR
-TYPES["types/index.ts<br/>ModelConfig, TaskType<br/>Multi-provider support"] --> CLIENT["llm/client.ts<br/>Multi-provider LLMClient<br/>Embedding config retrieval"]
+TYPES["types/index.ts<br/>ModelConfig, TaskType<br/>Multi-provider support"] --> CLIENT["llm/client.ts<br/>Task-based LLMClient<br/>Model aliasing system<br/>Embedding config retrieval"]
 CLIENT --> WR["agents/writer.ts<br/>Generation with task mapping"]
 CLIENT --> PLAN["agents/scenePlanner.ts<br/>Planning with task mapping"]
 CLIENT --> WRITE["agents/sceneWriter.ts<br/>Writing with task mapping"]
@@ -753,6 +729,7 @@ CFG --> VECTOR
 - **Provider Latency**: Consider provider-specific API latency and choose providers based on geographic location and performance requirements.
 - **Dynamic Dimension Optimization**: Automatic dimension detection eliminates manual configuration overhead and prevents dimension mismatch errors.
 - **Auto-Resizing Efficiency**: Intelligent capacity management prevents frequent resizing while ensuring optimal vector search performance.
+- **Task-Based Routing Efficiency**: Automatic model aliasing eliminates redundant model lookups and improves selection performance.
 
 ## Troubleshooting Guide
 Common issues and resolutions:
@@ -769,6 +746,8 @@ Common issues and resolutions:
 - **Provider-Specific Issues**: Check provider-specific base URLs and model availability for the selected provider.
 - **Dimension Mismatch Errors**: Vector store automatically detects dimensions; ensure consistent embedding models across providers.
 - **Base URL Configuration Issues**: Automatic base URL detection handles Alibaba DashScope and Ark Storm endpoints; verify network connectivity.
+- **Task-Based Routing Issues**: Verify task parameter values match supported TaskType enumeration values.
+- **Model Alias Problems**: Check that automatic alias creation completed successfully during multi-model configuration loading.
 
 **Section sources**
 - [client.ts:127-133](file://packages/engine/src/llm/client.ts#L127-L133)
@@ -778,15 +757,17 @@ Common issues and resolutions:
 - [vectorStore.ts:150-176](file://packages/engine/src/memory/vectorStore.ts#L150-L176)
 
 ## Conclusion
-The enhanced Narrative Operating System provides a sophisticated multi-provider LLM integration with intelligent task-based model selection, comprehensive backward compatibility, and robust configuration management including provider-specific embedding model support. The system now supports OpenAI, DeepSeek, Alibaba Cloud (Qwen), and ByteDance Ark providers with automatic assignment based on task requirements, while maintaining seamless integration with existing single-model configurations.
+The enhanced Narrative Operating System provides a sophisticated multi-provider LLM integration with intelligent task-based model routing, comprehensive backward compatibility, and robust configuration management including provider-specific embedding model support. The system now supports OpenAI, DeepSeek, Alibaba Cloud (Qwen), and ByteDance Ark providers with automatic assignment based on task requirements, while maintaining seamless integration with existing single-model configurations.
 
-The addition of provider-specific embedding model routing enables sophisticated memory management and semantic search capabilities through vector operations across all supported providers. The scene-level generation pipeline demonstrates the power of specialized model assignment, with reasoning models handling complex creative tasks, chat models managing validation and extraction, fast models optimizing summarization workflows, and provider-specific embedding models enabling vector-based memory operations.
+The addition of task-based model routing enables sophisticated automatic model selection based on specific task requirements, with comprehensive model aliasing that creates meaningful shortcuts for different task types. The multi-model management system provides centralized control over model configuration with purpose-based categorization and automatic fallback mechanisms.
+
+The enhanced system demonstrates the power of specialized model assignment, with reasoning models handling complex creative tasks, chat models managing validation and extraction, fast models optimizing summarization workflows, and provider-specific embedding models enabling vector-based memory operations. The automatic model aliasing system (generation → reasoning, chat → default, fast → fast/fallback) simplifies configuration while maintaining flexibility.
 
 The enhanced CLI configuration system provides both interactive setup wizards and comprehensive show configuration capabilities, including dedicated provider-specific embedding model setup for all supported providers with automatic base URL detection. The vector store integration ensures seamless provider-specific embedding model configuration retrieval, robust error handling for embedding operations across all providers, and intelligent dimension detection for optimal performance.
 
 The new dynamic dimension detection feature eliminates manual configuration overhead and prevents dimension mismatch errors across different embedding models, while the automatic base URL detection for Alibaba DashScope and Ark Storm providers ensures seamless API integration without manual configuration. The improved vector store initialization with automatic index sizing and capacity management provides optimal performance for vector operations across all providers.
 
-By leveraging task-specific model mapping, intelligent configuration loading, provider-specific embedding model integration, and dynamic dimension detection, teams can achieve optimal balance between narrative quality, cost efficiency, and performance while maintaining full backward compatibility with existing implementations and supporting multiple global providers.
+By leveraging task-based model routing, intelligent configuration loading, provider-specific embedding model integration, and dynamic dimension detection, teams can achieve optimal balance between narrative quality, cost efficiency, and performance while maintaining full backward compatibility with existing implementations and supporting multiple global providers.
 
 ## Appendices
 
@@ -852,3 +833,18 @@ By leveraging task-specific model mapping, intelligent configuration loading, pr
 - [config.ts:126-191](file://apps/cli/src/commands/config.ts#L126-L191)
 - [client.ts:192-200](file://packages/engine/src/llm/client.ts#L192-L200)
 - [vectorStore.ts:131-154](file://packages/engine/src/memory/vectorStore.ts#L131-L154)
+
+### Task-Based Model Routing Reference
+- **Task Mapping**: generation → reasoning, planning → reasoning, validation → chat, summarization → fast, extraction → chat, embedding → embedding, default → chat
+- **Model Alias Creation**: Automatic creation of aliases during multi-model configuration loading
+- **Fallback Mechanisms**: Graceful fallback to default models when specific purpose models are unavailable
+- **Task Parameter Usage**: Explicit task specification in agent calls (task: 'generation', 'planning', 'validation', 'summarization', 'extraction', 'embedding')
+- **Configuration Validation**: Robust validation of task-based model routing during configuration loading
+
+**Section sources**
+- [client.ts:40-48](file://packages/engine/src/llm/client.ts#L40-L48)
+- [client.ts:84-106](file://packages/engine/src/llm/client.ts#L84-L106)
+- [writer.ts:113-117](file://packages/engine/src/agents/writer.ts#L113-L117)
+- [summarizer.ts:27-31](file://packages/engine/src/agents/summarizer.ts#L27-L31)
+- [canonValidator.ts:44-48](file://packages/engine/src/agents/canonValidator.ts#L44-L48)
+- [memoryExtractor.ts:62-66](file://packages/engine/src/agents/memoryExtractor.ts#L62-L66)

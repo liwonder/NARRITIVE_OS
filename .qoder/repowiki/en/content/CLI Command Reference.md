@@ -36,12 +36,12 @@
 
 ## Update Summary
 **Changes Made**
-- Enhanced the `config` command section to reflect the new multi-model configuration system with reasoning, chat, and embedding model support
-- Updated supported providers list to include Alibaba Cloud (Qwen) and ByteDance Ark alongside OpenAI and DeepSeek
-- Added practical examples demonstrating both single-model and multi-model workflows with embedding configuration
-- Updated LLM client documentation to reflect task-based model selection and embedding support
-- Enhanced troubleshooting section to cover multi-model configuration scenarios including embedding setup
-- Added comprehensive documentation for the new `version` command that displays detailed version information for CLI and engine modules
+- Enhanced the `init` command section to reflect the new AI-assisted character generation system that replaces manual placeholder creation
+- Updated the initialization process documentation to highlight automated character generation using LLM-based prompts
+- Added comprehensive documentation for the new character generation workflow including fallback mechanisms
+- Enhanced troubleshooting section to cover character generation failures and LLM integration issues
+- Updated the interactive prompts system documentation to include character generation feedback
+- Added practical examples demonstrating AI-assisted story setup with automated character creation
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -56,7 +56,7 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document provides a comprehensive command reference for the Narrative Operating System CLI (nos). It covers command syntax, parameters, flags, usage patterns, and integration points for all nos commands including the newly added 13 commands: bible, clone, delete, export, hint, list, memories, read, regenerate, state, validate, and version. The system features enhanced structured state persistence, interactive hints system, comprehensive story management capabilities with automatic initialization and robust error handling for improved reliability and advanced storytelling capabilities.
+This document provides a comprehensive command reference for the Narrative Operating System CLI (nos). It covers command syntax, parameters, flags, usage patterns, and integration points for all nos commands including the newly added 13 commands: bible, clone, delete, export, hint, list, memories, read, regenerate, state, validate, and version. The system features enhanced structured state persistence, interactive hints system, comprehensive story management capabilities with automated AI-assisted initialization, robust error handling for improved reliability, and advanced storytelling capabilities.
 
 ## Project Structure
 The CLI is implemented as a TypeScript application using Commander for command parsing and Inquirer for interactive configuration. Commands delegate to the engine package for story generation and rely on a local filesystem store under the user's home directory with enhanced structured state management and memory systems.
@@ -113,8 +113,8 @@ CMD_CONFIG --> VECTOR_STORE["Vector Store<br/>packages/engine/src/memory/vectorS
 **Diagram sources**
 - [apps/cli/src/index.ts:1-161](file://apps/cli/src/index.ts#L1-L161)
 - [apps/cli/src/commands/config.ts:1-318](file://apps/cli/src/commands/config.ts#L1-L318)
-- [apps/cli/src/commands/init.ts:1-90](file://apps/cli/src/commands/init.ts#L1-L90)
-- [apps/cli/src/commands/generate.ts:1-70](file://apps/cli/src/commands/generate.ts#L1-L70)
+- [apps/cli/src/commands/init.ts:1-91](file://apps/cli/src/commands/init.ts#L1-L91)
+- [apps/cli/src/commands/generate.ts:1-81](file://apps/cli/src/commands/generate.ts#L1-L81)
 - [apps/cli/src/commands/status.ts:1-55](file://apps/cli/src/commands/status.ts#L1-L55)
 - [apps/cli/src/commands/continue.ts:1-63](file://apps/cli/src/commands/continue.ts#L1-L63)
 - [apps/cli/src/commands/list.ts:1-23](file://apps/cli/src/commands/list.ts#L1-L23)
@@ -131,11 +131,11 @@ CMD_CONFIG --> VECTOR_STORE["Vector Store<br/>packages/engine/src/memory/vectorS
 - [apps/cli/src/commands/version.ts:1-124](file://apps/cli/src/commands/version.ts#L1-L124)
 - [apps/cli/src/config/store.ts:1-195](file://apps/cli/src/config/store.ts#L1-L195)
 - [packages/engine/src/types/index.ts:1-150](file://packages/engine/src/types/index.ts#L1-L150)
-- [packages/engine/src/story/bible.ts:1-73](file://packages/engine/src/story/bible.ts#L1-L73)
+- [packages/engine/src/story/bible.ts:1-243](file://packages/engine/src/story/bible.ts#L1-L243)
 - [packages/engine/src/story/state.ts:1-30](file://packages/engine/src/story/state.ts#L1-L30)
 - [packages/engine/src/story/structuredState.ts:1-235](file://packages/engine/src/story/structuredState.ts#L1-L235)
 - [packages/engine/src/agents/stateUpdater.ts:1-193](file://packages/engine/src/agents/stateUpdater.ts#L1-L193)
-- [packages/engine/src/llm/client.ts:1-211](file://packages/engine/src/llm/client.ts#L1-L211)
+- [packages/engine/src/llm/client.ts:1-249](file://packages/engine/src/llm/client.ts#L1-L249)
 - [packages/engine/src/memory/vectorStore.ts:1-258](file://packages/engine/src/memory/vectorStore.ts#L1-L258)
 
 **Section sources**
@@ -149,14 +149,14 @@ CMD_CONFIG --> VECTOR_STORE["Vector Store<br/>packages/engine/src/memory/vectorS
 - Engine types define the data structures used across commands (StoryBible, StoryState, Chapter, GenerationContext, StoryStructuredState).
 - **New**: Structured state persistence system automatically initializes and manages character and plot thread states with comprehensive narrative tracking.
 - **New**: Interactive hints system provides contextual guidance and quick tips based on story progress and user context.
-- **New**: Enhanced init command with interactive prompts for story creation, replacing the previous static parameter approach.
+- **New**: Enhanced init command with AI-assisted character generation via LLM-based prompts, replacing the previous manual placeholder creation approach.
 - **New**: Multi-model configuration system supporting separate reasoning, chat, and embedding models with backward compatibility for single-model setups.
 - **New**: Task-based model selection system with automatic model assignment based on operation type (generation/planning, validation/summarization, extraction, embedding).
 - **New**: Version command provides detailed version information for CLI and engine modules.
 
 Key runtime behaviors:
 - Interactive configuration via inquirer prompts.
-- Interactive story creation via inquirer prompts for title, genre, theme, setting, tone, premise, and target chapters.
+- AI-assisted story creation via LLM-powered character generation for title, genre, theme, setting, tone, premise, and target chapters.
 - Local persistence under ~/.narrative-os/{config.json, stories/<id>/} with automatic structured state initialization.
 - Structured state includes character emotional states, locations, relationships, plot thread tensions, and unresolved questions.
 - Memory systems support vector-based narrative recall and semantic search with OpenAI embeddings.
@@ -164,6 +164,7 @@ Key runtime behaviors:
 - **New**: Contextual help system provides intelligent suggestions based on story state and user actions.
 - **New**: Multi-model LLM client automatically selects appropriate models based on task type with embedding support.
 - **New**: Version command displays CLI and engine module versions with development mode detection.
+- **New**: Character generation fallback system provides default characters when LLM generation fails.
 
 **Section sources**
 - [apps/cli/src/index.ts:11-53](file://apps/cli/src/index.ts#L11-L53)
@@ -172,7 +173,7 @@ Key runtime behaviors:
 - [packages/engine/src/types/index.ts:1-150](file://packages/engine/src/types/index.ts#L1-L150)
 - [packages/engine/src/story/structuredState.ts:23-85](file://packages/engine/src/story/structuredState.ts#L23-L85)
 - [apps/cli/src/commands/hint.ts:3-47](file://apps/cli/src/commands/hint.ts#L3-L47)
-- [apps/cli/src/commands/init.ts:17-64](file://apps/cli/src/commands/init.ts#L17-L64)
+- [apps/cli/src/commands/init.ts:17-90](file://apps/cli/src/commands/init.ts#L17-L90)
 - [packages/engine/src/llm/client.ts:39-47](file://packages/engine/src/llm/client.ts#L39-L47)
 - [packages/engine/src/memory/vectorStore.ts:1-258](file://packages/engine/src/memory/vectorStore.ts#L1-L258)
 - [apps/cli/src/commands/version.ts:64-123](file://apps/cli/src/commands/version.ts#L64-123)
@@ -203,16 +204,19 @@ Config-->>User : "Saved provider/model/embedding"
 User->>CLI : "nos init [options]"
 CLI->>Init : "initCommand()"
 Init->>Init : "Interactive prompts for title, genre, theme, setting, tone, premise, chapters"
+Init->>Engine : "generateCharacters() via LLM"
+Engine->>LLMClient : "complete(prompt, { task : 'generation' })"
+LLMClient->>LLMClient : "select reasoning model for character generation"
+LLMClient-->>Engine : "Generated character JSON"
+Engine-->>Init : "Array of CharacterProfile objects"
 Init->>Engine : "createStoryBible()"
-Engine-->>Init : "StoryBible"
-Init->>Engine : "addCharacter()"
-Engine-->>Init : "Updated StoryBible"
+Engine-->>Init : "StoryBible with AI-generated characters"
 Init->>Engine : "createStoryState()"
 Engine-->>Init : "StoryState"
 Init->>Store : "saveStory(bible,state,chapters,structuredState)"
 Store->>Store : "initializeStructuredState()"
 Store-->>Init : "persist stories/<id> with structured-state.json"
-Init-->>User : "Story created with ID"
+Init-->>User : "Story created with AI-generated characters"
 User->>CLI : "nos hint [story-id]"
 CLI->>CLI : "showHint() with context"
 CLI-->>User : "Contextual suggestions"
@@ -230,12 +234,12 @@ VectorStore-->>User : "Memory search results"
 - [apps/cli/src/commands/config.ts:38-66](file://apps/cli/src/commands/config.ts#L38-L66)
 - [apps/cli/src/commands/version.ts:64-123](file://apps/cli/src/commands/version.ts#L64-L123)
 - [apps/cli/src/config/store.ts:15-26](file://apps/cli/src/config/store.ts#L15-L26)
-- [packages/engine/src/story/bible.ts:3-26](file://packages/engine/src/story/bible.ts#L3-L26)
+- [packages/engine/src/story/bible.ts:153-217](file://packages/engine/src/story/bible.ts#L153-L217)
 - [packages/engine/src/story/state.ts:3-12](file://packages/engine/src/story/state.ts#L3-L12)
 - [packages/engine/src/story/structuredState.ts:33-85](file://packages/engine/src/story/structuredState.ts#L33-L85)
 - [apps/cli/src/config/store.ts:139-151](file://apps/cli/src/config/store.ts#L139-L151)
 - [apps/cli/src/commands/hint.ts:3-47](file://apps/cli/src/commands/hint.ts#L3-L47)
-- [apps/cli/src/commands/init.ts:17-79](file://apps/cli/src/commands/init.ts#L17-L79)
+- [apps/cli/src/commands/init.ts:68-76](file://apps/cli/src/commands/init.ts#L68-L76)
 - [packages/engine/src/llm/client.ts:39-47](file://packages/engine/src/llm/client.ts#L39-L47)
 - [packages/engine/src/llm/client.ts:113-125](file://packages/engine/src/llm/client.ts#L113-L125)
 - [packages/engine/src/memory/vectorStore.ts:125-177](file://packages/engine/src/memory/vectorStore.ts#L125-L177)
@@ -283,7 +287,7 @@ Advanced usage
 
 **Section sources**
 - [apps/cli/src/index.ts:154-158](file://apps/cli/src/index.ts#L154-L158)
-- [apps/cli/src/commands/version.ts:64-123](file://apps/cli/src/commands/version.ts#L64-123)
+- [apps/cli/src/commands/version.ts:64-123](file://apps/cli/src/commands/version.ts#L64-L123)
 
 ### Command: nos config
 Purpose
@@ -343,9 +347,9 @@ Advanced usage
 
 ### Command: nos init
 Purpose
-- Create a new story with interactive prompts for story creation. The CLI now provides dynamic user input for title, genre, theme, setting, tone, premise, and target chapters, making the initial story setup more intuitive and user-friendly. Persists initial state and returns the story ID for subsequent operations with automatic structured state initialization.
+- Create a new story with AI-assisted character generation via LLM-powered prompts. The CLI now provides dynamic user input for story creation and automatically generates realistic characters using AI, making the initial story setup more intuitive, user-friendly, and narratively rich. Persists initial state and returns the story ID for subsequent operations with automatic structured state initialization.
 
-**Updated** Enhanced with interactive prompts replacing static parameters
+**Updated** Enhanced with AI-assisted character generation via LLM-based prompts
 
 Syntax
 - nos init [options]
@@ -369,27 +373,38 @@ Interactive Prompts
 - **Premise**: Free text with minimum 10 characters validation
 - **Target Chapters**: Number input with min 1, max 50, default 5
 
+AI-Assisted Character Generation
+- **Automated Creation**: Characters are generated using LLM-based prompts with story context (title, premise, genre, setting, language)
+- **Authentic Names**: Character names are generated appropriate for the specified language and story setting
+- **Role Distribution**: Includes exactly one protagonist, one antagonist, and 1-2 supporting characters
+- **Personality Traits**: Generated traits create interesting conflicts and drive plot development
+- **Goal Alignment**: Character goals align with the story premise and genre
+- **Fallback System**: If LLM generation fails, default characters are provided based on language
+
 Output
 - Prints story metadata and the next command to generate the first chapter.
+- Displays AI-generated characters with their roles and characteristics.
+- Shows character count and role distribution.
 
 Storage
 - Creates ~/.narrative-os/stories/<id>/ with bible.json, state.json, chapters.json, structured-state.json, and optionally canon.json.
 - **New**: Automatically creates structured-state.json with initialized character and plot thread states.
+- **New**: Character data includes personality traits, goals, and relationships for narrative depth.
 
 Exit codes
 - 0 on success; non-zero if initialization fails.
 
 Interactive Usage Examples
-- **Full interactive mode**: `nos init` (prompts for all fields)
-- **Partial interactive mode**: `nos init --title "My Story"` (prompts for remaining fields)
-- **Parameter-driven mode**: `nos init --title "My Story" --genre "Fantasy" --chapters 8` (no prompts)
+- **Full interactive mode**: `nos init` (prompts for all fields, generates AI characters)
+- **Partial interactive mode**: `nos init --title "My Story"` (prompts for remaining fields, generates AI characters)
+- **Parameter-driven mode**: `nos init --title "My Story" --genre "Fantasy" --chapters 8` (no prompts, generates AI characters)
 
-**Updated** Added comprehensive interactive prompts system with validation and defaults
+**Updated** Added comprehensive AI-assisted character generation system with LLM integration and fallback mechanisms
 
 **Section sources**
 - [apps/cli/src/index.ts:42-53](file://apps/cli/src/index.ts#L42-L53)
-- [apps/cli/src/commands/init.ts:4-90](file://apps/cli/src/commands/init.ts#L4-L90)
-- [packages/engine/src/story/bible.ts:3-26](file://packages/engine/src/story/bible.ts#L3-L26)
+- [apps/cli/src/commands/init.ts:4-91](file://apps/cli/src/commands/init.ts#L4-L91)
+- [packages/engine/src/story/bible.ts:153-217](file://packages/engine/src/story/bible.ts#L153-L217)
 - [packages/engine/src/story/state.ts:3-12](file://packages/engine/src/story/state.ts#L3-L12)
 - [apps/cli/src/config/store.ts:139-151](file://apps/cli/src/config/store.ts#L139-L151)
 
@@ -422,7 +437,7 @@ Automation tip
 
 **Section sources**
 - [apps/cli/src/index.ts:79-84](file://apps/cli/src/index.ts#L79-L84)
-- [apps/cli/src/commands/generate.ts:4-70](file://apps/cli/src/commands/generate.ts#L4-L70)
+- [apps/cli/src/commands/generate.ts:4-81](file://apps/cli/src/commands/generate.ts#L4-L81)
 - [apps/cli/src/config/store.ts:28-49](file://apps/cli/src/config/store.ts#L28-L49)
 - [packages/engine/src/types/index.ts:60-65](file://packages/engine/src/types/index.ts#L60-L65)
 - [packages/engine/src/agents/stateUpdater.ts:85-193](file://packages/engine/src/agents/stateUpdater.ts#L85-L193)
@@ -750,7 +765,7 @@ Behavior
 - Lists all stories to determine context when no story ID provided.
 - Finds active story (in-progress) or uses the most recent story.
 - Provides tailored suggestions based on story state:
-  - First-time users: guidance for creating their first story
+  - First-time users: guidance for creating their first story with AI-assisted character generation
   - Completed stories: suggestions for export, reading, or cloning
   - Active stories: recommendations for continuing, checking status, or auto-completing
 - Displays helpful command references and quick-start tips.
@@ -821,8 +836,8 @@ STORE --> GENERATE_PIPELINE["engine/pipeline/generateChapter.ts"]
 **Diagram sources**
 - [apps/cli/src/index.ts:1-161](file://apps/cli/src/index.ts#L1-L161)
 - [apps/cli/src/commands/config.ts:1-318](file://apps/cli/src/commands/config.ts#L1-L318)
-- [apps/cli/src/commands/init.ts:1-90](file://apps/cli/src/commands/init.ts#L1-L90)
-- [apps/cli/src/commands/generate.ts:1-70](file://apps/cli/src/commands/generate.ts#L1-L70)
+- [apps/cli/src/commands/init.ts:1-91](file://apps/cli/src/commands/init.ts#L1-L91)
+- [apps/cli/src/commands/generate.ts:1-81](file://apps/cli/src/commands/generate.ts#L1-L81)
 - [apps/cli/src/commands/status.ts:1-55](file://apps/cli/src/commands/status.ts#L1-L55)
 - [apps/cli/src/commands/continue.ts:1-63](file://apps/cli/src/commands/continue.ts#L1-L63)
 - [apps/cli/src/commands/list.ts:1-23](file://apps/cli/src/commands/list.ts#L1-L23)
@@ -839,12 +854,12 @@ STORE --> GENERATE_PIPELINE["engine/pipeline/generateChapter.ts"]
 - [apps/cli/src/commands/version.ts:1-124](file://apps/cli/src/commands/version.ts#L1-L124)
 - [apps/cli/src/config/store.ts:1-195](file://apps/cli/src/config/store.ts#L1-L195)
 - [packages/engine/src/types/index.ts:1-150](file://packages/engine/src/types/index.ts#L1-L150)
-- [packages/engine/src/story/bible.ts:1-73](file://packages/engine/src/story/bible.ts#L1-L73)
+- [packages/engine/src/story/bible.ts:1-243](file://packages/engine/src/story/bible.ts#L1-L243)
 - [packages/engine/src/story/state.ts:1-30](file://packages/engine/src/story/state.ts#L1-L30)
 - [packages/engine/src/story/structuredState.ts:1-235](file://packages/engine/src/story/structuredState.ts#L1-L235)
 - [packages/engine/src/agents/stateUpdater.ts:1-193](file://packages/engine/src/agents/stateUpdater.ts#L1-L193)
 - [packages/engine/src/pipeline/generateChapter.ts:1-108](file://packages/engine/src/pipeline/generateChapter.ts#L1-L108)
-- [packages/engine/src/llm/client.ts:1-211](file://packages/engine/src/llm/client.ts#L1-L211)
+- [packages/engine/src/llm/client.ts:1-249](file://packages/engine/src/llm/client.ts#L1-L249)
 - [packages/engine/src/memory/vectorStore.ts:1-258](file://packages/engine/src/memory/vectorStore.ts#L1-L258)
 
 **Section sources**
@@ -856,6 +871,7 @@ STORE --> GENERATE_PIPELINE["engine/pipeline/generateChapter.ts"]
 ## Performance Considerations
 - Each nos generate invocation performs disk I/O to load/save story data; batching via nos continue reduces overhead.
 - **Enhanced**: Structured state initialization adds minimal overhead but provides significant narrative tracking benefits.
+- **New**: AI-assisted character generation via LLM adds network latency but provides rich, authentic character data.
 - **New**: Interactive prompts via Inquirer add minimal runtime overhead but greatly improve user experience.
 - **New**: Memory operations (vector store loading/searching) have minimal performance impact but can be optimized by caching frequently accessed data.
 - **New**: Validation operations scale with chapter count and constraint complexity; consider running selectively during development.
@@ -863,6 +879,7 @@ STORE --> GENERATE_PIPELINE["engine/pipeline/generateChapter.ts"]
 - **New**: Task-based model selection ensures optimal performance by using appropriate models for each operation type.
 - **New**: Embedding operations use dedicated embedding models for vector memory operations.
 - **New**: Provider-specific optimizations (DeepSeek reasoning models, OpenAI embeddings, Alibaba Cloud Qwen) improve performance for specialized tasks.
+- **New**: Character generation fallback system provides immediate character data when LLM generation fails.
 - Target word count is fixed for generation; adjust story length via --chapters during init to control total work.
 - Network latency dominates LLM calls; consider rate limits and provider quotas.
 - For large-scale automation, cache configuration and reuse environment variables to avoid repeated file reads.
@@ -900,6 +917,9 @@ Common issues and resolutions
 - **New**: Model purpose confusion
   - Cause: Unclear which model is used for which task.
   - Resolution: Use `nos config --show` to see model purposes; reasoning models are used for generation/planning, chat models for validation/summarization, embedding models for vector memory operations.
+- **New**: Character generation failures
+  - Cause: LLM API errors, network issues, or invalid context during character generation.
+  - Resolution: Verify API credentials; retry character generation; check that story context (title, premise, genre, setting) is provided; fallback default characters will be used if LLM generation fails.
 - Generation failures
   - Cause: LLM API errors, network issues, or invalid context.
   - Resolution: Verify API credentials; retry; inspect recent summaries via nos status; reduce concurrency.
@@ -944,12 +964,12 @@ Exit codes summary
 - [apps/cli/src/commands/version.ts:64-123](file://apps/cli/src/commands/version.ts#L64-L123)
 
 ## Conclusion
-The nos CLI provides a comprehensive and powerful workflow for creating, generating, managing, and validating stories powered by the Narrative Operating System engine. With the addition of 13 new commands, enhanced structured state persistence, interactive hints system, sophisticated memory management, the new interactive init command with dynamic user prompts, the revolutionary multi-model configuration system with separate reasoning, chat, and embedding models, and the new version command for detailed version information, it now offers advanced narrative tracking capabilities, comprehensive story management, intelligent assistance, multi-model performance optimization, embedding support for vector memory operations, an intuitive user experience, and detailed version management while maintaining both beginner-friendly workflows and advanced automation scenarios.
+The nos CLI provides a comprehensive and powerful workflow for creating, generating, managing, and validating stories powered by the Narrative Operating System engine. With the addition of 13 new commands, enhanced structured state persistence, interactive hints system, sophisticated memory management, the new AI-assisted initialization process with automated character generation via LLM-based prompts, the revolutionary multi-model configuration system with separate reasoning, chat, and embedding models, and the new version command for detailed version information, it now offers advanced narrative tracking capabilities, comprehensive story management, intelligent assistance, multi-model performance optimization, embedding support for vector memory operations, an intuitive user experience with AI-powered character creation, and detailed version management while maintaining both beginner-friendly workflows and advanced automation scenarios.
 
 ## Appendices
 
 ### Data Model Overview
-The CLI operates on core engine types that define story structure and generation context, now enhanced with structured state management, memory systems, and multi-model configuration.
+The CLI operates on core engine types that define story structure and generation context, now enhanced with structured state management, memory systems, multi-model configuration, and AI-assisted character generation.
 
 ```mermaid
 classDiagram
@@ -1109,7 +1129,7 @@ VectorStore --> VectorMemory
 - [packages/engine/src/memory/vectorStore.ts:1-258](file://packages/engine/src/memory/vectorStore.ts#L1-L258)
 - [packages/engine/src/constraints/constraintGraph.ts:1-150](file://packages/engine/src/constraints/constraintGraph.ts#L1-L150)
 - [packages/engine/src/types/index.ts:92-113](file://packages/engine/src/types/index.ts#L92-L113)
-- [packages/engine/src/llm/client.ts:49-201](file://packages/engine/src/llm/client.ts#L49-L201)
+- [packages/engine/src/llm/client.ts:49-249](file://packages/engine/src/llm/client.ts#L49-L249)
 
 ### Storage Layout
 Stories are persisted under ~/.narrative-os/stories/<id> with the following files:
@@ -1132,7 +1152,7 @@ Beginner workflows
 - Configure provider and model: nos config
 - **New**: Check configuration: nos config --show
 - **New**: Check versions: nos version
-- **New**: Interactive story creation: nos init (prompts for all fields)
+- **New**: AI-assisted story creation: nos init (prompts for all fields, generates AI characters)
 - **New**: Parameter-driven story creation: nos init --title "My Story" --genre "Fantasy" --chapters 8
 - Generate chapters one-by-one: nos generate <story-id>
 - Check progress: nos status <story-id>
@@ -1154,13 +1174,14 @@ Power-user techniques
 - **New**: Multi-model optimization: leverage separate reasoning, chat, and embedding models for best performance
 - **New**: Task-based model selection: understand how different models are automatically selected for different operations
 - **New**: Embedding configuration: set up provider-specific embeddings for vector memory operations
+- **New**: Character generation customization: provide rich story context (title, premise, genre, setting) for authentic AI-generated characters
 
 **Section sources**
 - [PROGRESS.md:126-137](file://PROGRESS.md#L126-L137)
 - [apps/cli/src/commands/continue.ts:22-46](file://apps/cli/src/commands/continue.ts#L22-L46)
 - [packages/engine/src/story/structuredState.ts:181-235](file://packages/engine/src/story/structuredState.ts#L181-L235)
 - [apps/cli/src/commands/hint.ts:25-46](file://apps/cli/src/commands/hint.ts#L25-L46)
-- [apps/cli/src/commands/init.ts:17-79](file://apps/cli/src/commands/init.ts#L17-L79)
+- [apps/cli/src/commands/init.ts:17-90](file://apps/cli/src/commands/init.ts#L17-L90)
 - [packages/engine/src/llm/client.ts:39-47](file://packages/engine/src/llm/client.ts#L39-L47)
 - [packages/engine/src/memory/vectorStore.ts:125-177](file://packages/engine/src/memory/vectorStore.ts#L125-L177)
 - [apps/cli/src/commands/version.ts:64-123](file://apps/cli/src/commands/version.ts#L64-L123)
@@ -1174,11 +1195,28 @@ Power-user techniques
 - **Genre Selection**: Predefined genre choices with user-friendly options
 - **Flexible Input**: Supports both fully interactive mode and partial parameter overrides
 - **Responsive Interface**: Asynchronous prompts provide immediate feedback and graceful cancellation
+- **AI-Assisted Character Generation**: Automatic character creation using LLM-based prompts with story context
 
 **Section sources**
-- [apps/cli/src/commands/init.ts:17-79](file://apps/cli/src/commands/init.ts#L17-L79)
+- [apps/cli/src/commands/init.ts:17-90](file://apps/cli/src/commands/init.ts#L17-L90)
 - [apps/cli/src/commands/init.ts:22-35](file://apps/cli/src/commands/init.ts#L22-L35)
 - [apps/cli/src/commands/init.ts:57-64](file://apps/cli/src/commands/init.ts#L57-L64)
+
+### AI-Assisted Character Generation Features
+**New**: The enhanced CLI now provides sophisticated AI-assisted character generation:
+
+- **LLM-Powered Creation**: Characters are generated using LLM-based prompts with story context (title, premise, genre, setting, language)
+- **Authentic Names**: Character names are generated appropriate for the specified language and story setting
+- **Role Distribution**: Includes exactly one protagonist, one antagonist, and 1-2 supporting characters
+- **Personality Traits**: Generated traits create interesting conflicts and drive plot development
+- **Goal Alignment**: Character goals align with the story premise and genre
+- **Fallback System**: If LLM generation fails, default characters are provided based on language
+- **Language Support**: Supports Chinese, Japanese, Korean, and English character generation
+- **Integration**: Characters are automatically added to the StoryBible during initialization
+
+**Section sources**
+- [packages/engine/src/story/bible.ts:153-217](file://packages/engine/src/story/bible.ts#L153-L217)
+- [packages/engine/src/story/bible.ts:222-242](file://packages/engine/src/story/bible.ts#L222-L242)
 
 ### Structured State Management Features
 **New**: The enhanced CLI now provides sophisticated narrative tracking through structured state management:
@@ -1200,7 +1238,7 @@ Power-user techniques
 - **Context Detection**: Automatically identifies active stories and user context
 - **Progress-Based Suggestions**: Tailors advice based on story completion status
 - **Quick Command Access**: Provides direct command references for common operations
-- **First-Time User Support**: Guides new users through initial setup and creation
+- **First-Time User Support**: Guides new users through initial setup and AI-assisted character creation
 - **Completion Recognition**: Suggests next steps when stories are finished
 
 **Section sources**
@@ -1350,3 +1388,16 @@ Power-user techniques
 - [apps/cli/src/commands/config.ts:32-37](file://apps/cli/src/commands/config.ts#L32-L37)
 - [apps/cli/src/commands/config.ts:194-207](file://apps/cli/src/commands/config.ts#L194-L207)
 - [packages/engine/src/memory/vectorStore.ts:200-218](file://packages/engine/src/memory/vectorStore.ts#L200-L218)
+
+### Character Generation Fallback System
+**New**: Robust fallback system for character generation:
+
+- **LLM Generation Failure**: When AI character generation fails, default characters are provided
+- **Language-Based Defaults**: Characters are selected based on story language (Chinese, Japanese, Korean, English)
+- **Authentic Role Distribution**: Maintains the required character roles even in fallback scenarios
+- **Consistent Personality**: Default personality traits align with cultural contexts
+- **Goal Alignment**: Default goals are appropriate for the story genre and setting
+- **Seamless Integration**: Fallback characters integrate identically with the StoryBible structure
+
+**Section sources**
+- [packages/engine/src/story/bible.ts:212-242](file://packages/engine/src/story/bible.ts#L212-L242)

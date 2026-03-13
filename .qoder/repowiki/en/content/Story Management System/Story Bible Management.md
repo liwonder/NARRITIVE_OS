@@ -13,14 +13,17 @@
 - [client.ts](file://packages/engine/src/llm/client.ts)
 - [index.ts](file://packages/engine/src/index.ts)
 - [simple.test.ts](file://packages/engine/src/test/simple.test.ts)
+- [init.ts](file://apps/cli/src/commands/init.ts)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Added documentation for new language detection functionality including detectLanguage() and getLanguageName() functions
-- Updated StoryBible data structure to include language property with automatic language detection
-- Enhanced character generation workflow to support multiple languages
-- Added comprehensive language support for international storytelling
+- Added comprehensive documentation for the new AI-powered character generation system
+- Enhanced language detection capabilities with expanded language support
+- Documented the automatic character creation workflow during story initialization
+- Added detailed coverage of the generateCharacters function with cultural appropriateness
+- Updated StoryBible data structure to include AI-assisted character creation
+- Added fallback character generation system with getDefaultCharacters function
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -37,16 +40,16 @@
 ## Introduction
 This document describes the Story Bible Management system that powers narrative worldbuilding, character profiles, and plot thread orchestration within the engine. It explains the StoryBible data structure, immutable update patterns, ID generation strategies, and the lifecycle of plot threads. It documents the primary APIs for initializing a story, adding characters, and managing plot threads, and shows how these integrate with the chapter generation pipeline, including tension mechanics and canonical fact storage.
 
-**Updated** The system now includes automatic language detection capabilities that analyze story metadata to determine appropriate language settings for international storytelling support.
+**Updated** The system now includes an AI-powered character generation system with automatic character creation during story initialization, enhanced language detection capabilities that analyze story metadata to determine appropriate language settings for international storytelling support, and comprehensive fallback mechanisms for character generation.
 
 ## Project Structure
-The Story Bible Management lives in the engine package and integrates with agents, memory, and pipeline modules to produce chapters guided by a story's canonical blueprint. The system now includes language detection and multilingual character generation capabilities.
+The Story Bible Management lives in the engine package and integrates with agents, memory, and pipeline modules to produce chapters guided by a story's canonical blueprint. The system now includes advanced language detection, AI-powered character generation, and automatic character creation capabilities.
 
 ```mermaid
 graph TB
 subgraph "Engine"
 Types["Types<br/>StoryBible, CharacterProfile, PlotThread"]
-StoryBible["Story Bible<br/>createStoryBible, addCharacter, addPlotThread<br/>detectLanguage, getLanguageName"]
+StoryBible["Story Bible<br/>createStoryBible, addCharacter, addPlotThread<br/>detectLanguage, getLanguageName, generateCharacters"]
 StoryState["Story State<br/>createStoryState, updateStoryState"]
 Canon["Canon Store<br/>extractCanonFromBible, addFact, updateFact"]
 Writer["Writer Agent<br/>write, continue"]
@@ -54,6 +57,7 @@ Summarizer["Summarizer Agent<br/>summarize"]
 Completeness["Completeness Checker<br/>check"]
 LLM["LLM Client<br/>OpenAI/DetekSeek"]
 Gen["Generate Chapter Pipeline<br/>generateChapter"]
+CLI["CLI Init Command<br/>Automatic Character Generation"]
 end
 Types --> StoryBible
 Types --> StoryState
@@ -67,6 +71,8 @@ Gen --> Completeness
 Writer --> LLM
 Summarizer --> LLM
 Completeness --> LLM
+CLI --> StoryBible
+CLI --> LLM
 ```
 
 **Diagram sources**
@@ -79,6 +85,7 @@ Completeness --> LLM
 - [completeness.ts:1-56](file://packages/engine/src/agents/completeness.ts#L1-L56)
 - [client.ts:1-106](file://packages/engine/src/llm/client.ts#L1-L106)
 - [generateChapter.ts:1-76](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
+- [init.ts:1-91](file://apps/cli/src/commands/init.ts#L1-L91)
 
 **Section sources**
 - [index.ts:1-123](file://packages/engine/src/index.ts#L1-L123)
@@ -86,16 +93,18 @@ Completeness --> LLM
 
 ## Core Components
 - StoryBible: Immutable narrative blueprint containing metadata, characters, plot threads, and language information.
-- CharacterProfile: Defines roles, personality traits, and goals for characters.
+- CharacterProfile: Defines roles, personality traits, and goals for characters with automatic language-appropriate naming.
 - PlotThread: Represents a narrative thread with lifecycle status and tension mechanics.
 - StoryState: Tracks chapter progression, current tension, and summaries.
 - CanonStore: Extracts and maintains canonical facts derived from the StoryBible for consistency checks.
-- Language Detection: Automatic language identification from story title and premise text.
+- Language Detection: Automatic language identification from story title and premise text with comprehensive Unicode range support.
+- AI Character Generation: LLM-powered character creation with cultural authenticity and fallback mechanisms.
 
 Key immutable update patterns:
 - All mutation functions return a new object with spread operator and updated arrays/dates.
 - ID generation uses deterministic yet unique identifiers combining timestamp and random suffix.
 - Language detection automatically determines appropriate language based on text content.
+- Character generation integrates seamlessly with story initialization workflow.
 
 **Section sources**
 - [index.ts:1-152](file://packages/engine/src/types/index.ts#L1-L152)
@@ -104,13 +113,15 @@ Key immutable update patterns:
 - [canonStore.ts:1-134](file://packages/engine/src/memory/canonStore.ts#L1-L134)
 
 ## Architecture Overview
-The system orchestrates chapter generation around a StoryBible with automatic language detection. The pipeline writes, validates canonical adherence, summarizes, and updates state. Tension increases monotonically with story progress and influences narrative pacing. Language detection ensures appropriate cultural and linguistic context for character names and story elements.
+The system orchestrates chapter generation around a StoryBible with automatic language detection and AI-powered character generation. The pipeline writes, validates canonical adherence, summarizes, and updates state. Tension increases monotonically with story progress and influences narrative pacing. Language detection ensures appropriate cultural and linguistic context for character names and story elements, while AI character generation creates culturally authentic characters during story initialization.
 
 ```mermaid
 sequenceDiagram
 participant User as "Caller"
 participant SB as "StoryBible API"
 participant LD as "Language Detection"
+participant GC as "Generate Characters"
+participant LLM as "LLM Client"
 participant SS as "StoryState API"
 participant GS as "GenerateChapter"
 participant WR as "Writer"
@@ -121,7 +132,11 @@ participant CS as "CanonStore"
 User->>SB : createStoryBible(title, premise, ...)
 SB->>LD : detectLanguage(title + premise)
 LD-->>SB : language code (e.g., 'zh', 'ja', 'ko')
-User->>SB : addCharacter(...)
+User->>GC : generateCharacters(title, premise, genre, setting, language)
+GC->>LLM : Prompt with language context
+LLM-->>GC : Generated characters JSON
+GC-->>User : Characters with language-appropriate names
+User->>SB : addCharacter(...) (if manual)
 User->>SB : addPlotThread(...)
 User->>SS : createStoryState(storyId, totalChapters)
 User->>CS : extractCanonFromBible(bible)
@@ -144,6 +159,7 @@ User->>SS : updateStoryState(state, summary)
 **Diagram sources**
 - [bible.ts:83-84](file://packages/engine/src/story/bible.ts#L83-L84)
 - [bible.ts:3-50](file://packages/engine/src/story/bible.ts#L3-L50)
+- [bible.ts:153-217](file://packages/engine/src/story/bible.ts#L153-L217)
 - [state.ts:3-29](file://packages/engine/src/story/state.ts#L3-L29)
 - [generateChapter.ts:20-71](file://packages/engine/src/pipeline/generateChapter.ts#L20-L71)
 - [writer.ts:55-131](file://packages/engine/src/agents/writer.ts#L55-L131)
@@ -157,7 +173,7 @@ User->>SS : updateStoryState(state, summary)
 - Metadata fields: id, title, theme, genre, setting, tone, targetChapters, premise, language, createdAt, updatedAt.
 - Characters: array of CharacterProfile entries with id, name, role, personality traits, goals, optional background.
 - Plot threads: array of PlotThread entries with id, name, description, status, tension.
-- Language property: automatically detected from story title and premise text.
+- Language property: automatically detected from story title and premise text using comprehensive Unicode range analysis.
 - Immutable updates: new StoryBible instances are returned with spread operator and updated arrays/dates.
 
 ```mermaid
@@ -205,29 +221,30 @@ StoryBible --> PlotThread : "contains many"
 - [bible.ts:103-143](file://packages/engine/src/story/bible.ts#L103-L143)
 - [bible.ts:125-143](file://packages/engine/src/story/bible.ts#L125-L143)
 
-### Language Detection and Multilingual Support
-- Automatic language detection from story title and premise text using Unicode character ranges.
+### Enhanced Language Detection and Multilingual Support
+- Automatic language detection from story title and premise text using comprehensive Unicode character ranges.
 - Supported languages: English, Chinese, Japanese, Korean, Arabic, Russian, Thai, Hindi, Spanish, French, German, Portuguese, Italian.
 - Language name mapping for human-readable display.
-- Character generation adapts names based on detected language.
+- Character generation adapts names based on detected language with culturally appropriate naming conventions.
+- Automatic character creation during story initialization based on detected language.
 
 ```mermaid
 flowchart TD
 Start(["Story Creation"]) --> Combine["Combine title + premise text"]
 Combine --> Detect["detectLanguage() checks Unicode ranges"]
-Detect --> Chinese{"Chinese chars?"}
+Detect --> Chinese{"Chinese chars [\\u4e00-\\u9fa5]?"}
 Chinese --> |Yes| SetZH["Set language='zh'"]
-Chinese --> Japanese{"Japanese chars?"}
+Chinese --> Japanese{"Japanese chars [\\u3040-\\u309f\\u30a0-\\u30ff]?"}
 Japanese --> |Yes| SetJA["Set language='ja'"]
-Japanese --> Korean{"Korean chars?"}
+Japanese --> Korean{"Korean chars [\\uac00-\\ud7af]?"}
 Korean --> |Yes| SetKO["Set language='ko'"]
-Korean --> Arabic{"Arabic chars?"}
+Korean --> Arabic{"Arabic chars [\\u0600-\\u06ff]?"}
 Arabic --> |Yes| SetAR["Set language='ar'"]
-Arabic --> Cyrillic{"Cyrillic chars?"}
+Arabic --> Cyrillic{"Cyrillic chars [\\u0400-\\u04ff]?"}
 Cyrillic --> |Yes| SetRU["Set language='ru'"]
-Cyrillic --> Thai{"Thai chars?"}
+Cyrillic --> Thai{"Thai chars [\\u0e00-\\u0e7f]?"}
 Thai --> |Yes| SetTH["Set language='th'"]
-Thai --> Devanagari{"Devanagari chars?"}
+Thai --> Devanagari{"Devanagari chars [\\u0900-\\u097f]?"}
 Devanagari --> |Yes| SetHI["Set language='hi'"]
 Devanagari --> Default["Default to 'en'"]
 SetZH --> End(["StoryBible with language='zh'"])
@@ -251,10 +268,45 @@ Default --> End
 - [bible.ts:74-101](file://packages/engine/src/story/bible.ts#L74-L101)
 - [bible.ts:153-242](file://packages/engine/src/story/bible.ts#L153-L242)
 
+### AI-Powered Character Generation System
+- **generateCharacters**: Async function that uses LLM to create culturally appropriate character names and profiles based on story context and detected language.
+- **getDefaultCharacters**: Fallback function that provides language-specific default character sets when LLM generation fails.
+- **Automatic Character Creation**: Characters are automatically generated during story initialization based on detected language and story context.
+- **Cultural Authenticity**: Character names and traits are adapted to match the detected language and story setting.
+- **Error Handling**: Robust fallback mechanism ensures character generation even when LLM services are unavailable.
+
+```mermaid
+flowchart TD
+Init(["Story Initialization"]) --> CreateBible["createStoryBible()"]
+CreateBible --> DetectLang["detectLanguage()"]
+DetectLang --> GenerateChars["generateCharacters()"]
+GenerateChars --> LLMCall["LLM.complete() with cultural prompt"]
+LLMCall --> ParseJSON["Parse JSON response"]
+ParseJSON --> AddIDs["Add unique IDs to characters"]
+AddIDs --> Success["Return generated characters"]
+LLMCall -.-> Error["LLM failure"]
+Error --> Fallback["getDefaultCharacters()"]
+Fallback --> DefaultChars["Return language-specific defaults"]
+DefaultChars --> Success
+Success --> UpdateBible["Update StoryBible.characters"]
+UpdateBible --> Ready["Story ready for generation"]
+```
+
+**Diagram sources**
+- [bible.ts:153-217](file://packages/engine/src/story/bible.ts#L153-L217)
+- [bible.ts:222-242](file://packages/engine/src/story/bible.ts#L222-L242)
+- [init.ts:66-71](file://apps/cli/src/commands/init.ts#L66-L71)
+
+**Section sources**
+- [bible.ts:153-217](file://packages/engine/src/story/bible.ts#L153-L217)
+- [bible.ts:222-242](file://packages/engine/src/story/bible.ts#L222-L242)
+- [init.ts:66-71](file://apps/cli/src/commands/init.ts#L66-L71)
+
 ### Immutable Update Pattern and ID Generation
 - ID generation: Timestamp plus short random string to ensure uniqueness across calls.
 - Updates: Functions return new objects with spread operator; arrays are shallow-copied and appended to; updatedAt is refreshed on mutations.
 - Language detection occurs during StoryBible creation to ensure consistent language throughout the story lifecycle.
+- Character generation integrates seamlessly with immutable update patterns.
 
 ```mermaid
 flowchart TD
@@ -304,6 +356,7 @@ Escalate --> Resolve["Resolve when thread achieves goal"]
 ### StoryBible Creation Workflow
 - createStoryBible initializes a new StoryBible with metadata, automatic language detection, empty arrays, and timestamps.
 - Language detection analyzes title and premise text to determine appropriate language code.
+- Automatic character generation creates culturally appropriate characters during story initialization.
 - Practical example path: see [simple.test.ts:26-34](file://packages/engine/src/test/simple.test.ts#L26-L34).
 
 ```mermaid
@@ -326,10 +379,11 @@ API-->>Dev : New StoryBible with id, language, createdAt, updatedAt
 - [bible.ts:74-101](file://packages/engine/src/story/bible.ts#L74-L101)
 - [simple.test.ts:26-34](file://packages/engine/src/test/simple.test.ts#L26-L34)
 
-### Character Profile Management
+### Enhanced Character Profile Management
 - addCharacter creates a CharacterProfile with personality traits and goals, assigns an ID, and appends to the StoryBible.
-- generateCharacters uses LLM to create culturally appropriate character names based on detected language.
-- getDefaultCharacters provides fallback character sets for different languages.
+- **generateCharacters**: Uses LLM to create culturally appropriate character names based on detected language and story context.
+- **getDefaultCharacters**: Provides fallback character sets for different languages when LLM generation fails.
+- **Automatic Character Creation**: Characters are automatically generated during story initialization via CLI command.
 - Practical example path: see [simple.test.ts:36-42](file://packages/engine/src/test/simple.test.ts#L36-L42).
 
 ```mermaid
@@ -466,12 +520,44 @@ GS-->>GS : build Chapter and return result
 - [summarizer.ts:1-64](file://packages/engine/src/agents/summarizer.ts#L1-L64)
 - [completeness.ts:1-56](file://packages/engine/src/agents/completeness.ts#L1-L56)
 
+### Automatic Character Creation During Story Initialization
+- **CLI Integration**: The init command automatically generates characters during story creation using generateCharacters function.
+- **Language-Aware Generation**: Characters are generated based on detected language and story context.
+- **Cultural Authenticity**: Character names and traits are adapted to match the detected language and story setting.
+- **Fallback Mechanism**: If LLM generation fails, getDefaultCharacters provides language-specific defaults.
+
+```mermaid
+sequenceDiagram
+participant CLI as "CLI Init Command"
+participant SB as "StoryBible API"
+participant GC as "generateCharacters"
+participant LLM as "LLM Client"
+CLI->>SB : createStoryBible(title, theme, genre, setting, tone, premise, targetChapters)
+SB-->>CLI : StoryBible with language code
+CLI->>GC : generateCharacters(title, premise, genre, setting, language)
+GC->>LLM : Prompt with language context
+LLM-->>GC : Generated characters JSON
+GC-->>CLI : Characters with language-appropriate names
+CLI->>SB : Update StoryBible.characters
+CLI-->>CLI : Story ready with automatic characters
+```
+
+**Diagram sources**
+- [init.ts:66-71](file://apps/cli/src/commands/init.ts#L66-L71)
+- [bible.ts:153-217](file://packages/engine/src/story/bible.ts#L153-L217)
+
+**Section sources**
+- [init.ts:66-71](file://apps/cli/src/commands/init.ts#L66-L71)
+- [bible.ts:153-217](file://packages/engine/src/story/bible.ts#L153-L217)
+
 ## Dependency Analysis
 - StoryBible depends on CharacterProfile and PlotThread types.
 - StoryState depends on ChapterSummary type.
 - CanonStore depends on StoryBible for extraction.
 - Language detection utilities are integrated into StoryBible creation workflow.
+- **AI Character Generation**: generateCharacters function depends on LLM client and getDefaultCharacters fallback.
 - Pipeline depends on Writer, Summarizer, Completeness, and optional Canon Validator.
+- **CLI Integration**: init command depends on generateCharacters for automatic character creation.
 - All modules depend on LLMClient for inference.
 
 ```mermaid
@@ -481,14 +567,17 @@ Types --> StoryState["StoryState"]
 Types --> Canon["CanonStore"]
 StoryBible --> Language["Language Detection"]
 StoryBible --> Pipeline["GenerateChapter"]
+StoryBible --> AI["AI Character Generation"]
+AI --> LLM["LLM Client"]
 StoryState --> Pipeline
 Canon --> Pipeline
 Pipeline --> Writer["Writer"]
 Pipeline --> Summarizer["Summarizer"]
 Pipeline --> Completeness["Completeness"]
-Writer --> LLM["LLM Client"]
+Writer --> LLM
 Summarizer --> LLM
 Completeness --> LLM
+CLI["CLI Init Command"] --> AI
 ```
 
 **Diagram sources**
@@ -501,6 +590,7 @@ Completeness --> LLM
 - [summarizer.ts:1-64](file://packages/engine/src/agents/summarizer.ts#L1-L64)
 - [completeness.ts:1-56](file://packages/engine/src/agents/completeness.ts#L1-L56)
 - [client.ts:1-106](file://packages/engine/src/llm/client.ts#L1-L106)
+- [init.ts:1-91](file://apps/cli/src/commands/init.ts#L1-L91)
 
 **Section sources**
 - [index.ts:1-123](file://packages/engine/src/index.ts#L1-L123)
@@ -509,15 +599,18 @@ Completeness --> LLM
 - Immutable updates avoid shared mutable state but create new arrays/objects; acceptable for typical story sizes.
 - Tension calculation is constant-time per chapter.
 - Language detection is O(n) where n is the length of combined title and premise text.
-- LLM calls dominate runtime; tune temperature and maxTokens to balance quality and cost.
+- **AI Character Generation**: LLM calls dominate runtime; tune temperature and maxTokens to balance quality and cost.
+- **Fallback Mechanisms**: getDefaultCharacters provides instant fallback without LLM calls.
 - Canonical extraction and formatting are linear in the number of characters and plot threads.
 
 ## Troubleshooting Guide
 - Incomplete chapters: The pipeline retries writing and continues until completion is detected.
 - Canon violations: Optional validation reports discrepancies; review extracted facts and adjust content accordingly.
 - LLM provider configuration: Ensure provider and API keys are set; otherwise, initialization will fail.
-- Language detection issues: If language detection fails, the system defaults to English ('en').
-- Character generation failures: The system falls back to default character sets based on detected language.
+- **Language detection issues**: If language detection fails, the system defaults to English ('en').
+- **Character generation failures**: The system falls back to default character sets based on detected language.
+- **AI character generation errors**: Automatic fallback to getDefaultCharacters ensures story creation continues.
+- **CLI character generation**: If automatic character generation fails, the CLI will still create a story with default characters.
 
 **Section sources**
 - [generateChapter.ts:32-53](file://packages/engine/src/pipeline/generateChapter.ts#L32-L53)
@@ -525,19 +618,22 @@ Completeness --> LLM
 - [client.ts:46-81](file://packages/engine/src/llm/client.ts#L46-L81)
 - [bible.ts:8-50](file://packages/engine/src/story/bible.ts#L8-L50)
 - [bible.ts:212-216](file://packages/engine/src/story/bible.ts#L212-L216)
+- [bible.ts:222-242](file://packages/engine/src/story/bible.ts#L222-L242)
 
 ## Conclusion
-The Story Bible Management system provides a robust, immutable foundation for narrative construction with enhanced multilingual capabilities. With clear data models, lifecycle-aware plot threads, automatic language detection, and tight integration with the chapter generation pipeline, it enables scalable, internationally-aware story creation guided by metadata, character arcs, and canonical consistency.
+The Story Bible Management system provides a robust, immutable foundation for narrative construction with enhanced multilingual capabilities and AI-powered character generation. With clear data models, lifecycle-aware plot threads, automatic language detection, AI character creation during story initialization, and tight integration with the chapter generation pipeline, it enables scalable, internationally-aware story creation guided by metadata, character arcs, and canonical consistency. The system now offers comprehensive cultural authenticity through language-aware character generation and reliable fallback mechanisms for production environments.
 
 ## Appendices
 
 ### Practical Examples
-- Story creation with language detection: See [simple.test.ts:26-34](file://packages/engine/src/test/simple.test.ts#L26-L34).
+- Story creation with automatic language detection and character generation: See [simple.test.ts:26-34](file://packages/engine/src/test/simple.test.ts#L26-L34).
 - Character addition with language-appropriate names: See [simple.test.ts:36-42](file://packages/engine/src/test/simple.test.ts#L36-L42).
 - Plot thread integration: Add threads after story creation and before generation.
+- **CLI automatic character generation**: See [init.ts:66-71](file://apps/cli/src/commands/init.ts#L66-L71).
 
 **Section sources**
 - [simple.test.ts:24-64](file://packages/engine/src/test/simple.test.ts#L24-L64)
+- [init.ts:66-71](file://apps/cli/src/commands/init.ts#L66-L71)
 
 ### Language Detection Reference
 Supported languages and detection criteria:
@@ -549,7 +645,29 @@ Supported languages and detection criteria:
 - Russian: Cyrillic script (U+0400-U+04FF)
 - Thai: Thai script (U+0E00-U+0E7F)
 - Hindi: Devanagari script (U+0900-U+097F)
+- **Spanish, French, German, Portuguese, Italian**: Additional languages with comprehensive Unicode support
 
 **Section sources**
 - [bible.ts:8-50](file://packages/engine/src/story/bible.ts#L8-L50)
 - [bible.ts:55-72](file://packages/engine/src/story/bible.ts#L55-L72)
+
+### AI Character Generation Configuration
+- **Prompt Engineering**: Cultural context and language-appropriate naming conventions.
+- **Error Handling**: Automatic fallback to getDefaultCharacters with language-specific defaults.
+- **Cultural Authenticity**: Character names and traits adapted to detected language and story setting.
+- **Fallback Defaults**: Comprehensive character sets for Chinese, English, and Japanese languages.
+
+**Section sources**
+- [bible.ts:153-217](file://packages/engine/src/story/bible.ts#L153-L217)
+- [bible.ts:222-242](file://packages/engine/src/story/bible.ts#L222-L242)
+
+### Character Generation Implementation Details
+- **LLM Integration**: Uses LLMClient with task-specific model selection for generation tasks.
+- **JSON Parsing**: Robust JSON extraction with markdown code block handling.
+- **ID Generation**: Unique identifiers for generated characters using timestamp and random suffix.
+- **Error Recovery**: Comprehensive error handling with fallback to default character sets.
+
+**Section sources**
+- [bible.ts:153-217](file://packages/engine/src/story/bible.ts#L153-L217)
+- [client.ts:174-219](file://packages/engine/src/llm/client.ts#L174-L219)
+- [bible.ts:222-242](file://packages/engine/src/story/bible.ts#L222-L242)
