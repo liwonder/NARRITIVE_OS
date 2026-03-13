@@ -50,7 +50,7 @@ program
   .option('-s, --setting <setting>', 'Setting')
   .option('--tone <tone>', 'Tone')
   .option('-p, --premise <premise>', 'Story premise')
-  .option('-c, --chapters <number>', 'Target chapter count', '5')
+  .option('-c, --chapters <number>', 'Target chapter count')
   .action(initCommand);
 
 program

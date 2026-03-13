@@ -8,6 +8,10 @@ import { writeScene } from '../agents/sceneWriter.js';
 import { validateScene } from '../agents/sceneValidator.js';
 import { assembleChapter } from '../scene/sceneAssembler.js';
 import { extractSceneOutcome, mergeSceneOutcomes } from '../scene/sceneOutcomeExtractor.js';
+import { storyDirector, type DirectorOutput } from '../agents/storyDirector.js';
+import { generateTensionGuidance, analyzeTension } from '../agents/tensionController.js';
+import { createStructuredState } from '../story/structuredState.js';
+import { CharacterAgentSystem, type CharacterDecision } from '../world/characterAgent.js';
 import type { GenerationContext, Chapter, ChapterSummary, SceneOutput, SceneOutcome } from '../types/index.js';
 import type { CanonStore } from '../memory/canonStore.js';
 import type { VectorStore } from '../memory/vectorStore.js';
@@ -81,7 +85,28 @@ async function generateChapterSceneLevel(
     memoryRetriever = createMemoryRetriever(vectorStore);
   }
 
-  // Step 1: Plan scenes for this chapter
+  // Step 1: Story Director - Get chapter direction
+  console.log('  Consulting Story Director...');
+  
+  // Create or get structured state
+  let structuredState = createStructuredState(bible.id);
+  // TODO: Load existing structured state from storage
+  
+  // Analyze tension
+  const tensionAnalysis = analyzeTension(state, structuredState);
+  const tensionGuidance = generateTensionGuidance(tensionAnalysis, state);
+  
+  const directorOutput = await storyDirector.direct({
+    bible,
+    state,
+    structuredState,
+    tensionGuidance,
+    previousSummaries: state.chapterSummaries.slice(-3)
+  });
+  console.log(`  Director goal: ${directorOutput.overallGoal}`);
+  console.log(`  Objectives: ${directorOutput.objectives.length}`);
+
+  // Step 2: Plan scenes for this chapter (now with director guidance)
   console.log('  Planning scenes...');
   const previousSummary = state.chapterSummaries[state.chapterSummaries.length - 1]?.summary;
   const scenePlan = await planScenes({
@@ -90,10 +115,84 @@ async function generateChapterSceneLevel(
     chapterNumber,
     previousChapterSummary: previousSummary,
     targetSceneCount
+    // TODO: Pass directorOutput to scene planner once interface is updated
   });
   console.log(`  Planned ${scenePlan.scenes.length} scenes`);
 
-  // Step 2: Generate each scene
+  // Step 2: Character Agents - Decide character actions for each scene
+  console.log('  Character Agents deciding actions...');
+  const characterSystem = new CharacterAgentSystem();
+  const characterDecisions: Map<number, CharacterDecision[]> = new Map();
+  let previousSceneForCharacters: string | undefined = previousSummary;
+  
+  for (const scene of scenePlan.scenes) {
+    const decisions: CharacterDecision[] = [];
+    
+    // Get decisions from each character in the scene
+    for (const characterName of scene.characters) {
+      const character = bible.characters.find(c => c.name === characterName);
+      if (!character) continue;
+      
+      // Create agent from character data
+      const agent = characterSystem.createAgent(
+        {
+          name: character.name,
+          goals: character.goals,
+          location: scene.location,
+          knowledge: [],
+          relationships: {},
+          emotionalState: 'neutral',
+          development: []
+        },
+        character.personality
+      );
+      
+      // Get other characters in scene
+      const otherAgents = scene.characters
+        .filter(name => name !== characterName)
+        .map(name => bible.characters.find(c => c.name === name))
+        .filter(Boolean)
+        .map(c => characterSystem.createAgent(
+          {
+            name: c!.name,
+            goals: c!.goals,
+            location: scene.location,
+            knowledge: [],
+            relationships: {},
+            emotionalState: 'neutral',
+            development: []
+          },
+          c!.personality
+        ));
+      
+      try {
+        const decision = await characterSystem.getDecision({
+          character: agent,
+          otherCharacters: otherAgents,
+          worldEvents: previousSceneForCharacters ? [previousSceneForCharacters] : [],
+          currentChapter: chapterNumber,
+          storyContext: directorOutput.overallGoal
+        });
+        decisions.push(decision);
+        console.log(`    ${characterName}: ${decision.action}`);
+      } catch (e) {
+        // Fallback to simple decision
+        const simpleDecision = characterSystem.getSimpleDecision({
+          character: agent,
+          otherCharacters: otherAgents,
+          worldEvents: previousSceneForCharacters ? [previousSceneForCharacters] : [],
+          currentChapter: chapterNumber,
+          storyContext: directorOutput.overallGoal
+        });
+        decisions.push(simpleDecision);
+        console.log(`    ${characterName}: ${simpleDecision.action} (fallback)`);
+      }
+    }
+    
+    characterDecisions.set(scene.id, decisions);
+  }
+
+  // Step 3: Generate each scene with character decisions
   const sceneOutputs: SceneOutput[] = [];
   const sceneOutcomes: SceneOutcome[] = [];
   let previousSceneSummary: string | undefined;
@@ -110,8 +209,12 @@ async function generateChapterSceneLevel(
       const results = await vectorStore.searchSimilar(scene.purpose, 5);
       relevantMemories = results.map((r: { memory: { content: string } }) => r.memory.content);
     }
+    
+    // Get character decisions for this scene
+    const decisions = characterDecisions.get(scene.id) || [];
+    const characterActions = decisions.map(d => `${d.character}: ${d.action}`).join('\n');
 
-    // Generate the scene
+    // Generate the scene with character guidance
     let sceneOutput = await writeScene({
       scene,
       bible,
@@ -119,7 +222,8 @@ async function generateChapterSceneLevel(
       chapterNumber,
       previousSceneSummary,
       canonFacts,
-      relevantMemories
+      relevantMemories,
+      activeSkills: [`Character Actions:\n${characterActions}`] // Pass character decisions
     });
 
     // Validate the scene
