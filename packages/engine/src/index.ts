@@ -65,6 +65,23 @@ export {
   type WorldState,
 } from './world/worldState.js';
 
+// Phase 14 - World State Engine
+export {
+  WorldStateEngine,
+  createWorldStateEngine,
+  type WorldCharacter,
+  type WorldLocation,
+  type WorldObject,
+  type WorldRelationship,
+  type WorldState as WorldStateEngineState,
+} from './world/worldStateEngine.js';
+export {
+  WorldStateUpdater,
+  worldStateUpdater,
+  type WorldStateUpdate,
+  type WorldStateUpdaterInput,
+} from './agents/worldStateUpdater.js';
+
 // Constraints
 export {
   ConstraintGraph,

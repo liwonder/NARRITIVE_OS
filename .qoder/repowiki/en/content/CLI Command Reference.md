@@ -20,6 +20,7 @@
 - [apps/cli/src/commands/regenerate.ts](file://apps/cli/src/commands/regenerate.ts)
 - [apps/cli/src/commands/hint.ts](file://apps/cli/src/commands/hint.ts)
 - [apps/cli/src/commands/version.ts](file://apps/cli/src/commands/version.ts)
+- [apps/cli/src/commands/use.ts](file://apps/cli/src/commands/use.ts)
 - [apps/cli/src/config/store.ts](file://apps/cli/src/config/store.ts)
 - [packages/engine/src/types/index.ts](file://packages/engine/src/types/index.ts)
 - [packages/engine/src/story/state.ts](file://packages/engine/src/story/state.ts)
@@ -36,12 +37,12 @@
 
 ## Update Summary
 **Changes Made**
-- Enhanced the `init` command section to reflect the new AI-assisted character generation system that replaces manual placeholder creation
-- Updated the initialization process documentation to highlight automated character generation using LLM-based prompts
-- Added comprehensive documentation for the new character generation workflow including fallback mechanisms
-- Enhanced troubleshooting section to cover character generation failures and LLM integration issues
-- Updated the interactive prompts system documentation to include character generation feedback
-- Added practical examples demonstrating AI-assisted story setup with automated character creation
+- Added comprehensive documentation for the new `use` command for active story management
+- Enhanced the hint system documentation with contextual suggestions and improved command structure
+- Updated command registration to include the new `use` command and `resolveStoryId` integration
+- Added documentation for the active story file system and current story tracking mechanism
+- Enhanced the welcome screen and hint system with improved user guidance
+- Updated command relationships to reflect the new active story management workflow
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -56,15 +57,16 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document provides a comprehensive command reference for the Narrative Operating System CLI (nos). It covers command syntax, parameters, flags, usage patterns, and integration points for all nos commands including the newly added 13 commands: bible, clone, delete, export, hint, list, memories, read, regenerate, state, validate, and version. The system features enhanced structured state persistence, interactive hints system, comprehensive story management capabilities with automated AI-assisted initialization, robust error handling for improved reliability, and advanced storytelling capabilities.
+This document provides a comprehensive command reference for the Narrative Operating System CLI (nos). It covers command syntax, parameters, flags, usage patterns, and integration points for all nos commands including the newly added 14 commands: bible, clone, delete, export, hint, list, memories, read, regenerate, state, validate, version, and the new use command for active story management. The system features enhanced structured state persistence, interactive hints system with contextual suggestions, comprehensive story management capabilities with automated AI-assisted initialization, robust error handling for improved reliability, and advanced storytelling capabilities.
 
 ## Project Structure
-The CLI is implemented as a TypeScript application using Commander for command parsing and Inquirer for interactive configuration. Commands delegate to the engine package for story generation and rely on a local filesystem store under the user's home directory with enhanced structured state management and memory systems.
+The CLI is implemented as a TypeScript application using Commander for command parsing and Inquirer for interactive configuration. Commands delegate to the engine package for story generation and rely on a local filesystem store under the user's home directory with enhanced structured state management and memory systems. The new active story management system uses a `.current` file in the configuration directory to track the currently active story for shortcut commands.
 
 ```mermaid
 graph TB
 CLI["CLI Entry<br/>apps/cli/src/index.ts"] --> CMD_CONFIG["Command: config<br/>apps/cli/src/commands/config.ts"]
 CLI --> CMD_INIT["Command: init<br/>apps/cli/src/commands/init.ts"]
+CLI --> CMD_USE["Command: use<br/>apps/cli/src/commands/use.ts"]
 CLI --> CMD_GENERATE["Command: generate<br/>apps/cli/src/commands/generate.ts"]
 CLI --> CMD_STATUS["Command: status<br/>apps/cli/src/commands/status.ts"]
 CLI --> CMD_CONTINUE["Command: continue<br/>apps/cli/src/commands/continue.ts"]
@@ -82,6 +84,7 @@ CLI --> CMD_HINT["Command: hint<br/>apps/cli/src/commands/hint.ts"]
 CLI --> CMD_VERSION["Command: version<br/>apps/cli/src/commands/version.ts"]
 CMD_CONFIG --> STORE["Local Store<br/>apps/cli/src/config/store.ts"]
 CMD_INIT --> STORE
+CMD_USE --> STORE
 CMD_GENERATE --> STORE
 CMD_STATUS --> STORE
 CMD_CONTINUE --> STORE
@@ -111,9 +114,10 @@ CMD_CONFIG --> VECTOR_STORE["Vector Store<br/>packages/engine/src/memory/vectorS
 ```
 
 **Diagram sources**
-- [apps/cli/src/index.ts:1-161](file://apps/cli/src/index.ts#L1-L161)
+- [apps/cli/src/index.ts:1-177](file://apps/cli/src/index.ts#L1-L177)
 - [apps/cli/src/commands/config.ts:1-318](file://apps/cli/src/commands/config.ts#L1-L318)
 - [apps/cli/src/commands/init.ts:1-91](file://apps/cli/src/commands/init.ts#L1-L91)
+- [apps/cli/src/commands/use.ts:1-92](file://apps/cli/src/commands/use.ts#L1-L92)
 - [apps/cli/src/commands/generate.ts:1-81](file://apps/cli/src/commands/generate.ts#L1-L81)
 - [apps/cli/src/commands/status.ts:1-55](file://apps/cli/src/commands/status.ts#L1-L55)
 - [apps/cli/src/commands/continue.ts:1-63](file://apps/cli/src/commands/continue.ts#L1-L63)
@@ -127,7 +131,7 @@ CMD_CONFIG --> VECTOR_STORE["Vector Store<br/>packages/engine/src/memory/vectorS
 - [apps/cli/src/commands/memories.ts:1-66](file://apps/cli/src/commands/memories.ts#L1-L66)
 - [apps/cli/src/commands/validate.ts:1-107](file://apps/cli/src/commands/validate.ts#L1-L107)
 - [apps/cli/src/commands/regenerate.ts:1-68](file://apps/cli/src/commands/regenerate.ts#L1-L68)
-- [apps/cli/src/commands/hint.ts:1-73](file://apps/cli/src/commands/hint.ts#L1-L73)
+- [apps/cli/src/commands/hint.ts:1-96](file://apps/cli/src/commands/hint.ts#L1-L96)
 - [apps/cli/src/commands/version.ts:1-124](file://apps/cli/src/commands/version.ts#L1-L124)
 - [apps/cli/src/config/store.ts:1-195](file://apps/cli/src/config/store.ts#L1-L195)
 - [packages/engine/src/types/index.ts:1-150](file://packages/engine/src/types/index.ts#L1-L150)
@@ -139,20 +143,22 @@ CMD_CONFIG --> VECTOR_STORE["Vector Store<br/>packages/engine/src/memory/vectorS
 - [packages/engine/src/memory/vectorStore.ts:1-258](file://packages/engine/src/memory/vectorStore.ts#L1-L258)
 
 **Section sources**
-- [apps/cli/src/index.ts:1-161](file://apps/cli/src/index.ts#L1-L161)
+- [apps/cli/src/index.ts:1-177](file://apps/cli/src/index.ts#L1-L177)
 - [apps/cli/package.json:1-50](file://apps/cli/package.json#L1-L50)
 - [package.json:1-17](file://package.json#L1-L17)
 
 ## Core Components
-- CLI entrypoint defines the nos binary, version, and registers commands with their options and actions, including the new 13 commands.
+- CLI entrypoint defines the nos binary, version, and registers commands with their options and actions, including the new 14 commands with enhanced active story management.
 - Commands share a common configuration and storage layer for persistent story data with enhanced structured state management and memory systems.
 - Engine types define the data structures used across commands (StoryBible, StoryState, Chapter, GenerationContext, StoryStructuredState).
+- **New**: Active story management system with `.current` file tracking for shortcut command execution without specifying story IDs.
 - **New**: Structured state persistence system automatically initializes and manages character and plot thread states with comprehensive narrative tracking.
-- **New**: Interactive hints system provides contextual guidance and quick tips based on story progress and user context.
+- **New**: Interactive hints system provides contextual guidance and quick tips based on story progress and user context with enhanced command suggestions.
 - **New**: Enhanced init command with AI-assisted character generation via LLM-based prompts, replacing the previous manual placeholder creation approach.
 - **New**: Multi-model configuration system supporting separate reasoning, chat, and embedding models with backward compatibility for single-model setups.
 - **New**: Task-based model selection system with automatic model assignment based on operation type (generation/planning, validation/summarization, extraction, embedding).
 - **New**: Version command provides detailed version information for CLI and engine modules.
+- **New**: Welcome screen with comprehensive command overview and active story integration.
 
 Key runtime behaviors:
 - Interactive configuration via inquirer prompts.
@@ -161,10 +167,12 @@ Key runtime behaviors:
 - Structured state includes character emotional states, locations, relationships, plot thread tensions, and unresolved questions.
 - Memory systems support vector-based narrative recall and semantic search with OpenAI embeddings.
 - Exit codes: non-zero on errors (e.g., missing story ID, invalid chapter numbers).
-- **New**: Contextual help system provides intelligent suggestions based on story state and user actions.
+- **New**: Contextual help system provides intelligent suggestions based on story state and user actions with enhanced command recommendations.
 - **New**: Multi-model LLM client automatically selects appropriate models based on task type with embedding support.
 - **New**: Version command displays CLI and engine module versions with development mode detection.
 - **New**: Character generation fallback system provides default characters when LLM generation fails.
+- **New**: Active story file system (.current) enables shortcut commands without explicit story ID specification.
+- **New**: Welcome screen provides comprehensive command overview and active story guidance.
 
 **Section sources**
 - [apps/cli/src/index.ts:11-53](file://apps/cli/src/index.ts#L11-L53)
@@ -176,16 +184,18 @@ Key runtime behaviors:
 - [apps/cli/src/commands/init.ts:17-90](file://apps/cli/src/commands/init.ts#L17-L90)
 - [packages/engine/src/llm/client.ts:39-47](file://packages/engine/src/llm/client.ts#L39-L47)
 - [packages/engine/src/memory/vectorStore.ts:1-258](file://packages/engine/src/memory/vectorStore.ts#L1-L258)
-- [apps/cli/src/commands/version.ts:64-123](file://apps/cli/src/commands/version.ts#L64-123)
+- [apps/cli/src/commands/version.ts:64-123](file://apps/cli/src/commands/version.ts#L64-L123)
+- [apps/cli/src/commands/use.ts:1-92](file://apps/cli/src/commands/use.ts#L1-L92)
 
 ## Architecture Overview
-The CLI orchestrates story lifecycle operations backed by the engine with enhanced structured state management and comprehensive story management capabilities. Configuration is applied at startup and injected into environment variables for downstream LLM clients, while structured state provides detailed narrative tracking and memory systems enable sophisticated narrative recall with embedding support.
+The CLI orchestrates story lifecycle operations backed by the engine with enhanced structured state management and comprehensive story management capabilities. Configuration is applied at startup and injected into environment variables for downstream LLM clients, while structured state provides detailed narrative tracking and memory systems enable sophisticated narrative recall with embedding support. The new active story management system integrates seamlessly with all commands through the `resolveStoryId` function.
 
 ```mermaid
 sequenceDiagram
 participant User as "User"
 participant CLI as "nos CLI"
-participant Init as "init.ts"
+participant Use as "use.ts"
+participant Hint as "hint.ts"
 participant Config as "config.ts"
 participant Version as "version.ts"
 participant Store as "store.ts"
@@ -201,29 +211,23 @@ Config->>Config : "loadConfig()/select()/password()"
 Config->>Store : "saveConfig()"
 Store-->>Config : "write ~/.narrative-os/config.json"
 Config-->>User : "Saved provider/model/embedding"
-User->>CLI : "nos init [options]"
-CLI->>Init : "initCommand()"
-Init->>Init : "Interactive prompts for title, genre, theme, setting, tone, premise, chapters"
-Init->>Engine : "generateCharacters() via LLM"
-Engine->>LLMClient : "complete(prompt, { task : 'generation' })"
-LLMClient->>LLMClient : "select reasoning model for character generation"
-LLMClient-->>Engine : "Generated character JSON"
-Engine-->>Init : "Array of CharacterProfile objects"
-Init->>Engine : "createStoryBible()"
-Engine-->>Init : "StoryBible with AI-generated characters"
-Init->>Engine : "createStoryState()"
-Engine-->>Init : "StoryState"
-Init->>Store : "saveStory(bible,state,chapters,structuredState)"
-Store->>Store : "initializeStructuredState()"
-Store-->>Init : "persist stories/<id> with structured-state.json"
-Init-->>User : "Story created with AI-generated characters"
-User->>CLI : "nos hint [story-id]"
-CLI->>CLI : "showHint() with context"
-CLI-->>User : "Contextual suggestions"
-User->>CLI : "nos generate <story-id>"
+User->>CLI : "nos use <story-id>"
+CLI->>Use : "useCommand(storyId)"
+Use->>Use : "setCurrentStoryId(storyId)"
+Use->>Store : "validate story exists"
+Store-->>Use : "story validation result"
+Use-->>User : "Active story set confirmation"
+User->>CLI : "nos generate"
+CLI->>Use : "resolveStoryId(undefined)"
+Use-->>CLI : "returns active story ID"
 CLI->>LLMClient : "complete(prompt, { task : 'generation' })"
 LLMClient->>LLMClient : "select reasoning model for generation"
 LLMClient-->>User : "Generated chapter"
+User->>CLI : "nos hint [story-id]"
+CLI->>Hint : "showHint({ storyId : storyId || getCurrentStoryId() })"
+Hint->>Use : "getCurrentStoryId()"
+Use-->>Hint : "active story ID"
+Hint-->>User : "Contextual suggestions with active story context"
 User->>VectorStore : "VectorStore operations"
 VectorStore->>VectorStore : "Generate embeddings using embedding model"
 VectorStore-->>User : "Memory search results"
@@ -243,6 +247,7 @@ VectorStore-->>User : "Memory search results"
 - [packages/engine/src/llm/client.ts:39-47](file://packages/engine/src/llm/client.ts#L39-L47)
 - [packages/engine/src/llm/client.ts:113-125](file://packages/engine/src/llm/client.ts#L113-L125)
 - [packages/engine/src/memory/vectorStore.ts:125-177](file://packages/engine/src/memory/vectorStore.ts#L125-L177)
+- [apps/cli/src/commands/use.ts:45-72](file://apps/cli/src/commands/use.ts#L45-L72)
 
 ## Detailed Component Analysis
 
@@ -286,7 +291,7 @@ Advanced usage
 - Monitor for updates and module availability
 
 **Section sources**
-- [apps/cli/src/index.ts:154-158](file://apps/cli/src/index.ts#L154-L158)
+- [apps/cli/src/index.ts:171-175](file://apps/cli/src/index.ts#L171-L175)
 - [apps/cli/src/commands/version.ts:64-123](file://apps/cli/src/commands/version.ts#L64-L123)
 
 ### Command: nos config
@@ -337,13 +342,51 @@ Advanced usage
 **Updated** Enhanced with multi-model configuration support, expanded provider integration, and embedding setup
 
 **Section sources**
-- [apps/cli/src/index.ts:34-40](file://apps/cli/src/index.ts#L34-L40)
+- [apps/cli/src/index.ts:35-41](file://apps/cli/src/index.ts#L35-L41)
 - [apps/cli/src/commands/config.ts:57-277](file://apps/cli/src/commands/config.ts#L57-L277)
 - [apps/cli/src/commands/config.ts:55-90](file://apps/cli/src/commands/config.ts#L55-L90)
 - [apps/cli/src/commands/config.ts:100-181](file://apps/cli/src/commands/config.ts#L100-L181)
 - [apps/cli/package.json:12-16](file://apps/cli/package.json#L12-L16)
 - [packages/engine/src/llm/client.ts:58-78](file://packages/engine/src/llm/client.ts#L58-L78)
 - [packages/engine/src/memory/vectorStore.ts:125-177](file://packages/engine/src/memory/vectorStore.ts#L125-L177)
+
+### Command: nos use [story-id]
+Purpose
+- Set or show the active story for shortcut commands. When called with a story ID, sets it as the current active story. When called without arguments, shows the currently active story. Uses a `.current` file in the configuration directory to track the active story.
+
+Syntax
+- nos use [story-id]
+- nos use
+
+Behavior
+- **With story ID**: Validates the story exists and sets it as the active story by writing to ~/.narrative-os/.current
+- **Without story ID**: Reads the current active story from ~/.narrative-os/.current and displays it
+- **Story validation**: Verifies the story exists by checking for bible.json in the story directory
+- **Shortcut commands**: Enables running commands like `nos generate`, `nos status`, `nos read` without specifying story ID
+- **Clear current**: Provides functionality to clear the current story setting
+
+Configuration file location
+- ~/.narrative-os/.current (hidden file)
+
+Environment variables set
+- None
+
+Exit codes
+- 0 on success; non-zero if story not found or validation fails.
+
+Common usage
+- Set active story: `nos use abc123def`
+- Check active story: `nos use`
+- Clear active story: `nos use` (without ID)
+
+Advanced usage
+- Combine with other commands for streamlined workflow
+- Use in automation scripts to set context
+- Integrate with shell aliases for common story workflows
+
+**Section sources**
+- [apps/cli/src/index.ts:63-67](file://apps/cli/src/index.ts#L63-L67)
+- [apps/cli/src/commands/use.ts:45-92](file://apps/cli/src/commands/use.ts#L45-L92)
 
 ### Command: nos init
 Purpose
@@ -402,20 +445,22 @@ Interactive Usage Examples
 **Updated** Added comprehensive AI-assisted character generation system with LLM integration and fallback mechanisms
 
 **Section sources**
-- [apps/cli/src/index.ts:42-53](file://apps/cli/src/index.ts#L42-L53)
+- [apps/cli/src/index.ts:44-54](file://apps/cli/src/index.ts#L44-L54)
 - [apps/cli/src/commands/init.ts:4-91](file://apps/cli/src/commands/init.ts#L4-L91)
 - [packages/engine/src/story/bible.ts:153-217](file://packages/engine/src/story/bible.ts#L153-L217)
 - [packages/engine/src/story/state.ts:3-12](file://packages/engine/src/story/state.ts#L3-L12)
 - [apps/cli/src/config/store.ts:139-151](file://apps/cli/src/config/store.ts#L139-L151)
 
-### Command: nos generate <story-id>
+### Command: nos generate [story-id]
 Purpose
-- Generate the next chapter for a given story ID with enhanced structured state tracking. Validates completion state and handles errors gracefully.
+- Generate the next chapter for a given story ID with enhanced structured state tracking. Validates completion state and handles errors gracefully. **Enhanced**: Now supports active story management through the resolveStoryId function.
 
 Syntax
-- nos generate <story-id>
+- nos generate [story-id]
+- nos generate (with active story set)
 
 Behavior
+- **Active story support**: Uses resolveStoryId() to automatically use the active story if no ID is provided
 - Loads story data from ~/.narrative-os/stories/<id>.
 - Checks if the story is complete; if so, prints a completion message.
 - **Enhanced**: Automatically initializes structured state if it doesn't exist.
@@ -431,12 +476,13 @@ Exit codes
 
 Example
 - nos generate abc123def
+- nos generate (when active story is set)
 
 Automation tip
 - Use a shell loop to iterate nos generate until completion.
 
 **Section sources**
-- [apps/cli/src/index.ts:79-84](file://apps/cli/src/index.ts#L79-L84)
+- [apps/cli/src/index.ts:91-96](file://apps/cli/src/index.ts#L91-L96)
 - [apps/cli/src/commands/generate.ts:4-81](file://apps/cli/src/commands/generate.ts#L4-L81)
 - [apps/cli/src/config/store.ts:28-49](file://apps/cli/src/config/store.ts#L28-L49)
 - [packages/engine/src/types/index.ts:60-65](file://packages/engine/src/types/index.ts#L60-L65)
@@ -445,12 +491,14 @@ Automation tip
 
 ### Command: nos status [story-id]
 Purpose
-- Show detailed status for a single story or list all stories when no ID is provided. **Enhanced**: Now displays structured state information.
+- Show detailed status for a single story or list all stories when no ID is provided. **Enhanced**: Now supports active story management and displays structured state information. **Enhanced**: Uses resolveStoryId() for automatic active story resolution.
 
 Syntax
 - nos status [story-id]
+- nos status (with active story set)
 
 Behavior
+- **Active story support**: Uses resolveStoryId() to automatically use the active story if no ID is provided
 - Without story-id: lists all stories with progress percentage.
 - With story-id: prints title, ID, theme, genre, setting, progress, current tension, recent chapter summaries, and chapter titles/word counts.
 - **New**: Can display structured state information when available.
@@ -461,20 +509,23 @@ Exit codes
 Example
 - nos status
 - nos status abc123def
+- nos status (when active story is set)
 
 **Section sources**
-- [apps/cli/src/index.ts:61-64](file://apps/cli/src/index.ts#L61-L64)
+- [apps/cli/src/index.ts:70-74](file://apps/cli/src/index.ts#L70-L74)
 - [apps/cli/src/commands/status.ts:3-54](file://apps/cli/src/commands/status.ts#L3-L54)
 - [apps/cli/src/config/store.ts:51-75](file://apps/cli/src/config/store.ts#L51-L75)
 
-### Command: nos continue <story-id>
+### Command: nos continue [story-id]
 Purpose
-- Generate all remaining chapters for a story in a loop until completion with enhanced structured state management.
+- Generate all remaining chapters for a story in a loop until completion with enhanced structured state management. **Enhanced**: Now supports active story management through the resolveStoryId function.
 
 Syntax
-- nos continue <story-id>
+- nos continue [story-id]
+- nos continue (with active story set)
 
 Behavior
+- **Active story support**: Uses resolveStoryId() to automatically use the active story if no ID is provided
 - Loads story data and verifies it is not complete.
 - **Enhanced**: Automatically initializes structured state if it doesn't exist.
 - Iteratively generates chapters, integrating structured state updates through the StateUpdater agent.
@@ -488,12 +539,13 @@ Exit codes
 
 Example
 - nos continue abc123def
+- nos continue (when active story is set)
 
 Batch operations
 - Combine with shell scripting to process multiple stories or retry on failure.
 
 **Section sources**
-- [apps/cli/src/index.ts:86-92](file://apps/cli/src/index.ts#L86-L92)
+- [apps/cli/src/index.ts:99-104](file://apps/cli/src/index.ts#L99-L104)
 - [apps/cli/src/commands/continue.ts:4-63](file://apps/cli/src/commands/continue.ts#L4-L63)
 - [apps/cli/src/config/store.ts:28-49](file://apps/cli/src/config/store.ts#L28-L49)
 - [packages/engine/src/agents/stateUpdater.ts:85-193](file://packages/engine/src/agents/stateUpdater.ts#L85-L193)
@@ -521,7 +573,7 @@ Example
 - nos list
 
 **Section sources**
-- [apps/cli/src/index.ts:55-59](file://apps/cli/src/index.ts#L55-L59)
+- [apps/cli/src/index.ts:57-61](file://apps/cli/src/index.ts#L57-L61)
 - [apps/cli/src/commands/list.ts:1-23](file://apps/cli/src/commands/list.ts#L1-L23)
 
 ### Command: nos delete <story-id> [--force]
@@ -548,7 +600,7 @@ Example
 - nos delete abc123def --force
 
 **Section sources**
-- [apps/cli/src/index.ts:66-72](file://apps/cli/src/index.ts#L66-L72)
+- [apps/cli/src/index.ts:77-82](file://apps/cli/src/index.ts#L77-L82)
 - [apps/cli/src/commands/delete.ts:1-36](file://apps/cli/src/commands/delete.ts#L1-L36)
 
 ### Command: nos clone <story-id> <new-title>
@@ -572,21 +624,23 @@ Example
 - nos clone abc123def "New Adventure"
 
 **Section sources**
-- [apps/cli/src/index.ts:74-77](file://apps/cli/src/index.ts#L74-L77)
+- [apps/cli/src/index.ts:85-87](file://apps/cli/src/index.ts#L85-L87)
 - [apps/cli/src/commands/clone.ts:1-53](file://apps/cli/src/commands/clone.ts#L1-L53)
 
-### Command: nos export <story-id> [--format <format>] [--output <file>]
+### Command: nos export [story-id] [--format <format>] [--output <file>]
 Purpose
-- Export a story to external file formats with configurable output options.
+- Export a story to external file formats with configurable output options. **Enhanced**: Now supports active story management through the resolveStoryId function.
 
 Syntax
-- nos export <story-id> [--format <format>] [--output <file>]
+- nos export [story-id] [--format <format>] [--output <file>]
+- nos export (with active story set)
 
 Options
 - --format/-f: Output format (markdown or txt), default: markdown
 - --output/-o: Custom output filename
 
 Behavior
+- **Active story support**: Uses resolveStoryId() to automatically use the active story if no ID is provided
 - Loads the target story and validates its existence.
 - Supports markdown (default) and plain text formats.
 - Generates formatted content with story metadata and all chapters.
@@ -598,19 +652,22 @@ Exit codes
 Example
 - nos export abc123def
 - nos export abc123def --format txt --output my_story.txt
+- nos export (when active story is set)
 
 **Section sources**
-- [apps/cli/src/index.ts:111-118](file://apps/cli/src/index.ts#L111-L118)
+- [apps/cli/src/index.ts:124-130](file://apps/cli/src/index.ts#L124-L130)
 - [apps/cli/src/commands/export.ts:1-114](file://apps/cli/src/commands/export.ts#L1-L114)
 
-### Command: nos read <story-id> [chapter-number]
+### Command: nos read [story-id] [chapter-number]
 Purpose
-- Read story content either as a chapter listing or specific chapter content.
+- Read story content either as a chapter listing or specific chapter content. **Enhanced**: Now supports active story management through the resolveStoryId function.
 
 Syntax
-- nos read <story-id> [chapter-number]
+- nos read [story-id] [chapter-number]
+- nos read (with active story set)
 
 Behavior
+- **Active story support**: Uses resolveStoryId() to automatically use the active story if no ID is provided
 - Without chapter-number: lists all chapters with titles and word counts.
 - With chapter-number: displays the specified chapter content with formatting.
 - Handles missing chapters with helpful error messages and available chapter ranges.
@@ -621,19 +678,22 @@ Exit codes
 Example
 - nos read abc123def
 - nos read abc123def 5
+- nos read (when active story is set)
 
 **Section sources**
-- [apps/cli/src/index.ts:104-110](file://apps/cli/src/index.ts#L104-L110)
+- [apps/cli/src/index.ts:117-121](file://apps/cli/src/index.ts#L117-L121)
 - [apps/cli/src/commands/read.ts:1-48](file://apps/cli/src/commands/read.ts#L1-L48)
 
-### Command: nos bible <story-id>
+### Command: nos bible [story-id]
 Purpose
-- Display comprehensive story bible containing all narrative elements and character information.
+- Display comprehensive story bible containing all narrative elements and character information. **Enhanced**: Now supports active story management through the resolveStoryId function.
 
 Syntax
-- nos bible <story-id>
+- nos bible [story-id]
+- nos bible (with active story set)
 
 Behavior
+- **Active story support**: Uses resolveStoryId() to automatically use the active story if no ID is provided
 - Loads the target story and validates its existence.
 - Displays story metadata (title, theme, genre, setting, tone, premise).
 - Lists all characters with roles, personalities, goals, and backgrounds.
@@ -645,19 +705,22 @@ Exit codes
 
 Example
 - nos bible abc123def
+- nos bible (when active story is set)
 
 **Section sources**
-- [apps/cli/src/index.ts:121-124](file://apps/cli/src/index.ts#L121-L124)
+- [apps/cli/src/index.ts:134-138](file://apps/cli/src/index.ts#L134-L138)
 - [apps/cli/src/commands/bible.ts:1-54](file://apps/cli/src/commands/bible.ts#L1-L54)
 
-### Command: nos state <story-id>
+### Command: nos state [story-id]
 Purpose
-- Display detailed structured state information for narrative tracking and analysis.
+- Display detailed structured state information for narrative tracking and analysis. **Enhanced**: Now supports active story management through the resolveStoryId function.
 
 Syntax
-- nos state <story-id>
+- nos state [story-id]
+- nos state (with active story set)
 
 Behavior
+- **Active story support**: Uses resolveStoryId() to automatically use the active story if no ID is provided
 - Loads both story data and structured state for the target story.
 - Shows progress metrics (current chapter, total chapters, tension levels).
 - Displays comprehensive character states including emotional states, locations, goals, knowledge, and relationships.
@@ -670,19 +733,22 @@ Exit codes
 
 Example
 - nos state abc123def
+- nos state (when active story is set)
 
 **Section sources**
-- [apps/cli/src/index.ts:126-129](file://apps/cli/src/index.ts#L126-L129)
+- [apps/cli/src/index.ts:141-145](file://apps/cli/src/index.ts#L141-L145)
 - [apps/cli/src/commands/state.ts:1-83](file://apps/cli/src/commands/state.ts#L1-L83)
 
-### Command: nos memories <story-id> [query]
+### Command: nos memories [story-id] [query]
 Purpose
-- Search or browse narrative memories stored in the vector memory system with embedding support.
+- Search or browse narrative memories stored in the vector memory system with embedding support. **Enhanced**: Now supports active story management through the resolveStoryId function.
 
 Syntax
-- nos memories <story-id> [query]
+- nos memories [story-id] [query]
+- nos memories (with active story set)
 
 Behavior
+- **Active story support**: Uses resolveStoryId() to automatically use the active story if no ID is provided
 - Loads vector store data for the target story.
 - Without query: lists all memories grouped by category with sample excerpts.
 - With query: searches for semantically similar memories and displays relevance scores.
@@ -696,20 +762,23 @@ Exit codes
 Example
 - nos memories abc123def
 - nos memories abc123def "character meeting"
+- nos memories (when active story is set)
 
 **Section sources**
-- [apps/cli/src/index.ts:131-137](file://apps/cli/src/index.ts#L131-L137)
+- [apps/cli/src/index.ts:148-153](file://apps/cli/src/index.ts#L148-L153)
 - [apps/cli/src/commands/memories.ts:1-66](file://apps/cli/src/commands/memories.ts#L1-L66)
 - [packages/engine/src/memory/vectorStore.ts:125-177](file://packages/engine/src/memory/vectorStore.ts#L125-L177)
 
-### Command: nos validate <story-id>
+### Command: nos validate [story-id]
 Purpose
-- Perform comprehensive validation of story consistency and quality standards.
+- Perform comprehensive validation of story consistency and quality standards. **Enhanced**: Now supports active story management through the resolveStoryId function.
 
 Syntax
-- nos validate <story-id>
+- nos validate [story-id]
+- nos validate (with active story set)
 
 Behavior
+- **Active story support**: Uses resolveStoryId() to automatically use the active story if no ID is provided
 - Loads story data including constraint graphs, vector stores, and structured state.
 - Performs chapter-by-chapter validation against narrative constraints and canon.
 - Checks for common issues like missing summaries, unusually short chapters, and orphaned facts.
@@ -721,19 +790,22 @@ Exit codes
 
 Example
 - nos validate abc123def
+- nos validate (when active story is set)
 
 **Section sources**
-- [apps/cli/src/index.ts:139-145](file://apps/cli/src/index.ts#L139-L145)
+- [apps/cli/src/index.ts:156-161](file://apps/cli/src/index.ts#L156-L161)
 - [apps/cli/src/commands/validate.ts:1-107](file://apps/cli/src/commands/validate.ts#L1-L107)
 
 ### Command: nos regenerate <story-id> <chapter-number>
 Purpose
-- Regenerate a specific chapter while preserving story continuity and narrative consistency.
+- Regenerate a specific chapter while preserving story continuity and narrative consistency. **Enhanced**: Now supports active story management through the resolveStoryId function.
 
 Syntax
 - nos regenerate <story-id> <chapter-number>
+- nos regenerate (with active story set)
 
 Behavior
+- **Active story support**: Uses resolveStoryId() to automatically use the active story if no ID is provided
 - Loads the target story and validates chapter existence.
 - Initializes or loads vector store for memory consistency.
 - Creates generation context based on state before the target chapter.
@@ -748,20 +820,23 @@ Exit codes
 
 Example
 - nos regenerate abc123def 3
+- nos regenerate (when active story is set)
 
 **Section sources**
-- [apps/cli/src/index.ts:94-101](file://apps/cli/src/index.ts#L94-L101)
+- [apps/cli/src/index.ts:107-113](file://apps/cli/src/index.ts#L107-L113)
 - [apps/cli/src/commands/regenerate.ts:1-68](file://apps/cli/src/commands/regenerate.ts#L1-L68)
 - [packages/engine/src/llm/client.ts:113-125](file://packages/engine/src/llm/client.ts#L113-L125)
 
 ### Command: nos hint [story-id]
 Purpose
-- Provide contextual hints and suggestions based on story progress and user context.
+- Provide contextual hints and suggestions based on story progress and user context. **Enhanced**: Now includes active story integration and improved command suggestions.
 
 Syntax
 - nos hint [story-id]
+- nos hint (with active story set)
 
 Behavior
+- **Active story support**: Uses getCurrentStoryId() to automatically use the active story if no ID is provided
 - Lists all stories to determine context when no story ID provided.
 - Finds active story (in-progress) or uses the most recent story.
 - Provides tailored suggestions based on story state:
@@ -769,6 +844,7 @@ Behavior
   - Completed stories: suggestions for export, reading, or cloning
   - Active stories: recommendations for continuing, checking status, or auto-completing
 - Displays helpful command references and quick-start tips.
+- **Enhanced**: Improved command suggestions with active story context and shortcut command guidance.
 
 Exit codes
 - 0 on success; 1 if no stories exist.
@@ -776,18 +852,20 @@ Exit codes
 Example
 - nos hint
 - nos hint abc123def
+- nos hint (when active story is set)
 
 **Section sources**
-- [apps/cli/src/index.ts:147-152](file://apps/cli/src/index.ts#L147-L152)
-- [apps/cli/src/commands/hint.ts:1-73](file://apps/cli/src/commands/hint.ts#L1-L73)
+- [apps/cli/src/index.ts:164-168](file://apps/cli/src/index.ts#L164-L168)
+- [apps/cli/src/commands/hint.ts:1-96](file://apps/cli/src/commands/hint.ts#L1-L96)
 
 ## Dependency Analysis
-The CLI depends on the engine package for story types, generation logic, structured state management, and memory systems. It persists data locally and reads/writes JSON files including the new structured-state.json and vector-store.json. Configuration is applied at startup and influences environment variables consumed by the engine.
+The CLI depends on the engine package for story types, generation logic, structured state management, and memory systems. It persists data locally and reads/writes JSON files including the new structured-state.json and vector-store.json. Configuration is applied at startup and influences environment variables consumed by the engine. The new active story management system integrates seamlessly with all commands through the resolveStoryId function.
 
 ```mermaid
 graph LR
 CLI_INDEX["apps/cli/src/index.ts"] --> CMD_CONFIG["commands/config.ts"]
 CLI_INDEX --> CMD_INIT["commands/init.ts"]
+CLI_INDEX --> CMD_USE["commands/use.ts"]
 CLI_INDEX --> CMD_GENERATE["commands/generate.ts"]
 CLI_INDEX --> CMD_STATUS["commands/status.ts"]
 CLI_INDEX --> CMD_CONTINUE["commands/continue.ts"]
@@ -804,6 +882,7 @@ CLI_INDEX --> CMD_REGENERATE["commands/regenerate.ts"]
 CLI_INDEX --> CMD_HINT["commands/hint.ts"]
 CLI_INDEX --> CMD_VERSION["commands/version.ts"]
 CMD_INIT --> STORE["config/store.ts"]
+CMD_USE --> STORE
 CMD_GENERATE --> STORE
 CMD_STATUS --> STORE
 CMD_CONTINUE --> STORE
@@ -834,9 +913,10 @@ STORE --> GENERATE_PIPELINE["engine/pipeline/generateChapter.ts"]
 ```
 
 **Diagram sources**
-- [apps/cli/src/index.ts:1-161](file://apps/cli/src/index.ts#L1-L161)
+- [apps/cli/src/index.ts:1-177](file://apps/cli/src/index.ts#L1-L177)
 - [apps/cli/src/commands/config.ts:1-318](file://apps/cli/src/commands/config.ts#L1-L318)
 - [apps/cli/src/commands/init.ts:1-91](file://apps/cli/src/commands/init.ts#L1-L91)
+- [apps/cli/src/commands/use.ts:1-92](file://apps/cli/src/commands/use.ts#L1-L92)
 - [apps/cli/src/commands/generate.ts:1-81](file://apps/cli/src/commands/generate.ts#L1-L81)
 - [apps/cli/src/commands/status.ts:1-55](file://apps/cli/src/commands/status.ts#L1-L55)
 - [apps/cli/src/commands/continue.ts:1-63](file://apps/cli/src/commands/continue.ts#L1-L63)
@@ -850,7 +930,7 @@ STORE --> GENERATE_PIPELINE["engine/pipeline/generateChapter.ts"]
 - [apps/cli/src/commands/memories.ts:1-66](file://apps/cli/src/commands/memories.ts#L1-L66)
 - [apps/cli/src/commands/validate.ts:1-107](file://apps/cli/src/commands/validate.ts#L1-L107)
 - [apps/cli/src/commands/regenerate.ts:1-68](file://apps/cli/src/commands/regenerate.ts#L1-L68)
-- [apps/cli/src/commands/hint.ts:1-73](file://apps/cli/src/commands/hint.ts#L1-L73)
+- [apps/cli/src/commands/hint.ts:1-96](file://apps/cli/src/commands/hint.ts#L1-L96)
 - [apps/cli/src/commands/version.ts:1-124](file://apps/cli/src/commands/version.ts#L1-L124)
 - [apps/cli/src/config/store.ts:1-195](file://apps/cli/src/config/store.ts#L1-L195)
 - [packages/engine/src/types/index.ts:1-150](file://packages/engine/src/types/index.ts#L1-L150)
@@ -863,7 +943,7 @@ STORE --> GENERATE_PIPELINE["engine/pipeline/generateChapter.ts"]
 - [packages/engine/src/memory/vectorStore.ts:1-258](file://packages/engine/src/memory/vectorStore.ts#L1-L258)
 
 **Section sources**
-- [apps/cli/src/index.ts:1-161](file://apps/cli/src/index.ts#L1-L161)
+- [apps/cli/src/index.ts:1-177](file://apps/cli/src/index.ts#L1-L177)
 - [apps/cli/src/commands/config.ts:1-318](file://apps/cli/src/commands/config.ts#L1-L318)
 - [apps/cli/src/config/store.ts:1-195](file://apps/cli/src/config/store.ts#L1-L195)
 - [packages/engine/src/types/index.ts:1-150](file://packages/engine/src/types/index.ts#L1-L150)
@@ -880,6 +960,9 @@ STORE --> GENERATE_PIPELINE["engine/pipeline/generateChapter.ts"]
 - **New**: Embedding operations use dedicated embedding models for vector memory operations.
 - **New**: Provider-specific optimizations (DeepSeek reasoning models, OpenAI embeddings, Alibaba Cloud Qwen) improve performance for specialized tasks.
 - **New**: Character generation fallback system provides immediate character data when LLM generation fails.
+- **New**: Active story management system adds minimal overhead through simple file I/O operations.
+- **New**: resolveStoryId function provides efficient story ID resolution with minimal computational cost.
+- **New**: getCurrentStoryId function uses cached file system operations for fast active story detection.
 - Target word count is fixed for generation; adjust story length via --chapters during init to control total work.
 - Network latency dominates LLM calls; consider rate limits and provider quotas.
 - For large-scale automation, cache configuration and reuse environment variables to avoid repeated file reads.
@@ -920,6 +1003,12 @@ Common issues and resolutions
 - **New**: Character generation failures
   - Cause: LLM API errors, network issues, or invalid context during character generation.
   - Resolution: Verify API credentials; retry character generation; check that story context (title, premise, genre, setting) is provided; fallback default characters will be used if LLM generation fails.
+- **New**: Active story management issues
+  - Cause: Corrupted .current file or invalid story ID in .current file.
+  - Resolution: Run `nos use` without arguments to check current story; run `nos use <valid-story-id>` to set a new active story; manually delete ~/.narrative-os/.current to clear current story.
+- **New**: Shortcut command failures
+  - Cause: No active story set or active story no longer exists.
+  - Resolution: Run `nos use <story-id>` to set active story; verify story still exists in `nos list`; use explicit story ID with commands.
 - Generation failures
   - Cause: LLM API errors, network issues, or invalid context.
   - Resolution: Verify API credentials; retry; inspect recent summaries via nos status; reduce concurrency.
@@ -962,14 +1051,15 @@ Exit codes summary
 - [apps/cli/src/commands/regenerate.ts:17-21](file://apps/cli/src/commands/regenerate.ts#L17-L21)
 - [apps/cli/src/commands/export.ts:7-10](file://apps/cli/src/commands/export.ts#L7-L10)
 - [apps/cli/src/commands/version.ts:64-123](file://apps/cli/src/commands/version.ts#L64-L123)
+- [apps/cli/src/commands/use.ts:60-64](file://apps/cli/src/commands/use.ts#L60-L64)
 
 ## Conclusion
-The nos CLI provides a comprehensive and powerful workflow for creating, generating, managing, and validating stories powered by the Narrative Operating System engine. With the addition of 13 new commands, enhanced structured state persistence, interactive hints system, sophisticated memory management, the new AI-assisted initialization process with automated character generation via LLM-based prompts, the revolutionary multi-model configuration system with separate reasoning, chat, and embedding models, and the new version command for detailed version information, it now offers advanced narrative tracking capabilities, comprehensive story management, intelligent assistance, multi-model performance optimization, embedding support for vector memory operations, an intuitive user experience with AI-powered character creation, and detailed version management while maintaining both beginner-friendly workflows and advanced automation scenarios.
+The nos CLI provides a comprehensive and powerful workflow for creating, generating, managing, and validating stories powered by the Narrative Operating System engine. With the addition of 14 new commands, enhanced structured state persistence, interactive hints system with contextual suggestions, sophisticated memory management, the new AI-assisted initialization process with automated character generation via LLM-based prompts, the revolutionary multi-model configuration system with separate reasoning, chat, and embedding models, the new active story management system with shortcut command support, and the new version command for detailed version information, it now offers advanced narrative tracking capabilities, comprehensive story management, intelligent assistance, multi-model performance optimization, embedding support for vector memory operations, an intuitive user experience with AI-powered character creation, detailed version management, seamless active story integration, and detailed version management while maintaining both beginner-friendly workflows and advanced automation scenarios.
 
 ## Appendices
 
 ### Data Model Overview
-The CLI operates on core engine types that define story structure and generation context, now enhanced with structured state management, memory systems, multi-model configuration, and AI-assisted character generation.
+The CLI operates on core engine types that define story structure and generation context, now enhanced with structured state management, memory systems, multi-model configuration, AI-assisted character generation, and active story management.
 
 ```mermaid
 classDiagram
@@ -1109,6 +1199,12 @@ class VectorStore {
 +serialize()
 +load(data)
 }
+class ActiveStoryManager {
++string getCurrentStoryId()
++void setCurrentStoryId(storyId)
++void clearCurrentStory()
++string resolveStoryId(providedId)
+}
 StoryBible "1" o-- "many" CharacterProfile
 StoryBible "1" o-- "many" PlotThread
 StoryState "1" o-- "many" ChapterSummary
@@ -1121,6 +1217,7 @@ ConstraintGraph --> StoryBible
 LLMClient --> ModelConfig
 MultiModelConfig --> ModelConfig
 VectorStore --> VectorMemory
+ActiveStoryManager --> StoryBible
 ```
 
 **Diagram sources**
@@ -1130,6 +1227,7 @@ VectorStore --> VectorMemory
 - [packages/engine/src/constraints/constraintGraph.ts:1-150](file://packages/engine/src/constraints/constraintGraph.ts#L1-L150)
 - [packages/engine/src/types/index.ts:92-113](file://packages/engine/src/types/index.ts#L92-L113)
 - [packages/engine/src/llm/client.ts:49-249](file://packages/engine/src/llm/client.ts#L49-L249)
+- [apps/cli/src/commands/use.ts:1-92](file://apps/cli/src/commands/use.ts#L1-L92)
 
 ### Storage Layout
 Stories are persisted under ~/.narrative-os/stories/<id> with the following files:
@@ -1141,10 +1239,12 @@ Stories are persisted under ~/.narrative-os/stories/<id> with the following file
 - **New**: constraint-graph.json: ConstraintGraph data (for validation)
 - canon.json: CanonStore (optional, extracted if missing)
 - **New**: command-history.json: Command execution history for hints system
+- **New**: .current: Active story ID for shortcut command support
 
 **Section sources**
 - [apps/cli/src/config/store.ts:15-49](file://apps/cli/src/config/store.ts#L15-L49)
 - [apps/cli/src/config/store.ts:117-195](file://apps/cli/src/config/store.ts#L117-L195)
+- [apps/cli/src/commands/use.ts:5-6](file://apps/cli/src/commands/use.ts#L5-L6)
 
 ### Practical Examples and Workflows
 
@@ -1154,13 +1254,14 @@ Beginner workflows
 - **New**: Check versions: nos version
 - **New**: AI-assisted story creation: nos init (prompts for all fields, generates AI characters)
 - **New**: Parameter-driven story creation: nos init --title "My Story" --genre "Fantasy" --chapters 8
-- Generate chapters one-by-one: nos generate <story-id>
-- Check progress: nos status <story-id>
-- **New**: View story bible: nos bible <story-id>
+- **New**: Set active story: nos use abc123def
+- Generate chapters one-by-one: nos generate
+- Check progress: nos status
+- **New**: View story bible: nos bible
 - **New**: Get contextual help: nos hint
 
 Power-user techniques
-- Batch generation: nos continue <story-id>
+- Batch generation: nos continue
 - Automation script: loop nos generate until completion; handle exit code 0
 - CI integration: pre-set environment variables for providers; run nos continue in a job
 - **New**: Advanced narrative tracking: monitor character development and plot thread progression through structured state
@@ -1175,6 +1276,8 @@ Power-user techniques
 - **New**: Task-based model selection: understand how different models are automatically selected for different operations
 - **New**: Embedding configuration: set up provider-specific embeddings for vector memory operations
 - **New**: Character generation customization: provide rich story context (title, premise, genre, setting) for authentic AI-generated characters
+- **New**: Active story management: streamline workflows by setting active stories for frequent commands
+- **New**: Shortcut command usage: run commands without specifying story ID after setting active story
 
 **Section sources**
 - [PROGRESS.md:126-137](file://PROGRESS.md#L126-L137)
@@ -1185,6 +1288,48 @@ Power-user techniques
 - [packages/engine/src/llm/client.ts:39-47](file://packages/engine/src/llm/client.ts#L39-L47)
 - [packages/engine/src/memory/vectorStore.ts:125-177](file://packages/engine/src/memory/vectorStore.ts#L125-L177)
 - [apps/cli/src/commands/version.ts:64-123](file://apps/cli/src/commands/version.ts#L64-L123)
+- [apps/cli/src/commands/use.ts:45-72](file://apps/cli/src/commands/use.ts#L45-L72)
+
+### Active Story Management Features
+**New**: Revolutionary active story management system:
+
+- **Current Story Tracking**: Uses ~/.narrative-os/.current file to track the currently active story
+- **Shortcut Commands**: Enables running commands like `nos generate`, `nos status`, `nos read` without specifying story ID
+- **Story Resolution**: resolveStoryId() function automatically resolves story IDs from active story when not provided
+- **Validation**: Ensures active story exists before executing commands
+- **Clear Current**: Provides functionality to clear the current story setting
+- **Integration**: Seamlessly integrates with all existing commands through resolveStoryId()
+
+**Section sources**
+- [apps/cli/src/commands/use.ts:1-92](file://apps/cli/src/commands/use.ts#L1-L92)
+- [apps/cli/src/index.ts:72-161](file://apps/cli/src/index.ts#L72-L161)
+
+### Enhanced Welcome Screen Features
+**New**: Comprehensive welcome screen with active story integration:
+
+- **Command Overview**: Displays all available commands with clear categorization
+- **Active Story Guidance**: Shows continue writing suggestions when active story exists
+- **Getting Started**: Provides setup guidance for new users
+- **Shortcut Command Promotion**: Highlights the use command for active story management
+- **Contextual Help**: Adapts suggestions based on existing stories and active story status
+
+**Section sources**
+- [apps/cli/src/commands/hint.ts:49-96](file://apps/cli/src/commands/hint.ts#L49-L96)
+
+### Enhanced Hint System Features
+**New**: Improved hint system with contextual suggestions and active story integration:
+
+- **Context Detection**: Automatically identifies active stories and user context
+- **Progress-Based Suggestions**: Tailors advice based on story completion status
+- **Quick Command Access**: Provides direct command references for common operations
+- **First-Time User Support**: Guides new users through initial setup and AI-assisted character creation
+- **Completion Recognition**: Suggests next steps when stories are finished
+- **Active Story Integration**: Incorporates active story context into suggestions
+- **Shortcut Command Guidance**: Promotes use of shortcut commands for streamlined workflows
+
+**Section sources**
+- [apps/cli/src/commands/hint.ts:3-47](file://apps/cli/src/commands/hint.ts#L3-L47)
+- [apps/cli/src/commands/hint.ts:49-96](file://apps/cli/src/commands/hint.ts#L49-L96)
 
 ### Interactive Prompts System Features
 **New**: The enhanced CLI now provides a comprehensive interactive prompts system for story creation:
@@ -1232,19 +1377,6 @@ Power-user techniques
 - [packages/engine/src/agents/stateUpdater.ts:85-193](file://packages/engine/src/agents/stateUpdater.ts#L85-L193)
 - [apps/cli/src/config/store.ts:139-151](file://apps/cli/src/config/store.ts#L139-L151)
 
-### Interactive Hints System Features
-**New**: The CLI now includes an intelligent hints system that provides contextual guidance:
-
-- **Context Detection**: Automatically identifies active stories and user context
-- **Progress-Based Suggestions**: Tailors advice based on story completion status
-- **Quick Command Access**: Provides direct command references for common operations
-- **First-Time User Support**: Guides new users through initial setup and AI-assisted character creation
-- **Completion Recognition**: Suggests next steps when stories are finished
-
-**Section sources**
-- [apps/cli/src/commands/hint.ts:3-47](file://apps/cli/src/commands/hint.ts#L3-L47)
-- [apps/cli/src/commands/hint.ts:49-73](file://apps/cli/src/commands/hint.ts#L49-L73)
-
 ### Memory System Capabilities
 **New**: The CLI integrates advanced memory management for narrative recall with embedding support:
 
@@ -1287,7 +1419,7 @@ Power-user techniques
 **Section sources**
 - [apps/cli/src/commands/config.ts:55-90](file://apps/cli/src/commands/config.ts#L55-L90)
 - [apps/cli/src/commands/config.ts:66-89](file://apps/cli/src/commands/config.ts#L66-L89)
-- [apps/cli/src/index.ts:34-40](file://apps/cli/src/index.ts#L34-L40)
+- [apps/cli/src/index.ts:35-41](file://apps/cli/src/index.ts#L35-L41)
 
 ### Enhanced Config Command Workflow
 **New**: The enhanced config command provides multiple configuration modes:
@@ -1302,7 +1434,7 @@ Power-user techniques
 
 **Section sources**
 - [apps/cli/src/commands/config.ts:55-277](file://apps/cli/src/commands/config.ts#L55-L277)
-- [apps/cli/src/index.ts:34-40](file://apps/cli/src/index.ts#L34-L40)
+- [apps/cli/src/index.ts:35-41](file://apps/cli/src/index.ts#L35-L41)
 - [packages/engine/src/llm/client.ts:58-111](file://packages/engine/src/llm/client.ts#L58-L111)
 - [packages/engine/src/memory/vectorStore.ts:125-177](file://packages/engine/src/memory/vectorStore.ts#L125-L177)
 

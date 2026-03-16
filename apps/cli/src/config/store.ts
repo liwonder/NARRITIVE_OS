@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
-import type { StoryBible, StoryState, Chapter, CanonStore, StoryStructuredState } from '@narrative-os/engine';
+import type { StoryBible, StoryState, Chapter, CanonStore, StoryStructuredState, WorldState as WorldStateEngineState } from '@narrative-os/engine';
 import { extractCanonFromBible, createStructuredState, initializeCharactersFromBible, initializePlotThreadsFromBible } from '@narrative-os/engine';
 
 const DATA_DIR = join(homedir(), '.narrative-os');
@@ -17,7 +17,8 @@ export function saveStory(
   state: StoryState,
   chapters: Chapter[],
   canon?: CanonStore,
-  structuredState?: StoryStructuredState
+  structuredState?: StoryStructuredState,
+  worldState?: WorldStateEngineState
 ) {
   ensureDirs();
   const storyDir = join(STORIES_DIR, bible.id);
@@ -34,9 +35,14 @@ export function saveStory(
   if (structuredState) {
     writeFileSync(join(storyDir, 'structured-state.json'), JSON.stringify(structuredState, null, 2));
   }
+  
+  // Phase 14: Save world state if provided
+  if (worldState) {
+    writeFileSync(join(storyDir, 'world-state.json'), JSON.stringify(worldState, null, 2));
+  }
 }
 
-export function loadStory(storyId: string): { bible: StoryBible; state: StoryState; chapters: Chapter[]; canon: CanonStore; structuredState: StoryStructuredState | null } | null {
+export function loadStory(storyId: string): { bible: StoryBible; state: StoryState; chapters: Chapter[]; canon: CanonStore; structuredState: StoryStructuredState | null; worldState: WorldStateEngineState | null } | null {
   const storyDir = join(STORIES_DIR, storyId);
   if (!existsSync(storyDir)) return null;
 
@@ -60,7 +66,14 @@ export function loadStory(storyId: string): { bible: StoryBible; state: StorySta
       structuredState = JSON.parse(readFileSync(structuredPath, 'utf-8'));
     }
     
-    return { bible, state, chapters, canon, structuredState };
+    // Phase 14: Load world state
+    let worldState: WorldStateEngineState | null = null;
+    const worldStatePath = join(storyDir, 'world-state.json');
+    if (existsSync(worldStatePath)) {
+      worldState = JSON.parse(readFileSync(worldStatePath, 'utf-8'));
+    }
+    
+    return { bible, state, chapters, canon, structuredState, worldState };
   } catch {
     return null;
   }

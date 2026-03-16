@@ -10,6 +10,7 @@ interface SceneWriterInput {
   canonFacts?: string[];
   relevantMemories?: string[];
   activeSkills?: string[];
+  characterDecisions?: string[]; // Character agent decisions for this scene
 }
 
 /**
@@ -25,7 +26,8 @@ export async function writeScene(input: SceneWriterInput): Promise<SceneOutput> 
     previousSceneSummary,
     canonFacts = [],
     relevantMemories = [],
-    activeSkills = []
+    activeSkills = [],
+    characterDecisions = []
   } = input;
   
   const llm = getLLM();
@@ -69,14 +71,19 @@ ${relevantMemories.length > 0 ? `## Relevant Story Memories\n${relevantMemories.
 
 ${activeSkills.length > 0 ? `## Active Writing Skills\n${activeSkills.map(s => `- ${s}`).join('\n')}\n` : ''}
 
+${characterDecisions.length > 0 ? `## Character Decisions (Incorporate Naturally)\n${characterDecisions.map(d => `- ${d}`).join('\n')}\n` : ''}
+
 ## Writing Instructions
-1. Write immersive, engaging narrative prose
+1. Write immersive, engaging narrative prose in ${languageName} ONLY
 2. Show, don't tell - use sensory details
 3. Stay focused on THIS scene only - don't rush to resolve everything
 4. Maintain the target tension level (${scene.tension}/10)
 5. End naturally so the next scene can continue
 6. Do NOT include scene headings or "Scene X" labels
 7. Do NOT summarize - write the actual scene content
+8. Do NOT mix languages - use ${languageName} exclusively
+9. Do NOT include meta-commentary about the writing process
+10. Incorporate character decisions naturally into the narrative flow
 
 Return a JSON object:
 {

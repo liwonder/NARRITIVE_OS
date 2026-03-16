@@ -22,6 +22,8 @@
 - [packages/engine/src/agents/scenePlanner.ts](file://packages/engine/src/agents/scenePlanner.ts)
 - [packages/engine/src/agents/sceneWriter.ts](file://packages/engine/src/agents/sceneWriter.ts)
 - [packages/engine/src/agents/sceneValidator.ts](file://packages/engine/src/agents/sceneValidator.ts)
+- [packages/engine/src/agents/sceneAssembler.ts](file://packages/engine/src/agents/sceneAssembler.ts)
+- [packages/engine/src/agents/sceneOutcomeExtractor.ts](file://packages/engine/src/agents/sceneOutcomeExtractor.ts)
 - [packages/engine/src/agents/tensionController.ts](file://packages/engine/src/agents/tensionController.ts)
 - [packages/engine/src/agents/storyDirector.ts](file://packages/engine/src/agents/storyDirector.ts)
 - [packages/engine/src/world/worldState.ts](file://packages/engine/src/world/worldState.ts)
@@ -29,8 +31,6 @@
 - [packages/engine/src/world/eventResolver.ts](file://packages/engine/src/world/eventResolver.ts)
 - [packages/engine/src/constraints/constraintGraph.ts](file://packages/engine/src/constraints/constraintGraph.ts)
 - [packages/engine/src/constraints/validator.ts](file://packages/engine/src/constraints/validator.ts)
-- [packages/engine/src/scene/sceneAssembler.ts](file://packages/engine/src/scene/sceneAssembler.ts)
-- [packages/engine/src/scene/sceneOutcomeExtractor.ts](file://packages/engine/src/scene/sceneOutcomeExtractor.ts)
 - [apps/cli/src/index.ts](file://apps/cli/src/index.ts)
 - [apps/cli/src/commands/generate.ts](file://apps/cli/src/commands/generate.ts)
 - [apps/cli/src/commands/validate.ts](file://apps/cli/src/commands/validate.ts)
@@ -46,14 +46,12 @@
 
 ## Update Summary
 **Changes Made**
-- Enhanced core architecture with new character generation capabilities and improved LLM client infrastructure
-- Updated version from 0.1.9 to 0.1.12
-- Added comprehensive scene-level generation system with scene planner, writer, and validator agents
-- Expanded TaskType enumeration to include 'embedding' for vector memory operations
-- Enhanced CharacterAgentSystem with autonomous decision-making and agenda management
-- Added tension controller system for dynamic narrative pacing
-- Integrated scene-level assembly and outcome extraction workflows
-- Improved multi-model configuration with embedding model support
+- Enhanced core architecture with new Story Director agent system for high-level narrative coordination
+- Integrated Character Agents for autonomous character decision-making and action planning
+- Implemented comprehensive scene-level generation pipeline with dedicated agents for planning, writing, validation, and assembly
+- Enhanced tension control system with dynamic guidance generation and narrative pacing management
+- Added advanced multi-model LLM client with embedding capabilities and expanded provider support
+- Improved chapter generation flow with scene-by-scene orchestration and character-driven narrative
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -68,9 +66,9 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document describes the architecture of the Narrative Operating System engine package, focusing on the AI-powered story generation system. The engine follows an agent-based architecture with a clear separation of concerns: agents encapsulate specialized tasks (writing, completeness checking, summarization, and canon validation), a **multi-model LLM integration layer** with purpose-based routing abstracts provider details, a canonical memory system maintains story facts, a vector memory system provides semantic search capabilities, and a generation pipeline orchestrates the workflow. The system now incorporates a World Simulation Layer with autonomous character agents, a Chapter Planner Agent for structured scene planning, a Constraint Graph for narrative consistency enforcement, and a comprehensive state management system with structured state tracking.
+This document describes the architecture of the Narrative Operating System engine package, focusing on the AI-powered story generation system. The engine follows an advanced agent-based architecture with a clear separation of concerns: agents encapsulate specialized tasks (writing, completeness checking, summarization, and canon validation), a **multi-model LLM integration layer** with purpose-based routing abstracts provider details, a canonical memory system maintains story facts, a vector memory system provides semantic search capabilities, and a comprehensive generation pipeline orchestrates the workflow. The system now incorporates a **Story Director agent system** for high-level narrative coordination, **integrated Character Agents** for autonomous decision-making, an **enhanced tension control system** for dynamic narrative pacing, and a **comprehensive scene-level generation pipeline** with dedicated agents for planning, writing, validation, and assembly.
 
-**Updated** Enhanced to reflect the new Multi-Model Client Design that supports purpose-based routing, task-specific model mapping, embedding model capabilities, and expanded provider support including Alibaba Cloud and ByteDance Ark. The architecture now includes comprehensive scene-level generation capabilities with dedicated agents for scene planning, writing, and validation.
+**Updated** Enhanced to reflect the new Story Director agent system that coordinates chapter objectives and narrative direction, integrated Character Agents that autonomously decide character actions, enhanced tension control system with dynamic guidance generation, and improved chapter generation pipeline flow with scene-by-scene orchestration.
 
 ## Project Structure
 The repository is organized as a monorepo using pnpm workspaces and Turborepo orchestration:
@@ -86,10 +84,10 @@ E_Index["index.ts"]
 E_Types["types/index.ts"]
 E_LLM["llm/client.ts<br/>Multi-Model Client<br/>Embedding Support"]
 E_Memory["memory/*"]
-E_Pipeline["pipeline/generateChapter.ts"]
+E_Pipeline["pipeline/generateChapter.ts<br/>Scene-Level Flow"]
 E_Story["story/*"]
-E_Agents["agents/*<br/>Task-aware<br/>Scene-level"]
-E_World["world/*"]
+E_Agents["agents/*<br/>Task-aware<br/>Enhanced Agents"]
+E_World["world/*<br/>Character Agents"]
 E_Constraints["constraints/*"]
 E_Scene["scene/*<br/>Assembly & Outcome"]
 end
@@ -141,10 +139,11 @@ E_Index --> E_Scene
 - Export surface: The engine's public API is exported via a single barrel file, exposing types, **enhanced LLM client with multi-model support and embedding capabilities**, agents, pipeline, story utilities, memory APIs, world simulation components, and constraint systems.
 - Types: Define the canonical data models for StoryBible, StoryState, Chapter, ChapterSummary, GenerationContext, and **enhanced LLM configuration interfaces** including ModelConfig with expanded provider support and TaskType with embedding operations.
 - **Multi-Model LLM Client**: Provides a provider-agnostic abstraction with **purpose-based routing**, **task-specific model mapping**, **embedding model discovery**, and **backward compatibility** with single-model configurations.
-- Agents: Specialized modules implementing writing, completeness checks, summarization, canon validation, memory extraction, and state updates with **task-aware model selection** including embedding operations.
-- **Scene-Level Agents**: New dedicated agents for scene planning, writing, and validation with specialized prompts and workflows for granular narrative control.
+- **Story Director Agent**: High-level orchestrator that analyzes story state, generates chapter objectives, manages tension targets, and coordinates narrative direction.
+- **Character Agents**: Autonomous characters with goals, agendas, knowledge, relationships, and emotional states that decide their own actions in each scene.
+- **Enhanced Agents**: Specialized modules implementing writing, completeness checks, summarization, canon validation, memory extraction, and state updates with **task-aware model selection** including embedding operations.
+- **Scene-Level Agents**: New dedicated agents for scene planning, writing, validation, and assembly with specialized prompts and workflows for granular narrative control.
 - **Tension Controller**: Advanced system for managing narrative tension dynamics including target tension calculation, tension analysis, and guidance generation.
-- **Story Director**: High-level orchestrator that coordinates chapter objectives, tension targets, and narrative direction.
 - World Simulation Layer: Character agents with goals, knowledge, and autonomy, event resolvers for conflict and interaction resolution, and world state management.
 - Constraint Graph: Narrative consistency system enforcing logical rules for canon, location, knowledge, timeline, and logical constraints.
 - Vector Memory System: HNSW-based semantic search with automatic embedding generation, supporting contextual queries and category filtering, powered by dedicated embedding models.
@@ -165,7 +164,7 @@ E_Index --> E_Scene
 - [packages/engine/src/memory/memoryRetriever.ts:1-174](file://packages/engine/src/memory/memoryRetriever.ts#L1-L174)
 - [packages/engine/src/memory/stateUpdater.ts:1-435](file://packages/engine/src/memory/stateUpdater.ts#L1-L435)
 - [packages/engine/src/story/structuredState.ts:1-235](file://packages/engine/src/story/structuredState.ts#L1-L235)
-- [packages/engine/src/pipeline/generateChapter.ts:1-108](file://packages/engine/src/pipeline/generateChapter.ts#L1-L108)
+- [packages/engine/src/pipeline/generateChapter.ts:1-394](file://packages/engine/src/pipeline/generateChapter.ts#L1-L394)
 - [packages/engine/src/story/bible.ts:1-73](file://packages/engine/src/story/bible.ts#L1-L73)
 - [packages/engine/src/agents/writer.ts:1-166](file://packages/engine/src/agents/writer.ts#L1-L166)
 - [packages/engine/src/agents/completeness.ts:1-56](file://packages/engine/src/agents/completeness.ts#L1-L56)
@@ -174,19 +173,19 @@ E_Index --> E_Scene
 - [packages/engine/src/agents/memoryExtractor.ts:1-99](file://packages/engine/src/agents/memoryExtractor.ts#L1-L99)
 - [packages/engine/src/agents/stateUpdater.ts:1-193](file://packages/engine/src/agents/stateUpdater.ts#L1-L193)
 - [packages/engine/src/agents/chapterPlanner.ts:1-326](file://packages/engine/src/agents/chapterPlanner.ts#L1-L326)
-- [packages/engine/src/agents/scenePlanner.ts:1-326](file://packages/engine/src/agents/scenePlanner.ts#L1-L326)
-- [packages/engine/src/agents/sceneWriter.ts:1-326](file://packages/engine/src/agents/sceneWriter.ts#L1-L326)
-- [packages/engine/src/agents/sceneValidator.ts:1-326](file://packages/engine/src/agents/sceneValidator.ts#L1-L326)
-- [packages/engine/src/agents/tensionController.ts:1-326](file://packages/engine/src/agents/tensionController.ts#L1-L326)
-- [packages/engine/src/agents/storyDirector.ts:1-326](file://packages/engine/src/agents/storyDirector.ts#L1-L326)
+- [packages/engine/src/agents/scenePlanner.ts:1-177](file://packages/engine/src/agents/scenePlanner.ts#L1-L177)
+- [packages/engine/src/agents/sceneWriter.ts:1-145](file://packages/engine/src/agents/sceneWriter.ts#L1-L145)
+- [packages/engine/src/agents/sceneValidator.ts:1-117](file://packages/engine/src/agents/sceneValidator.ts#L1-L117)
+- [packages/engine/src/agents/sceneAssembler.ts:1-116](file://packages/engine/src/agents/sceneAssembler.ts#L1-L116)
+- [packages/engine/src/agents/sceneOutcomeExtractor.ts:1-117](file://packages/engine/src/agents/sceneOutcomeExtractor.ts#L1-L117)
+- [packages/engine/src/agents/tensionController.ts:1-252](file://packages/engine/src/agents/tensionController.ts#L1-L252)
+- [packages/engine/src/agents/storyDirector.ts:1-276](file://packages/engine/src/agents/storyDirector.ts#L1-L276)
 - [packages/engine/src/world/worldState.ts:1-321](file://packages/engine/src/world/worldState.ts#L1-L321)
 - [packages/engine/src/world/characterAgent.ts:1-304](file://packages/engine/src/world/characterAgent.ts#L1-L304)
 - [packages/engine/src/world/eventResolver.ts:1-272](file://packages/engine/src/world/eventResolver.ts#L1-L272)
 - [packages/engine/src/constraints/constraintGraph.ts:1-471](file://packages/engine/src/constraints/constraintGraph.ts#L1-L471)
 - [packages/engine/src/constraints/validator.ts:1-286](file://packages/engine/src/constraints/validator.ts#L1-L286)
-- [packages/engine/src/scene/sceneAssembler.ts:1-326](file://packages/engine/src/scene/sceneAssembler.ts#L1-L326)
-- [packages/engine/src/scene/sceneOutcomeExtractor.ts:1-326](file://packages/engine/src/scene/sceneOutcomeExtractor.ts#L1-L326)
-- [apps/cli/src/commands/generate.ts:1-55](file://apps/cli/src/commands/generate.ts#L1-L55)
+- [apps/cli/src/commands/generate.ts:1-81](file://apps/cli/src/commands/generate.ts#L1-L81)
 - [apps/cli/src/commands/validate.ts:1-107](file://apps/cli/src/commands/validate.ts#L1-L107)
 - [apps/cli/src/commands/state.ts:1-83](file://apps/cli/src/commands/state.ts#L1-L83)
 - [apps/cli/src/commands/memories.ts:1-66](file://apps/cli/src/commands/memories.ts#L1-L66)
@@ -198,11 +197,12 @@ The system employs:
 - **Enhanced Factory pattern for LLM providers**: The LLM client factory selects and instantiates providers based on environment configuration, enabling pluggable backends with **multi-model support** and **embedding model capabilities**.
 - **Purpose-based routing**: The LLM client routes tasks to appropriate models based on purpose (reasoning, chat, fast, embedding) for optimal performance.
 - **Task-specific model mapping**: Different tasks use different models: generation/planning use reasoning models, validation/summarization use chat models, extraction uses chat models, embedding uses dedicated embedding models, and default uses chat models.
-- **Pipeline pattern for generation workflow**: The generateChapter function coordinates writing, optional continuation, validation, and summarization in a deterministic loop.
-- **Agent-based architecture**: Each agent encapsulates a distinct responsibility and interacts with the LLM client through a shared interface with **task-aware model selection** including embedding operations.
-- **Scene-level Generation**: New comprehensive scene-level workflow with dedicated agents for planning, writing, validating, and assembling individual scenes within chapters.
-- **Tension Control System**: Advanced narrative pacing control through tension calculation, target setting, and dynamic guidance generation.
-- **Story Director**: High-level coordinator that sets chapter objectives, manages tension targets, and orchestrates the overall narrative direction.
+- **Enhanced Pipeline pattern for generation workflow**: The generateChapter function coordinates the new scene-level workflow: Story Director → Scene Planner → Character Agents → Scene Writer → Scene Validator → Scene Assembler → Chapter Validator.
+- **Enhanced Agent-based architecture**: Each agent encapsulates a distinct responsibility and interacts with the LLM client through a shared interface with **task-aware model selection** including embedding operations.
+- **Story Director System**: High-level coordinator that analyzes story state, generates chapter objectives, manages tension targets, and orchestrates the overall narrative direction.
+- **Character Agent System**: Autonomous characters that decide their own actions in each scene based on personality, goals, relationships, and current situation.
+- **Enhanced Scene-level Generation**: Comprehensive scene-level workflow with dedicated agents for planning, writing, validating, and assembling individual scenes within chapters.
+- **Advanced Tension Control System**: Dynamic narrative pacing control through tension calculation, target setting, and dynamic guidance generation.
 - World Simulation Layer: Characters with goals, knowledge, and autonomy generate emergent plot through decision-making and event resolution.
 - Constraint Graph: Narrative consistency system enforcing logical rules for canon, location, knowledge, timeline, and logical constraints.
 - Vector Memory System: HNSW-based semantic search with automatic embedding generation for contextual memory retrieval, powered by dedicated embedding models.
@@ -223,7 +223,8 @@ CLI --> ConfigCmd["configCommand()"]
 Gen --> StoryDirector["StoryDirector"]
 StoryDirector --> ChapterPlanner["ChapterPlanner"]
 ChapterPlanner --> ScenePlanner["ScenePlanner"]
-ScenePlanner --> SceneWriter["SceneWriter"]
+ScenePlanner --> CharacterAgents["CharacterAgentSystem"]
+CharacterAgents --> SceneWriter["SceneWriter"]
 SceneWriter --> SceneValidator["SceneValidator"]
 SceneValidator --> SceneAssembler["SceneAssembler"]
 SceneAssembler --> Writer["ChapterWriter.write()"]
@@ -264,7 +265,7 @@ ConstraintGraph["ConstraintGraph"]
 Validator["Validator"]
 ConstraintGraph --> Validator
 end
-subgraph "Tension Control"
+subgraph "Enhanced Tension Control"
 TensionController["TensionController"]
 TensionController --> LLM
 end
@@ -273,6 +274,7 @@ Gen --> ConstraintGraph
 Gen --> WorldState
 Gen --> ChapterPlanner
 Gen --> ScenePlanner
+Gen --> CharacterAgents
 Gen --> SceneWriter
 Gen --> SceneValidator
 Gen --> MemoryRetriever
@@ -285,7 +287,7 @@ Store --> MemoriesCmd
 ```
 
 **Diagram sources**
-- [packages/engine/src/pipeline/generateChapter.ts:26-103](file://packages/engine/src/pipeline/generateChapter.ts#L26-L103)
+- [packages/engine/src/pipeline/generateChapter.ts:67-309](file://packages/engine/src/pipeline/generateChapter.ts#L67-L309)
 - [packages/engine/src/agents/writer.ts:103-107](file://packages/engine/src/agents/writer.ts#L103-L107)
 - [packages/engine/src/agents/completeness.ts:40-43](file://packages/engine/src/agents/completeness.ts#L40-L43)
 - [packages/engine/src/agents/summarizer.ts:27-31](file://packages/engine/src/agents/summarizer.ts#L27-L31)
@@ -308,7 +310,7 @@ Store --> MemoriesCmd
 - [packages/engine/src/constraints/validator.ts:73-84](file://packages/engine/src/constraints/validator.ts#L73-L84)
 - [packages/engine/src/llm/client.ts:31-105](file://packages/engine/src/llm/client.ts#L31-L105)
 - [packages/engine/src/memory/canonStore.ts:101-129](file://packages/engine/src/memory/canonStore.ts#L101-L129)
-- [apps/cli/src/commands/generate.ts:4-54](file://apps/cli/src/commands/generate.ts#L4-L54)
+- [apps/cli/src/commands/generate.ts:4-81](file://apps/cli/src/commands/generate.ts#L4-L81)
 - [apps/cli/src/commands/validate.ts:4-107](file://apps/cli/src/commands/validate.ts#L4-L107)
 - [apps/cli/src/commands/state.ts:3-83](file://apps/cli/src/commands/state.ts#L3-L83)
 - [apps/cli/src/commands/memories.ts:4-66](file://apps/cli/src/commands/memories.ts#L4-L66)
@@ -383,17 +385,72 @@ ModelConfig --> TaskType : "mapped to"
 - [packages/engine/src/llm/client.ts:1-249](file://packages/engine/src/llm/client.ts#L1-L249)
 - [packages/engine/src/types/index.ts:107-116](file://packages/engine/src/types/index.ts#L107-L116)
 
-### Enhanced Character Generation and World Simulation
-- **Character Agent System**: Comprehensive autonomous character simulation with personality traits, goals, agendas, knowledge, relationships, and emotional states.
-- **Decision Making**: Characters make contextually appropriate decisions based on personality, goals, relationships, and current situation using LLM-powered reasoning.
-- **Agenda Management**: Dynamic agenda system with priorities, deadlines, and completion tracking for goal-oriented character behavior.
-- **Knowledge and Relationships**: Characters maintain evolving knowledge bases and relationship maps that influence decision-making and interactions.
-- **Simple Decision Fallback**: Robust fallback mechanism for character decisions when LLM services are unavailable.
-- **Multi-Character Interaction**: Simulates turn-based decision-making among multiple characters with conflict resolution and social dynamics.
-- **Autonomous Behavior**: Characters act independently based on their internal state and external circumstances, creating emergent narrative possibilities.
+### Enhanced Story Director System
+- **High-Level Coordination**: The Story Director analyzes current story state, tension levels, and narrative context to generate comprehensive chapter objectives.
+- **Objective Generation**: Creates detailed chapter objectives with priorities (critical, high, medium, low) and types (plot, character, world, tension, resolution).
+- **Tension Guidance**: Integrates with the Tension Controller to provide dynamic tension targets and pacing recommendations.
+- **Focus Character Selection**: Identifies key characters to center the chapter around based on story progression and character arcs.
+- **Scene Suggestions**: Provides actionable scene ideas that align with chapter objectives and narrative goals.
+- **Fallback Generation**: Offers fallback objective generation without LLM for testing and reliability.
+- **Prompt Formatting**: Formats output for seamless integration with subsequent pipeline stages.
 
 ```mermaid
 classDiagram
+class StoryDirector {
+-direct(context) Promise~DirectorOutput~
+-generateFallbackObjectives(state, structuredState) DirectorOutput
+-formatForPrompt(output) string
+-buildPrompt(bible, state, structuredState, tensionGuidance, summaries) string
+}
+class DirectorOutput {
+-chapterNumber number
+-overallGoal string
+-objectives ChapterObjective[]
+-focusCharacters string[]
+-suggestedScenes string[]
+-tone string
+-notes string
+}
+class ChapterObjective {
+-id string
+-description string
+-priority "critical|high|medium|low"
+-type "plot|character|world|tension|resolution"
+-relatedPlotThreadId string
+-relatedCharacter string
+}
+StoryDirector --> DirectorOutput : "produces"
+DirectorOutput --> ChapterObjective : "contains"
+```
+
+**Diagram sources**
+- [packages/engine/src/agents/storyDirector.ts:100-276](file://packages/engine/src/agents/storyDirector.ts#L100-L276)
+
+**Section sources**
+- [packages/engine/src/agents/storyDirector.ts:1-276](file://packages/engine/src/agents/storyDirector.ts#L1-L276)
+
+### Integrated Character Agent System
+- **Autonomous Decision-Making**: Characters make contextually appropriate decisions based on personality, goals, relationships, and current situation using LLM-powered reasoning.
+- **Agenda Management**: Dynamic agenda system with priorities, deadlines, and completion tracking for goal-oriented character behavior.
+- **Knowledge and Relationships**: Characters maintain evolving knowledge bases and relationship maps that influence decision-making and interactions.
+- **Multi-Character Interaction**: Simulates turn-based decision-making among multiple characters with conflict resolution and social dynamics.
+- **Simple Decision Fallback**: Robust fallback mechanism for character decisions when LLM services are unavailable.
+- **Character State Integration**: Seamlessly integrates with structured state management for consistent character tracking.
+- **Scene-Level Decision Support**: Provides character actions and decisions for each scene in the scene-level generation workflow.
+
+```mermaid
+classDiagram
+class CharacterAgentSystem {
+-createAgent(characterState, personality) CharacterAgent
+-addAgendaItem(agent, action, priority, deadline) CharacterAgent
+-completeAgendaItem(agent, agendaId) CharacterAgent
+-addKnowledge(agent, fact) CharacterAgent
+-updateRelationship(agent, otherCharacter, relationship) CharacterAgent
+-moveTo(agent, location) CharacterAgent
+-getDecision(context) Promise~CharacterDecision~
+-getSimpleDecision(context) CharacterDecision
+-simulateTurn(agents, worldEvents, currentChapter, storyContext, useLLM) Promise~CharacterDecision[]~
+}
 class CharacterAgent {
 -name string
 -goals string[]
@@ -405,17 +462,6 @@ class CharacterAgent {
 -emotionalState string
 -inventory string[]
 -agenda AgendaItem[]
-}
-class CharacterAgentSystem {
--createAgent(characterState, personality) CharacterAgent
--addAgendaItem(agent, action, priority, deadline) CharacterAgent
--completeAgendaItem(agent, agendaId) CharacterAgent
--addKnowledge(agent, fact) CharacterAgent
--updateRelationship(agent, otherCharacter, relationship) CharacterAgent
--moveTo(agent, location) CharacterAgent
--getDecision(context) Promise~CharacterDecision~
--getSimpleDecision(context) CharacterDecision
--simulateTurn(agents, worldEvents, currentChapter, storyContext, useLLM) Promise~CharacterDecision[]~
 }
 class CharacterDecision {
 -character string
@@ -437,19 +483,19 @@ CharacterAgentSystem --> CharacterDecision : "produces"
 ```
 
 **Diagram sources**
-- [packages/engine/src/world/characterAgent.ts:4-31](file://packages/engine/src/world/characterAgent.ts#L4-L31)
-- [packages/engine/src/world/characterAgent.ts:91-301](file://packages/engine/src/world/characterAgent.ts#L91-L301)
+- [packages/engine/src/world/characterAgent.ts:91-304](file://packages/engine/src/world/characterAgent.ts#L91-L304)
 
 **Section sources**
 - [packages/engine/src/world/characterAgent.ts:1-304](file://packages/engine/src/world/characterAgent.ts#L1-L304)
 
-### Scene-Level Generation System
+### Enhanced Scene-Level Generation System
 - **Scene Planning**: Detailed scene breakdown with location, characters, purpose, tension levels, and conflict identification for granular narrative control.
 - **Scene Writing**: Specialized prompts and templates for scene-specific content generation with proper formatting and structure.
 - **Scene Validation**: Quality assurance for individual scenes including narrative logic, character consistency, and tension maintenance.
 - **Scene Assembly**: Integration of validated scenes into cohesive chapter structure with proper transitions and flow.
 - **Scene Outcome Extraction**: Detailed extraction of scene consequences including character changes, location shifts, and new information.
 - **Dynamic Tension Control**: Scene-level tension management with target setting and progression tracking.
+- **Character Integration**: Scene planning and writing incorporate character decisions and actions for authentic narrative flow.
 - **Conflict Resolution**: Mechanisms for handling scene conflicts and their resolution within the narrative framework.
 
 ```mermaid
@@ -495,413 +541,108 @@ SceneOutcomeExtractor --> SceneOutcome : "produces"
 ```
 
 **Diagram sources**
-- [packages/engine/src/types/index.ts:118-151](file://packages/engine/src/types/index.ts#L118-L151)
+- [packages/engine/src/types/index.ts:117-152](file://packages/engine/src/types/index.ts#L117-L152)
 - [packages/engine/src/agents/scenePlanner.ts:110-122](file://packages/engine/src/agents/scenePlanner.ts#L110-L122)
 - [packages/engine/src/agents/sceneWriter.ts:110-122](file://packages/engine/src/agents/sceneWriter.ts#L110-L122)
 - [packages/engine/src/agents/sceneValidator.ts:110-122](file://packages/engine/src/agents/sceneValidator.ts#L110-L122)
-- [packages/engine/src/scene/sceneAssembler.ts:110-122](file://packages/engine/src/scene/sceneAssembler.ts#L110-L122)
-- [packages/engine/src/scene/sceneOutcomeExtractor.ts:110-122](file://packages/engine/src/scene/sceneOutcomeExtractor.ts#L110-L122)
+- [packages/engine/src/agents/sceneAssembler.ts:110-122](file://packages/engine/src/agents/sceneAssembler.ts#L110-L122)
+- [packages/engine/src/agents/sceneOutcomeExtractor.ts:110-122](file://packages/engine/src/agents/sceneOutcomeExtractor.ts#L110-L122)
 
 **Section sources**
 - [packages/engine/src/types/index.ts:117-152](file://packages/engine/src/types/index.ts#L117-L152)
-- [packages/engine/src/agents/scenePlanner.ts:1-326](file://packages/engine/src/agents/scenePlanner.ts#L1-L326)
-- [packages/engine/src/agents/sceneWriter.ts:1-326](file://packages/engine/src/agents/sceneWriter.ts#L1-L326)
-- [packages/engine/src/agents/sceneValidator.ts:1-326](file://packages/engine/src/agents/sceneValidator.ts#L1-L326)
-- [packages/engine/src/scene/sceneAssembler.ts:1-326](file://packages/engine/src/scene/sceneAssembler.ts#L1-L326)
-- [packages/engine/src/scene/sceneOutcomeExtractor.ts:1-326](file://packages/engine/src/scene/sceneOutcomeExtractor.ts#L1-L326)
+- [packages/engine/src/agents/scenePlanner.ts:1-177](file://packages/engine/src/agents/scenePlanner.ts#L1-L177)
+- [packages/engine/src/agents/sceneWriter.ts:1-145](file://packages/engine/src/agents/sceneWriter.ts#L1-L145)
+- [packages/engine/src/agents/sceneValidator.ts:1-117](file://packages/engine/src/agents/sceneValidator.ts#L1-L117)
+- [packages/engine/src/agents/sceneAssembler.ts:1-116](file://packages/engine/src/agents/sceneAssembler.ts#L1-L116)
+- [packages/engine/src/agents/sceneOutcomeExtractor.ts:1-117](file://packages/engine/src/agents/sceneOutcomeExtractor.ts#L1-L117)
 
-### Tension Control System
+### Advanced Tension Control System
 - **Target Tension Calculation**: Mathematical formulas for determining optimal tension levels based on chapter position, narrative arcs, and character development.
 - **Tension Analysis**: Detailed analysis of existing tension levels with scoring mechanisms and trend identification.
 - **Dynamic Guidance**: Real-time tension guidance generation for writers and planners to maintain narrative engagement.
 - **Tension Progression**: Sophisticated algorithms for tension escalation, climax, and resolution throughout the story arc.
 - **Integration Points**: Seamless integration with scene planning, writing, and validation processes for consistent tension management.
+- **Narrative Pacing**: Controls story pacing through scene type recommendations and writing guidance.
 
 ```mermaid
 classDiagram
 class TensionController {
--calculateTargetTension(chapterNumber, totalChapters, plotThread) number
--calculateNextChapterTension(currentTension, targetTension) number
--analyzeTension(chapterContent) TensionAnalysis
--generateTensionGuidance(tensionLevel, characterStates) TensionGuidance
--formatTensionForPrompt(tensionData) string
--estimateTensionFromChapter(chapter) number
+-analyze(storyState, structuredState) TensionAnalysis
+-generateGuidance(storyState, structuredState) TensionGuidance
+-calculateTarget(chapterNumber, totalChapters) number
+-estimateFromContent(chapter) number
 }
 class TensionAnalysis {
 -currentTension number
--trend string
--characterContributions Record
--locationEffects Record
+-targetTension number
+-tensionGap number
+-recommendedAction "escalate|maintain|resolve|climax"
+-reasoning string
 }
 class TensionGuidance {
--focusAreas string[]
--suggestedChanges string[]
--characterActions string[]
+-targetTension number
+-guidance string
+-sceneTypes string[]
+-pacingNotes string
 }
 TensionController --> TensionAnalysis : "produces"
 TensionController --> TensionGuidance : "produces"
 ```
 
 **Diagram sources**
-- [packages/engine/src/agents/tensionController.ts:110-122](file://packages/engine/src/agents/tensionController.ts#L110-L122)
-- [packages/engine/src/agents/tensionController.ts:1-326](file://packages/engine/src/agents/tensionController.ts#L1-L326)
+- [packages/engine/src/agents/tensionController.ts:214-252](file://packages/engine/src/agents/tensionController.ts#L214-L252)
 
 **Section sources**
-- [packages/engine/src/agents/tensionController.ts:1-326](file://packages/engine/src/agents/tensionController.ts#L1-L326)
+- [packages/engine/src/agents/tensionController.ts:1-252](file://packages/engine/src/agents/tensionController.ts#L1-L252)
 
-### Story Director System
-- **High-Level Coordination**: Orchestrates overall narrative direction, chapter objectives, and story arc management.
-- **Objective Setting**: Defines clear chapter-level objectives that drive scene planning and character actions.
-- **Tension Target Management**: Sets and maintains tension targets throughout the story arc.
-- **Narrative Flow Control**: Ensures coherent narrative progression with proper pacing and dramatic structure.
-- **Integration Hub**: Coordinates between chapter planning, scene generation, and validation processes.
-
-```mermaid
-classDiagram
-class StoryDirector {
--direct(context) DirectorOutput
--createChapterObjective(context) ChapterObjective
--manageTensionTargets(objectives) number
--coordinateGenerationFlow(context) void
-}
-class ChapterObjective {
--objective string
--tensionTarget number
--keyEvents string[]
--characterFocus string[]
-}
-class DirectorOutput {
--chapterPlan ChapterOutline
--sceneGuidance ScenePlan
--validationCriteria string[]
-}
-StoryDirector --> ChapterObjective : "creates"
-StoryDirector --> DirectorOutput : "produces"
-```
-
-**Diagram sources**
-- [packages/engine/src/agents/storyDirector.ts:110-122](file://packages/engine/src/agents/storyDirector.ts#L110-L122)
-- [packages/engine/src/agents/storyDirector.ts:1-326](file://packages/engine/src/agents/storyDirector.ts#L1-L326)
-
-**Section sources**
-- [packages/engine/src/agents/storyDirector.ts:1-326](file://packages/engine/src/agents/storyDirector.ts#L1-L326)
-
-### Vector Memory System
-- HNSW-based Semantic Search: Hierarchical Navigable Small World algorithm provides efficient approximate nearest neighbor search for semantic similarity.
-- Automatic Embedding Generation: Uses dedicated embedding models (OpenAI text-embedding-3-small, Alibaba Cloud text-embedding-v3, ByteDance Ark doubao-embedding) for vector representations, with fallback to mock embeddings for testing.
-- Memory Categories: Supports four categories (event, character, world, plot) for structured memory organization.
-- Dynamic Index Management: Automatic resizing and capacity management for growing memory collections.
-- Persistence Support: Complete serialization/deserialization for saving/loading vector stores between sessions.
-- **Embedding Model Integration**: Vector store can utilize dedicated embedding models configured through the LLM client for optimal vector generation.
-
-```mermaid
-classDiagram
-class VectorStore {
--storyId string
--index HierarchicalNSW
--memories Map
--dimension number
--nextId number
-+initialize(maxElements) Promise~void~
-+addMemory(memory) Promise~NarrativeMemory~
-+searchSimilar(query, k) Promise~MemorySearchResult[]~
-+searchByCategory(query, category, k) Promise~MemorySearchResult[]~
-+getAllMemories() NarrativeMemory[]
-+serialize() string
-+load(data) Promise~void~
-}
-class MemoryRetriever {
--vectorStore VectorStore
-+retrieveForChapter(context, k) Promise~RetrievedMemory[]~
-+retrieveForCharacter(name, context, k) Promise~RetrievedMemory[]~
-+retrieveForPlotThread(id, bible, k) Promise~RetrievedMemory[]~
-+formatMemoriesForPrompt(memories) string
-}
-class NarrativeMemory {
--id number
--storyId string
--chapterNumber number
--content string
--category "event|character|world|plot"
--timestamp Date
--embedding number[]
-}
-VectorStore --> NarrativeMemory : "stores"
-MemoryRetriever --> VectorStore : "uses"
-```
-
-**Diagram sources**
-- [packages/engine/src/memory/vectorStore.ts:19-258](file://packages/engine/src/memory/vectorStore.ts#L19-L258)
-- [packages/engine/src/memory/memoryRetriever.ts:18-174](file://packages/engine/src/memory/memoryRetriever.ts#L18-L174)
-
-**Section sources**
-- [packages/engine/src/memory/vectorStore.ts:1-258](file://packages/engine/src/memory/vectorStore.ts#L1-L258)
-- [packages/engine/src/memory/memoryRetriever.ts:1-174](file://packages/engine/src/memory/memoryRetriever.ts#L1-L174)
-
-### Structured State Management
-- Comprehensive Character Tracking: Emotion, location, relationships, goals, knowledge, and development tracking with automatic initialization from StoryBible.
-- Plot Thread Management: Status tracking (dormant, active, escalating, resolved), tension calculation, and summary management.
-- Tension Calculation: Mathematical formula for natural tension progression from low at beginning to peak in middle to resolution at end.
-- Recent Events Tracking: Maintains rolling window of recent events for context in subsequent chapters.
-- State Formatting: Structured prompt formatting for LLM consumption with clear organization of state information.
-
-```mermaid
-classDiagram
-class StoryStructuredState {
--storyId string
--chapter number
--tension number
--characters Record~string, CharacterState~
--plotThreads Record~string, PlotThreadState~
--unresolvedQuestions string[]
--recentEvents string[]
-}
-class CharacterState {
--name string
--emotionalState string
--location string
--relationships Record
--goals string[]
--knowledge string[]
--development string[]
-}
-class PlotThreadState {
--id string
--name string
--status "dormant|active|escalating|resolved"
--tension number
--lastChapter number
--involvedCharacters string[]
--summary string
-}
-class StateUpdaterPipeline {
--update(context) Promise~StateUpdateResult~
--quickUpdate(context) Promise~StateUpdateResult~
--formatResult(result) string
-}
-StoryStructuredState --> CharacterState : "contains"
-StoryStructuredState --> PlotThreadState : "contains"
-StateUpdaterPipeline --> StoryStructuredState : "updates"
-```
-
-**Diagram sources**
-- [packages/engine/src/story/structuredState.ts:23-235](file://packages/engine/src/story/structuredState.ts#L23-L235)
-- [packages/engine/src/memory/stateUpdater.ts:90-435](file://packages/engine/src/memory/stateUpdater.ts#L90-L435)
-
-**Section sources**
-- [packages/engine/src/story/structuredState.ts:1-235](file://packages/engine/src/story/structuredState.ts#L1-L235)
-- [packages/engine/src/memory/stateUpdater.ts:1-435](file://packages/engine/src/memory/stateUpdater.ts#L1-L435)
-
-### State Updater Pipeline
-- Autonomous Post-Chapter Processing: Extracts state changes, memories, and constraint updates automatically after chapter generation.
-- LLM-Powered Extraction: Uses structured prompts to extract character changes, plot thread updates, new facts, and world changes.
-- Constraint Graph Integration: Automatically updates constraint graph with new facts, locations, and events.
-- Memory Extraction: Extracts narrative memories from chapters and adds them to vector store with appropriate categorization.
-- Quick Update Mode: Provides fallback processing without LLM for testing and debugging scenarios.
-- Change Tracking: Comprehensive logging of all state changes for auditability and debugging.
-
-```mermaid
-sequenceDiagram
-participant Engine as "Engine"
-participant Pipeline as "StateUpdaterPipeline"
-participant LLM as "LLM Client"
-participant Vector as "VectorStore"
-participant Graph as "ConstraintGraph"
-Engine->>Pipeline : "update(context)"
-Pipeline->>LLM : "extractChanges(chapter, state)"
-LLM-->>Pipeline : "extraction result"
-Pipeline->>Pipeline : "apply character updates"
-Pipeline->>Pipeline : "apply plot thread updates"
-Pipeline->>Vector : "addMemory(memory)"
-Pipeline->>Graph : "updateConstraintGraph()"
-Graph-->>Pipeline : "graph updated"
-Pipeline-->>Engine : "StateUpdateResult"
-```
-
-**Diagram sources**
-- [packages/engine/src/memory/stateUpdater.ts:94-248](file://packages/engine/src/memory/stateUpdater.ts#L94-L248)
-
-**Section sources**
-- [packages/engine/src/memory/stateUpdater.ts:1-435](file://packages/engine/src/memory/stateUpdater.ts#L1-L435)
-
-### Constraint Graph System
-- Knowledge Graph Structure: Nodes representing characters, locations, facts, events, and items with typed relationships forming a narrative consistency network.
-- Constraint Checking: Automated validation of canon facts, location consistency, knowledge acquisition timelines, and logical coherence.
-- Violation Reporting: Structured error reporting with severity levels, descriptions, and suggested fixes for narrative inconsistencies.
-- Dual Validation Modes: Fast graph-based validation for immediate feedback and comprehensive LLM-based validation for detailed analysis.
-
-```mermaid
-classDiagram
-class ConstraintGraph {
--nodes Map~string, ConstraintNode~
--edges Map~string, ConstraintEdge~
--adjacencyList Map~string, Set~string~~
--addNode(node) void
--addEdge(edge) void
--checkConstraints(currentChapter) ConstraintViolation[]
-}
-class Validator {
--constraintGraph ConstraintGraph
--validateChapter(context) ValidationResult
--quickValidate(context) ValidationResult
-}
-class ConstraintNode {
--id string
--type NodeType
--label string
--properties Record
--chapterEstablished number
-}
-class ConstraintEdge {
--id string
--from string
--to string
--type string
--properties Record
-}
-ConstraintGraph --> ConstraintNode : "contains"
-ConstraintGraph --> ConstraintEdge : "connects"
-Validator --> ConstraintGraph : "uses"
-```
-
-**Diagram sources**
-- [packages/engine/src/constraints/constraintGraph.ts:29-42](file://packages/engine/src/constraints/constraintGraph.ts#L29-L42)
-- [packages/engine/src/constraints/validator.ts:73-78](file://packages/engine/src/constraints/validator.ts#L73-L78)
-
-**Section sources**
-- [packages/engine/src/constraints/constraintGraph.ts:1-471](file://packages/engine/src/constraints/constraintGraph.ts#L1-L471)
-- [packages/engine/src/constraints/validator.ts:1-286](file://packages/engine/src/constraints/validator.ts#L1-L286)
-
-### Chapter Planner Agent
-- Scene Planning: Converts high-level chapter objectives into detailed scene-by-scene outlines with progressive tension building and word count estimation.
-- Fallback Generation: Automatic outline creation without LLM when AI services are unavailable, maintaining narrative flow.
-- Objective Validation: Ensures planned scenes adequately cover critical and high-priority objectives.
-
-```mermaid
-classDiagram
-class ChapterPlanner {
--context PlannerContext
--plan(context) ChapterOutline
--generateFallbackOutline(directorOutput, targetWordCount) ChapterOutline
--validateOutline(outline, objectives) ValidationResult
--formatForPrompt(outline) string
-}
-class ChapterOutline {
--chapterNumber number
--overallGoal string
--tone string
--totalEstimatedWords number
--scenes Scene[]
--transitions string[]
-.notes string
-}
-class Scene {
--id string
--sequence number
--goal string
--description string
--tension number
--characters string[]
--setting string
--estimatedWords number
-}
-ChapterPlanner --> ChapterOutline : "creates"
-ChapterOutline --> Scene : "contains"
-```
-
-**Diagram sources**
-- [packages/engine/src/agents/chapterPlanner.ts:110-122](file://packages/engine/src/agents/chapterPlanner.ts#L110-L122)
-- [packages/engine/src/agents/chapterPlanner.ts:17-25](file://packages/engine/src/agents/chapterPlanner.ts#L17-L25)
-
-**Section sources**
-- [packages/engine/src/agents/chapterPlanner.ts:1-326](file://packages/engine/src/agents/chapterPlanner.ts#L1-L326)
-
-### Canonical Memory Management
-- Data model: CanonStore holds a story identifier and a list of CanonFact entries, each tagged by category and linked to the chapter they were established.
-- Fact lifecycle: Creation, lookup, updates (including chapter-establishment tracking), and extraction by category.
-- Prompt formatting: A formatter groups facts by category for inclusion in prompts, ensuring LLMs receive structured context.
-
-```mermaid
-flowchart TD
-Start(["extractCanonFromBible"]) --> Init["createCanonStore(storyId)"]
-Init --> IterateChars{"Characters?"}
-IterateChars --> |Yes| AddChar["addFact(character)"]
-AddChar --> IterateChars
-IterateChars --> |No| IterateThreads{"Plot Threads?"}
-IterateThreads --> |Yes| AddThread["addFact(plot thread)"]
-AddThread --> IterateThreads
-IterateThreads --> |No| ReturnStore["return CanonStore"]
-```
-
-**Diagram sources**
-- [packages/engine/src/memory/canonStore.ts:24-58](file://packages/engine/src/memory/canonStore.ts#L24-L58)
-
-**Section sources**
-- [packages/engine/src/memory/canonStore.ts:1-134](file://packages/engine/src/memory/canonStore.ts#L1-L134)
-
-### Generation Pipeline
-- Orchestration: The generateChapter function executes the core workflow: write, optionally continue until complete, validate against canon (optional), summarize, extract memories, and produce a chapter result.
-- Loop control: Continuation attempts are bounded by a configurable maximum, preventing runaway loops.
-- Validation: Optional canon validation reports violations; the pipeline surfaces them to the caller.
-- Memory Extraction: Automatically extracts narrative memories and stores them in vector memory for semantic search.
-- Result composition: Builds a Chapter entity enriched with metadata and timestamps.
+### Enhanced Chapter Generation Pipeline
+- **Scene-Level Workflow**: The generateChapter function now orchestrates the new scene-level workflow: Story Director → Scene Planner → Character Agents → Scene Writer → Scene Validator → Scene Assembler → Chapter Validator.
+- **Story Director Integration**: Consults the Story Director for chapter objectives and tension guidance before proceeding with scene planning.
+- **Character Agent Coordination**: Character Agents decide actions for each scene, providing authentic character-driven narrative flow.
+- **Scene Validation**: Individual scene validation ensures quality and consistency before assembly.
+- **Outcome Extraction**: Extracts scene outcomes to update world state and character development.
+- **Memory Integration**: Scene-level memory extraction and vector store integration for contextual retrieval.
+- **Legacy Compatibility**: Maintains backward compatibility with traditional chapter-level generation when scene-level is disabled.
 
 ```mermaid
 sequenceDiagram
 participant CLI as "CLI"
 participant Pipe as "generateChapter"
-participant Writer as "ChapterWriter"
-participant Checker as "CompletenessChecker"
-participant Sum as "ChapterSummarizer"
-participant Valid as "CanonValidator"
-participant MemExt as "MemoryExtractor"
+participant Director as "StoryDirector"
+participant Planner as "ScenePlanner"
+participant Agents as "CharacterAgentSystem"
+participant Writer as "SceneWriter"
+participant Validator as "SceneValidator"
+participant Assembler as "SceneAssembler"
 participant LLM as "LLMClient"
 CLI->>Pipe : "invoke with GenerationContext"
-Pipe->>Writer : "write(context, canon, memoryRetriever)"
-Writer->>LLM : "complete(prompt, task : 'generation')"
-LLM-->>Writer : "text"
-Writer-->>Pipe : "WriterOutput"
-loop "until complete or max attempts"
-Pipe->>Checker : "check(content)"
-alt "incomplete"
-Pipe->>Writer : "continue(existing, context)"
-Writer->>LLM : "complete(continuation prompt, task : 'generation')"
-LLM-->>Writer : "text"
-Writer-->>Pipe : "extended content"
-else "complete"
-Pipe->>Pipe : "break"
+Pipe->>Director : "direct(context)"
+Director->>LLM : "complete(JSON prompt, task : 'planning')"
+LLM-->>Director : "DirectorOutput"
+Pipe->>Planner : "planScenes(context)"
+Planner->>LLM : "complete(JSON prompt, task : 'planning')"
+LLM-->>Planner : "ScenePlan"
+Pipe->>Agents : "simulateTurn(agents)"
+Agents->>LLM : "complete(JSON prompt, task : 'planning')"
+LLM-->>Agents : "CharacterDecisions"
+loop "for each scene"
+Pipe->>Writer : "writeScene(scene, decisions)"
+Writer->>LLM : "complete(JSON prompt, task : 'generation')"
+LLM-->>Writer : "SceneOutput"
+Pipe->>Validator : "validateScene(scene, output)"
+Validator->>LLM : "complete(JSON prompt, task : 'validation')"
+LLM-->>Validator : "SceneValidationResult"
 end
-end
-opt "validateCanon"
-Pipe->>Valid : "validate(text, canon)"
-Valid->>LLM : "complete(JSON prompt, task : 'validation')"
-LLM-->>Valid : "JSON"
-Valid-->>Pipe : "validation result"
-end
-Pipe->>Sum : "summarize(text, chapterNumber)"
-Sum->>LLM : "complete(prompt, task : 'summarization')"
-LLM-->>Sum : "summary"
-Sum-->>Pipe : "ChapterSummary"
-opt "extract memories"
-Pipe->>MemExt : "extract(chapter, bible)"
-MemExt->>LLM : "complete(extraction prompt, task : 'extraction')"
-LLM-->>MemExt : "memories"
-MemExt-->>Pipe : "memory list"
-end
+Pipe->>Assembler : "assembleChapter(outputs)"
+Assembler-->>Pipe : "AssembledChapter"
 Pipe-->>CLI : "GenerateChapterResult"
 ```
 
 **Diagram sources**
-- [packages/engine/src/pipeline/generateChapter.ts:26-103](file://packages/engine/src/pipeline/generateChapter.ts#L26-L103)
-- [packages/engine/src/agents/writer.ts:103-107](file://packages/engine/src/agents/writer.ts#L103-L107)
-- [packages/engine/src/agents/completeness.ts:40-43](file://packages/engine/src/agents/completeness.ts#L40-L43)
-- [packages/engine/src/agents/summarizer.ts:27-31](file://packages/engine/src/agents/summarizer.ts#L27-L31)
-- [packages/engine/src/agents/canonValidator.ts:44-48](file://packages/engine/src/agents/canonValidator.ts#L44-L48)
-- [packages/engine/src/agents/memoryExtractor.ts:62-66](file://packages/engine/src/agents/memoryExtractor.ts#L62-L66)
-- [packages/engine/src/llm/client.ts:136-148](file://packages/engine/src/llm/client.ts#L136-L148)
+- [packages/engine/src/pipeline/generateChapter.ts:67-309](file://packages/engine/src/pipeline/generateChapter.ts#L67-L309)
 
 **Section sources**
-- [packages/engine/src/pipeline/generateChapter.ts:1-108](file://packages/engine/src/pipeline/generateChapter.ts#L1-L108)
+- [packages/engine/src/pipeline/generateChapter.ts:1-394](file://packages/engine/src/pipeline/generateChapter.ts#L1-L394)
 
 ### Enhanced Agents
 - **ChapterWriter**: Constructs a rich prompt from StoryBible, StoryState, and CanonStore, delegates to LLM with **task: 'generation'**, and extracts title and word count. Includes a continuation mode to extend partial chapters.
@@ -912,8 +653,10 @@ Pipe-->>CLI : "GenerateChapterResult"
 - **StateUpdater**: Extracts and applies state changes to structured state management system.
 - **ChapterPlanner**: Converts objectives into detailed scene outlines with tension progression and word count estimation.
 - **ScenePlanner**: Creates detailed scene-level plans with specific tension targets and character requirements.
-- **SceneWriter**: Generates individual scenes with proper formatting and narrative flow.
+- **SceneWriter**: Generates individual scenes with proper formatting and narrative flow, incorporating character decisions.
 - **SceneValidator**: Validates scene content for consistency and quality.
+- **SceneAssembler**: Combines validated scenes into cohesive chapter structure with proper transitions.
+- **SceneOutcomeExtractor**: Extracts state changes from scenes for world simulation updates.
 - **TensionController**: Manages dynamic tension levels throughout the narrative.
 - **StoryDirector**: Coordinates high-level narrative direction and objectives.
 - **Task-aware Model Selection**: Each agent specifies the appropriate task type for optimal model routing, including embedding operations.
@@ -953,6 +696,7 @@ class ChapterPlanner {
 -plan(context) ChapterOutline
 -generateFallbackOutline(directorOutput, targetWordCount) ChapterOutline
 -validateOutline(outline, objectives) ValidationResult
+-formatForPrompt(outline) string
 }
 class ScenePlanner {
 -plan(context) ScenePlan
@@ -967,19 +711,24 @@ class SceneValidator {
 -validate(scene, context) SceneValidationResult
 -quickValidate(scene) SceneValidationResult
 }
+class SceneAssembler {
+-assemble(scenes) string
+-formatChapterWithHeading(content) string
+}
+class SceneOutcomeExtractor {
+-extractSceneOutcome(scene, sceneOutput, bible) SceneOutcome
+-mergeSceneOutcomes(outcomes) SceneOutcome
+}
 class TensionController {
--calculateTargetTension(chapterNumber, totalChapters, plotThread) number
--calculateNextChapterTension(currentTension, targetTension) number
--analyzeTension(chapterContent) TensionAnalysis
--generateTensionGuidance(tensionLevel, characterStates) TensionGuidance
--formatTensionForPrompt(tensionData) string
--estimateTensionFromChapter(chapter) number
+-analyze(storyState, structuredState) TensionAnalysis
+-generateGuidance(storyState, structuredState) TensionGuidance
+-calculateTarget(chapterNumber, totalChapters) number
+-estimateFromContent(chapter) number
 }
 class StoryDirector {
--direct(context) DirectorOutput
--createChapterObjective(context) ChapterObjective
--manageTensionTargets(objectives) number
--coordinateGenerationFlow(context) void
+-direct(context) Promise~DirectorOutput~
+-generateFallbackObjectives(state, structuredState) DirectorOutput
+-formatForPrompt(output) string
 }
 class LLMClient {
 +complete(...)
@@ -997,6 +746,8 @@ ChapterPlanner --> LLMClient : "uses task : 'planning'"
 ScenePlanner --> LLMClient : "uses task : 'planning'"
 SceneWriter --> LLMClient : "uses task : 'generation'"
 SceneValidator --> LLMClient : "uses task : 'validation'"
+SceneAssembler --> LLMClient : "uses default"
+SceneOutcomeExtractor --> LLMClient : "uses task : 'extraction'"
 TensionController --> LLMClient : "uses task : 'planning'"
 StoryDirector --> LLMClient : "uses task : 'planning'"
 ```
@@ -1017,53 +768,21 @@ StoryDirector --> LLMClient : "uses task : 'planning'"
 - [packages/engine/src/agents/memoryExtractor.ts:1-99](file://packages/engine/src/agents/memoryExtractor.ts#L1-L99)
 - [packages/engine/src/agents/stateUpdater.ts:1-193](file://packages/engine/src/agents/stateUpdater.ts#L1-L193)
 - [packages/engine/src/agents/chapterPlanner.ts:1-326](file://packages/engine/src/agents/chapterPlanner.ts#L1-L326)
-- [packages/engine/src/agents/scenePlanner.ts:1-326](file://packages/engine/src/agents/scenePlanner.ts#L1-L326)
-- [packages/engine/src/agents/sceneWriter.ts:1-326](file://packages/engine/src/agents/sceneWriter.ts#L1-L326)
-- [packages/engine/src/agents/sceneValidator.ts:1-326](file://packages/engine/src/agents/sceneValidator.ts#L1-L326)
-- [packages/engine/src/agents/tensionController.ts:1-326](file://packages/engine/src/agents/tensionController.ts#L1-L326)
-- [packages/engine/src/agents/storyDirector.ts:1-326](file://packages/engine/src/agents/storyDirector.ts#L1-L326)
-
-### Story and State Management
-- StoryBible builder: Creates a story with metadata, characters, and plot threads, tracking creation/update timestamps.
-- Mutation helpers: Add characters and plot threads to the story, updating timestamps.
-- Structured State Initialization: Automatically creates and initializes structured state from StoryBible data.
-- CLI persistence: Saves and loads story artifacts (bible, state, chapters, canon, structured-state, vector-store, constraint-graph) to/from the filesystem under a user-specific directory.
-
-```mermaid
-flowchart TD
-Load["loadStory(id)"] --> ParseBible["parse bible.json"]
-ParseBible --> ParseState["parse state.json"]
-ParseState --> ParseChapters["parse chapters.json"]
-ParseChapters --> CanonCheck{"canon.json exists?"}
-CanonCheck --> |Yes| ParseCanon["parse canon.json"]
-CanonCheck --> |No| ExtractCanon["extractCanonFromBible(bible)"]
-ParseCanon --> StructuredCheck{"structured-state.json exists?"}
-StructuredCheck --> |Yes| ParseStructured["parse structured-state.json"]
-StructuredCheck --> |No| CreateStructured["createStructuredState()"]
-ParseStructured --> Return["return {bible, state, chapters, canon, structuredState}"]
-CreateStructured --> Return
-ExtractCanon --> Return
-```
-
-**Diagram sources**
-- [apps/cli/src/config/store.ts:39-67](file://apps/cli/src/config/store.ts#L39-L67)
-- [packages/engine/src/story/bible.ts:3-26](file://packages/engine/src/story/bible.ts#L3-L26)
-- [packages/engine/src/memory/canonStore.ts:24-58](file://packages/engine/src/memory/canonStore.ts#L24-L58)
-- [packages/engine/src/story/structuredState.ts:33-43](file://packages/engine/src/story/structuredState.ts#L33-L43)
-
-**Section sources**
-- [packages/engine/src/story/bible.ts:1-73](file://packages/engine/src/story/bible.ts#L1-L73)
-- [packages/engine/src/story/structuredState.ts:1-235](file://packages/engine/src/story/structuredState.ts#L1-L235)
-- [apps/cli/src/config/store.ts:1-195](file://apps/cli/src/config/store.ts#L1-L195)
+- [packages/engine/src/agents/scenePlanner.ts:1-177](file://packages/engine/src/agents/scenePlanner.ts#L1-L177)
+- [packages/engine/src/agents/sceneWriter.ts:1-145](file://packages/engine/src/agents/sceneWriter.ts#L1-L145)
+- [packages/engine/src/agents/sceneValidator.ts:1-117](file://packages/engine/src/agents/sceneValidator.ts#L1-L117)
+- [packages/engine/src/agents/sceneAssembler.ts:1-116](file://packages/engine/src/agents/sceneAssembler.ts#L1-L116)
+- [packages/engine/src/agents/sceneOutcomeExtractor.ts:1-117](file://packages/engine/src/agents/sceneOutcomeExtractor.ts#L1-L117)
+- [packages/engine/src/agents/tensionController.ts:1-252](file://packages/engine/src/agents/tensionController.ts#L1-L252)
+- [packages/engine/src/agents/storyDirector.ts:1-276](file://packages/engine/src/agents/storyDirector.ts#L1-L276)
 
 ### Enhanced CLI Integration
-- Command routing: The CLI initializes commands for config, init, generate, status, continue, validate, state inspection, and memory querying.
+- **Command routing**: The CLI initializes commands for config, init, generate, status, continue, validate, state inspection, and memory querying.
 - **Interactive Multi-Model Configuration**: The config command provides an interactive setup for multi-model configurations with reasoning and chat models, and **embedding model configuration** including providers like Alibaba Cloud, ByteDance Ark, and OpenAI.
-- Generation flow: Loads persisted story, constructs GenerationContext, invokes generateChapter, updates state, and persists results.
-- Validation flow: Comprehensive story validation including constraint checking, consistency verification, and violation reporting.
-- State inspection: Detailed character and plot thread state visualization with progress tracking.
-- Memory querying: Semantic search through vector memories with contextual filtering and relevance scoring.
-- Error handling: Catches generation failures and exits with a non-zero code.
+- **Scene-Level Generation**: The generate command now supports scene-level generation with configurable scene counts and character integration.
+- **Enhanced Output**: Provides detailed progress information including scene counts, word counts, and character actions.
+- **Memory Integration**: Scene-level memory extraction and vector store integration for contextual retrieval.
+- **Error handling**: Catches generation failures and exits with a non-zero code.
 - **Environment Configuration**: Applies multi-model configuration by setting LLM_MODELS_CONFIG environment variable with **embedding model support**.
 
 ```mermaid
@@ -1078,29 +797,31 @@ CLI->>Config : "interactive setup"
 Config->>FS : "save multi-model config"
 Config->>Config : "applyConfig()"
 Config->>process.env : "set LLM_MODELS_CONFIG"
-User->>CLI : "nos validate <story-id>"
+User->>CLI : "nos generate <story-id>"
 CLI->>FS : "loadStory()"
 FS-->>CLI : "{bible, state, chapters, canon, structuredState}"
-CLI->>Engine : "createConstraintGraph()"
-Engine-->>CLI : "ConstraintGraph"
-CLI->>Engine : "getVectorStore()"
-Engine-->>CLI : "VectorStore"
-CLI->>Engine : "Validator.quickValidate()"
-Engine-->>CLI : "ValidationResult"
-CLI-->>User : "Validation report"
+CLI->>Engine : "generateChapter(context, {useSceneLevel : true})"
+Engine->>Engine : "StoryDirector.direct()"
+Engine->>Engine : "ScenePlanner.planScenes()"
+Engine->>Engine : "CharacterAgentSystem.simulateTurn()"
+Engine->>Engine : "SceneWriter.writeScene()"
+Engine->>Engine : "SceneValidator.validateScene()"
+Engine->>Engine : "SceneAssembler.assembleChapter()"
+Engine-->>CLI : "GenerateChapterResult"
+CLI-->>User : "Detailed generation report"
 ```
 
 **Diagram sources**
 - [apps/cli/src/index.ts:121-150](file://apps/cli/src/index.ts#L121-L150)
 - [apps/cli/src/commands/validate.ts:4-107](file://apps/cli/src/commands/validate.ts#L4-L107)
 - [apps/cli/src/config/store.ts:15-49](file://apps/cli/src/config/store.ts#L15-L49)
-- [packages/engine/src/pipeline/generateChapter.ts:26-103](file://packages/engine/src/pipeline/generateChapter.ts#L26-L103)
+- [packages/engine/src/pipeline/generateChapter.ts:67-309](file://packages/engine/src/pipeline/generateChapter.ts#L67-L309)
 - [packages/engine/src/constraints/validator.ts:73-84](file://packages/engine/src/constraints/validator.ts#L73-L84)
 - [apps/cli/src/commands/config.ts:192-318](file://apps/cli/src/commands/config.ts#L192-L318)
 
 **Section sources**
 - [apps/cli/src/index.ts:1-54](file://apps/cli/src/index.ts#L1-L54)
-- [apps/cli/src/commands/generate.ts:1-55](file://apps/cli/src/commands/generate.ts#L1-L55)
+- [apps/cli/src/commands/generate.ts:1-81](file://apps/cli/src/commands/generate.ts#L1-L81)
 - [apps/cli/src/commands/validate.ts:1-107](file://apps/cli/src/commands/validate.ts#L1-L107)
 - [apps/cli/src/commands/state.ts:1-83](file://apps/cli/src/commands/state.ts#L1-L83)
 - [apps/cli/src/commands/memories.ts:1-66](file://apps/cli/src/commands/memories.ts#L1-L66)
@@ -1112,16 +833,16 @@ CLI-->>User : "Validation report"
 - Coupling: Agents depend on the LLM client abstraction with task-aware model selection; the pipeline depends on agents and memory; world simulation components interact through well-defined interfaces; constraints operate independently but integrate with validation systems; vector memory system integrates with state management and constraint graph.
 - Extensibility: New providers can be added to the LLM client factory; new agents can be integrated into the pipeline with appropriate task specification; additional categories can be added to the CanonStore; world simulation can accommodate new character types and event types; vector memory system supports new embedding models and search algorithms.
 - **Multi-Model Extensibility**: The system supports additional models with different purposes through the ModelConfig interface and TASK_MODEL_MAPPING, including **embedding model support**.
-- **Scene-Level Extensibility**: New scene types and validation criteria can be easily integrated into the scene generation workflow.
+- **Enhanced Scene-Level Extensibility**: New scene types and validation criteria can be easily integrated into the scene generation workflow.
 
 ```mermaid
 graph LR
 Types["types/index.ts"] --> LLM["llm/client.ts<br/>Multi-Model<br/>Embedding Support"]
 Types --> Memory["memory/*"]
-Types --> Pipeline["pipeline/generateChapter.ts"]
+Types --> Pipeline["pipeline/generateChapter.ts<br/>Scene-Level Flow"]
 Types --> Story["story/*"]
-Types --> Agents["agents/*<br/>Task-Aware<br/>Scene-Level"]
-Types --> World["world/*"]
+Types --> Agents["agents/*<br/>Task-Aware<br/>Enhanced Agents"]
+Types --> World["world/*<br/>Character Agents"]
 Types --> Constraints["constraints/*"]
 Types --> Scene["scene/*<br/>Assembly & Outcome"]
 LLM --> Agents
@@ -1160,7 +881,7 @@ Engine_Index --> Scene
 - [packages/engine/src/memory/memoryRetriever.ts:1-174](file://packages/engine/src/memory/memoryRetriever.ts#L1-L174)
 - [packages/engine/src/memory/stateUpdater.ts:1-435](file://packages/engine/src/memory/stateUpdater.ts#L1-L435)
 - [packages/engine/src/story/structuredState.ts:1-235](file://packages/engine/src/story/structuredState.ts#L1-L235)
-- [packages/engine/src/pipeline/generateChapter.ts:1-108](file://packages/engine/src/pipeline/generateChapter.ts#L1-L108)
+- [packages/engine/src/pipeline/generateChapter.ts:1-394](file://packages/engine/src/pipeline/generateChapter.ts#L1-L394)
 - [packages/engine/src/story/bible.ts:1-73](file://packages/engine/src/story/bible.ts#L1-L73)
 - [packages/engine/src/agents/writer.ts:1-166](file://packages/engine/src/agents/writer.ts#L1-L166)
 - [packages/engine/src/agents/completeness.ts:1-56](file://packages/engine/src/agents/completeness.ts#L1-L56)
@@ -1169,20 +890,20 @@ Engine_Index --> Scene
 - [packages/engine/src/agents/memoryExtractor.ts:1-99](file://packages/engine/src/agents/memoryExtractor.ts#L1-L99)
 - [packages/engine/src/agents/stateUpdater.ts:1-193](file://packages/engine/src/agents/stateUpdater.ts#L1-L193)
 - [packages/engine/src/agents/chapterPlanner.ts:1-326](file://packages/engine/src/agents/chapterPlanner.ts#L1-L326)
-- [packages/engine/src/agents/scenePlanner.ts:1-326](file://packages/engine/src/agents/scenePlanner.ts#L1-L326)
-- [packages/engine/src/agents/sceneWriter.ts:1-326](file://packages/engine/src/agents/sceneWriter.ts#L1-L326)
-- [packages/engine/src/agents/sceneValidator.ts:1-326](file://packages/engine/src/agents/sceneValidator.ts#L1-L326)
-- [packages/engine/src/agents/tensionController.ts:1-326](file://packages/engine/src/agents/tensionController.ts#L1-L326)
-- [packages/engine/src/agents/storyDirector.ts:1-326](file://packages/engine/src/agents/storyDirector.ts#L1-L326)
+- [packages/engine/src/agents/scenePlanner.ts:1-177](file://packages/engine/src/agents/scenePlanner.ts#L1-L177)
+- [packages/engine/src/agents/sceneWriter.ts:1-145](file://packages/engine/src/agents/sceneWriter.ts#L1-L145)
+- [packages/engine/src/agents/sceneValidator.ts:1-117](file://packages/engine/src/agents/sceneValidator.ts#L1-L117)
+- [packages/engine/src/agents/sceneAssembler.ts:1-116](file://packages/engine/src/agents/sceneAssembler.ts#L1-L116)
+- [packages/engine/src/agents/sceneOutcomeExtractor.ts:1-117](file://packages/engine/src/agents/sceneOutcomeExtractor.ts#L1-L117)
+- [packages/engine/src/agents/tensionController.ts:1-252](file://packages/engine/src/agents/tensionController.ts#L1-L252)
+- [packages/engine/src/agents/storyDirector.ts:1-276](file://packages/engine/src/agents/storyDirector.ts#L1-L276)
 - [packages/engine/src/world/worldState.ts:1-321](file://packages/engine/src/world/worldState.ts#L1-L321)
 - [packages/engine/src/world/characterAgent.ts:1-304](file://packages/engine/src/world/characterAgent.ts#L1-L304)
 - [packages/engine/src/world/eventResolver.ts:1-272](file://packages/engine/src/world/eventResolver.ts#L1-L272)
 - [packages/engine/src/constraints/constraintGraph.ts:1-471](file://packages/engine/src/constraints/constraintGraph.ts#L1-L471)
 - [packages/engine/src/constraints/validator.ts:1-286](file://packages/engine/src/constraints/validator.ts#L1-L286)
-- [packages/engine/src/scene/sceneAssembler.ts:1-326](file://packages/engine/src/scene/sceneAssembler.ts#L1-L326)
-- [packages/engine/src/scene/sceneOutcomeExtractor.ts:1-326](file://packages/engine/src/scene/sceneOutcomeExtractor.ts#L1-L326)
 - [apps/cli/src/index.ts:1-54](file://apps/cli/src/index.ts#L1-L54)
-- [apps/cli/src/commands/generate.ts:1-55](file://apps/cli/src/commands/generate.ts#L1-L55)
+- [apps/cli/src/commands/generate.ts:1-81](file://apps/cli/src/commands/generate.ts#L1-L81)
 - [apps/cli/src/commands/validate.ts:1-107](file://apps/cli/src/commands/validate.ts#L1-L107)
 - [apps/cli/src/commands/state.ts:1-83](file://apps/cli/src/commands/state.ts#L1-L83)
 - [apps/cli/src/commands/memories.ts:1-66](file://apps/cli/src/commands/memories.ts#L1-L66)
@@ -1206,8 +927,10 @@ Engine_Index --> Scene
 - **Persistence overhead**: Batch writes and avoid frequent disk I/O during long runs.
 - **Multi-Model Overhead**: Model switching adds minimal overhead but provides significant performance benefits through purpose-based routing.
 - **Embedding Model Efficiency**: Dedicated embedding models provide optimized vector generation for semantic search operations.
-- **Scene-Level Processing**: Scene planning and validation add computational overhead but enable fine-grained narrative control.
+- **Enhanced Scene-Level Processing**: Scene planning and validation add computational overhead but enable fine-grained narrative control.
 - **Tension Control Complexity**: Dynamic tension calculation requires additional processing but enhances narrative engagement.
+- **Character Agent Processing**: Scene-level character decision-making adds computational overhead but creates more authentic narratives.
+- **Story Director Processing**: High-level narrative coordination adds processing time but ensures coherent story structure.
 
 ## Troubleshooting Guide
 - **LLM provider errors**: Verify environment variables for provider selection and keys. Confirm model availability and quotas.
@@ -1229,6 +952,9 @@ Engine_Index --> Scene
 - **Model not found errors**: Ensure model names in configuration match actual model configurations and providers are available.
 - **Embedding model errors**: **Verify embedding model configuration** and API keys; check embedding dimension compatibility; ensure embedding provider supports the required model.
 - **Provider compatibility issues**: **Check provider embedding support** for Alibaba Cloud, ByteDance Ark, and OpenAI; ensure proper base URLs and model names are configured.
+- **Story Director failures**: StoryDirector offers fallback objective generation; verify story state and tension analysis inputs.
+- **Character agent failures**: CharacterAgentSystem provides fallback decision-making; verify character data and context inputs.
+- **Scene-level generation failures**: Enhanced pipeline may fail at any stage; check individual agent outputs and validation results.
 
 **Section sources**
 - [packages/engine/src/llm/client.ts:128-134](file://packages/engine/src/llm/client.ts#L128-L134)
@@ -1239,11 +965,12 @@ Engine_Index --> Scene
 - [packages/engine/src/agents/canonValidator.ts:49-55](file://packages/engine/src/agents/canonValidator.ts#L49-L55)
 - [packages/engine/src/world/characterAgent.ts:288-296](file://packages/engine/src/world/characterAgent.ts#L288-L296)
 - [packages/engine/src/constraints/constraintGraph.ts:229-244](file://packages/engine/src/constraints/constraintGraph.ts#L229-L244)
+- [packages/engine/src/agents/storyDirector.ts:218-272](file://packages/engine/src/agents/storyDirector.ts#L218-L272)
 
 ## Conclusion
-The Narrative Operating System engine package implements a comprehensive, extensible architecture for AI-powered story generation with **advanced multi-model support and embedding capabilities**. The system now features a sophisticated hybrid approach combining autonomous world simulation with narrative direction, supported by intelligent planning, strict consistency enforcement, and advanced memory management with **dedicated embedding models**. The **enhanced LLM client with multi-model architecture** provides purpose-based routing, task-specific model mapping, **embedding model discovery**, and backward compatibility, enabling optimal performance across different use cases including **semantic search operations**. The addition of vector memory system with semantic search, structured state management with comprehensive character and plot tracking, enhanced constraint validation with dual-mode approaches, and autonomous state updater pipeline enables emergent storytelling with logical coherence, narrative consistency, and rich contextual awareness powered by **optimized embedding models**. The **comprehensive scene-level generation system** with dedicated agents for planning, writing, validation, and assembly provides fine-grained control over narrative structure and pacing. The **advanced character simulation system** with autonomous decision-making and agenda management creates rich, believable worlds with emergent plot development. The **dynamic tension control system** ensures optimal narrative engagement throughout the story arc. By separating concerns into agents with task-aware model selection, a provider-agnostic LLM client with multi-model support and **embedding capabilities**, canonical and vector memory systems, structured state management, world simulation, constraint enforcement, and a pipeline orchestrator, the system supports iterative chapter generation with validation, memory extraction, and state updates. The CLI demonstrates practical usage through generation, validation, state inspection, memory querying commands, and **interactive multi-model configuration including embedding providers**, along with persistence and incremental progress tracking. The modular design and environment-driven configuration facilitate easy experimentation with providers and tuning of generation parameters, while the **purpose-based routing system** ensures optimal model selection for different tasks including **embedding operations**.
+The Narrative Operating System engine package implements a comprehensive, extensible architecture for AI-powered story generation with **advanced multi-model support and embedding capabilities**. The system now features a sophisticated hybrid approach combining autonomous world simulation with narrative direction, supported by intelligent planning, strict consistency enforcement, and advanced memory management with **dedicated embedding models**. The **enhanced LLM client with multi-model architecture** provides purpose-based routing, task-specific model mapping, **embedding model discovery**, and backward compatibility, enabling optimal performance across different use cases including **semantic search operations**. The addition of vector memory system with semantic search, structured state management with comprehensive character and plot tracking, enhanced constraint validation with dual-mode approaches, and autonomous state updater pipeline enables emergent storytelling with logical coherence, narrative consistency, and rich contextual awareness powered by **optimized embedding models**. The **comprehensive scene-level generation system** with dedicated agents for planning, writing, validation, and assembly provides fine-grained control over narrative structure and pacing. The **advanced character simulation system** with autonomous decision-making and agenda management creates rich, believable worlds with emergent plot development. The **dynamic tension control system** ensures optimal narrative engagement throughout the story arc. The **enhanced Story Director system** provides high-level narrative coordination and objective generation. By separating concerns into agents with task-aware model selection, a provider-agnostic LLM client with multi-model support and **embedding capabilities**, canonical and vector memory systems, structured state management, world simulation, constraint enforcement, and a pipeline orchestrator, the system supports iterative chapter generation with validation, memory extraction, and state updates. The CLI demonstrates practical usage through generation, validation, state inspection, memory querying commands, and **interactive multi-model configuration including embedding providers**, along with persistence and incremental progress tracking. The modular design and environment-driven configuration facilitate easy experimentation with providers and tuning of generation parameters, while the **purpose-based routing system** ensures optimal model selection for different tasks including **embedding operations**.
 
-**Updated** Enhanced conclusion to reflect the comprehensive multi-model architecture, embedding model capabilities, expanded provider support including Alibaba Cloud and ByteDance Ark, and the new scene-level generation system with dedicated agents for enhanced narrative control.
+**Updated** Enhanced conclusion to reflect the comprehensive multi-model architecture, embedding model capabilities, expanded provider support including Alibaba Cloud and ByteDance Ark, the new scene-level generation system with dedicated agents for enhanced narrative control, the Story Director system for high-level coordination, and the integrated Character Agent system for autonomous character decision-making.
 
 ## Appendices
 - **Technology stack**: TypeScript, OpenAI SDK integration, HNSW-based vector search with hnswlib-node, monorepo orchestration with Turborepo and pnpm workspaces.
@@ -1256,9 +983,11 @@ The Narrative Operating System engine package implements a comprehensive, extens
   - **State tracking**: Comprehensive structured state management with tension calculation and recent event tracking.
   - **World simulation**: Autonomous character agents with goal-driven decision making and event resolution.
   - **Multi-model architecture**: Purpose-based routing, task-specific model mapping, embedding model discovery, and backward compatibility support.
-  - **Scene-level control**: Dedicated agents for scene planning, writing, validation, and assembly with fine-grained narrative control.
-  - **Tension management**: Dynamic tension calculation, target setting, and guidance generation for optimal narrative engagement.
+  - **Enhanced scene-level control**: Dedicated agents for scene planning, writing, validation, and assembly with fine-grained narrative control.
+  - **Advanced tension management**: Dynamic tension calculation, target setting, and guidance generation for optimal narrative engagement.
   - **Provider ecosystem**: Support for OpenAI, DeepSeek, Alibaba Cloud, and ByteDance Ark providers with **native embedding capabilities**.
+  - **Story-level coordination**: High-level narrative direction and objective generation through the Story Director system.
+  - **Character-driven narratives**: Autonomous character decision-making and action planning for authentic storytelling.
 
 **Section sources**
 - [packages/engine/src/llm/client.ts:40-48](file://packages/engine/src/llm/client.ts#L40-L48)
@@ -1267,6 +996,6 @@ The Narrative Operating System engine package implements a comprehensive, extens
 - [packages/engine/src/story/structuredState.ts:155-179](file://packages/engine/src/story/structuredState.ts#L155-L179)
 - [turbo.json:1-19](file://turbo.json#L1-L19)
 - [pnpm-workspace.yaml:1-4](file://pnpm-workspace.yaml#L1-L4)
-- [packages/engine/README.md:1-55](file://packages/engine/README.md#L1-L55)
+- [packages/engine/README.md:1-70](file://packages/engine/README.md#L1-L70)
 - [packages/engine/package.json:1-46](file://packages/engine/package.json#L1-L46)
 - [apps/cli/src/commands/config.ts:192-318](file://apps/cli/src/commands/config.ts#L192-L318)

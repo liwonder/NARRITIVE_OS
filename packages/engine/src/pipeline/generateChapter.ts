@@ -12,6 +12,8 @@ import { storyDirector, type DirectorOutput } from '../agents/storyDirector.js';
 import { generateTensionGuidance, analyzeTension } from '../agents/tensionController.js';
 import { createStructuredState } from '../story/structuredState.js';
 import { CharacterAgentSystem, type CharacterDecision } from '../world/characterAgent.js';
+import { WorldStateEngine, createWorldStateEngine } from '../world/worldStateEngine.js';
+import { worldStateUpdater } from '../agents/worldStateUpdater.js';
 import type { GenerationContext, Chapter, ChapterSummary, SceneOutput, SceneOutcome } from '../types/index.js';
 import type { CanonStore } from '../memory/canonStore.js';
 import type { VectorStore } from '../memory/vectorStore.js';
@@ -32,6 +34,7 @@ export interface GenerateChapterOptions {
   retrieveMemories?: boolean;
   useSceneLevel?: boolean; // Enable scene-by-scene generation (Phase 12)
   targetSceneCount?: number;
+  worldStateEngine?: WorldStateEngine; // Phase 14 - World State Engine
 }
 
 export async function generateChapter(
@@ -73,7 +76,8 @@ async function generateChapterSceneLevel(
     canon, 
     vectorStore, 
     validateCanon = true,
-    targetSceneCount = 4
+    targetSceneCount = 4,
+    worldStateEngine: providedWorldState
   } = options;
 
   console.log(`  Using scene-level generation (${targetSceneCount} scenes)...`);
@@ -84,6 +88,18 @@ async function generateChapterSceneLevel(
     await vectorStore.initialize();
     memoryRetriever = createMemoryRetriever(vectorStore);
   }
+
+  // Phase 14: Initialize World State Engine
+  const worldStateEngine = providedWorldState || createWorldStateEngine(bible.id);
+  
+  // Initialize world state from bible characters if empty
+  if (Object.keys(worldStateEngine.getState().characters).length === 0) {
+    console.log('  Initializing world state from story bible...');
+    for (const char of bible.characters) {
+      worldStateEngine.addCharacter(char.name, 'unknown', 'neutral');
+    }
+  }
+  worldStateEngine.setChapterScene(chapterNumber, 1);
 
   // Step 1: Story Director - Get chapter direction
   console.log('  Consulting Story Director...');
@@ -212,7 +228,7 @@ async function generateChapterSceneLevel(
     
     // Get character decisions for this scene
     const decisions = characterDecisions.get(scene.id) || [];
-    const characterActions = decisions.map(d => `${d.character}: ${d.action}`).join('\n');
+    const characterDecisionStrings = decisions.map(d => `${d.character}: ${d.action}`);
 
     // Generate the scene with character guidance
     let sceneOutput = await writeScene({
@@ -223,7 +239,7 @@ async function generateChapterSceneLevel(
       previousSceneSummary,
       canonFacts,
       relevantMemories,
-      activeSkills: [`Character Actions:\n${characterActions}`] // Pass character decisions
+      characterDecisions: characterDecisionStrings // Pass character decisions properly
     });
 
     // Validate the scene
@@ -258,6 +274,16 @@ async function generateChapterSceneLevel(
         timestamp: new Date(),
       });
     }
+
+    // Phase 14: Update world state from scene content
+    console.log(`    Updating world state...`);
+    await worldStateUpdater.updateFromScene(
+      worldStateEngine,
+      sceneOutput.content,
+      bible,
+      chapterNumber,
+      scene.id
+    );
 
     sceneOutputs.push(sceneOutput);
     previousSceneSummary = sceneOutput.summary;
