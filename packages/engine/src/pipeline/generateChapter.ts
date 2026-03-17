@@ -7,7 +7,7 @@ import { planScenes } from '../agents/scenePlanner.js';
 import { storyDirector, type DirectorOutput } from '../agents/storyDirector.js';
 import { generateTensionGuidance, analyzeTension } from '../agents/tensionController.js';
 import { createStructuredState } from '../story/structuredState.js';
-import { WorldStateEngine, createWorldStateEngine } from '../world/worldStateEngine.js';
+import { WorldStateEngine, createWorldStateEngine, type WorldState } from '../world/worldStateEngine.js';
 import type { GenerationContext, Chapter, ChapterSummary, SceneOutput, ScenePlan, StoryBible } from '../types/index.js';
 import type { CanonStore } from '../memory/canonStore.js';
 import { extractCanonFromChapter } from '../memory/canonStore.js';
@@ -19,6 +19,8 @@ export interface GenerateChapterResult {
   summary: ChapterSummary;
   violations: string[];
   memoriesExtracted: number;
+  updatedCanon?: CanonStore; // Updated canon with new facts from this chapter
+  updatedWorldState?: WorldState; // Updated world state after chapter generation
 }
 
 export interface GenerateChapterOptions {
@@ -185,11 +187,46 @@ async function generateChapterSceneLevel(
 
   console.log(`  Generated: ${writerOutput.wordCount} words (${scenePlan.scenes.length} scenes framework)`);
 
+  // Step 6: Extract and store memories
+  let memoriesExtracted = 0;
+  if (vectorStore) {
+    console.log('  Extracting memories...');
+    const extracted = await memoryExtractor.extract(chapter, bible);
+    
+    for (const memory of extracted) {
+      await vectorStore.addMemory({
+        storyId: bible.id,
+        chapterNumber,
+        content: memory.content,
+        category: memory.category,
+        timestamp: new Date(),
+      });
+      memoriesExtracted++;
+    }
+    console.log(`  Stored ${memoriesExtracted} memories`);
+  }
+
+  // Step 7: Extract new canon facts from chapter
+  let updatedCanon: CanonStore | undefined;
+  if (canon) {
+    console.log('  Extracting new canon facts...');
+    updatedCanon = await extractCanonFromChapter(canon, chapter, bible);
+    const newFactsCount = updatedCanon.facts.length - canon.facts.length;
+    if (newFactsCount > 0) {
+      console.log(`  📝 Added ${newFactsCount} new canon facts`);
+    }
+  }
+
+  // Step 8: Return updated world state
+  const updatedWorldState = worldStateEngine.getState();
+
   return { 
     chapter, 
     summary, 
     violations, 
-    memoriesExtracted: 1 // One chapter = one memory
+    memoriesExtracted,
+    updatedCanon,
+    updatedWorldState
   };
 }
 

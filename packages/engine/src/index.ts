@@ -141,7 +141,7 @@ export {
 } from './story/structuredState.js';
 
 // Memory
-export { createCanonStore, extractCanonFromBible, addFact, formatCanonForPrompt, type CanonStore, type CanonFact } from './memory/canonStore.js';
+export { createCanonStore, extractCanonFromBible, extractCanonFromChapter, addFact, formatCanonForPrompt, type CanonStore, type CanonFact } from './memory/canonStore.js';
 export { VectorStore, getVectorStore, clearVectorStore, type NarrativeMemory, type MemorySearchResult } from './memory/vectorStore.js';
 export { MemoryRetriever, createMemoryRetriever, type RetrievalContext, type RetrievedMemory } from './memory/memoryRetriever.js';
 

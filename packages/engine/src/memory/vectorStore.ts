@@ -232,10 +232,14 @@ export class VectorStore {
     this.memories = new Map(parsed.memories);
     this.nextId = parsed.nextId || this.memories.size;
     
-    // Rebuild HNSW index
-    await this.initialize();
+    // Reset initialization state but DON'T clear memories
+    this.isInitialized = false;
+    this.index = null;
+    
+    // Rebuild HNSW index with first embedding to detect dimension
     for (const [id, memory] of this.memories) {
       if (memory.embedding) {
+        this.ensureInitialized(memory.embedding);
         this.index!.addPoint(memory.embedding, id);
       }
     }

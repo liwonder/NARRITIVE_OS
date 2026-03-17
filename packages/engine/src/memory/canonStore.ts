@@ -1,4 +1,5 @@
-import type { StoryBible } from '../types/index.js';
+import type { StoryBible, Chapter } from '../types/index.js';
+import { getLLM } from '../llm/client.js';
 
 export interface CanonFact {
   id: string;
@@ -130,4 +131,101 @@ export function formatCanonForPrompt(store: CanonStore): string {
 
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+}
+
+/**
+ * Extract new canon facts from chapter content
+ * Canon stores IMMUTABLE facts only - events that happened, revelations made, background established
+ * NOT current states (location, emotion, inventory) - those belong to World State
+ */
+export async function extractCanonFromChapter(
+  store: CanonStore,
+  chapter: Chapter,
+  bible: StoryBible
+): Promise<CanonStore> {
+  const prompt = `You are a canon extractor. Extract IMMUTABLE facts from this chapter that should be permanently recorded in the story's canon.
+
+## Story Bible
+Title: ${bible.title}
+Genre: ${bible.genre}
+Setting: ${bible.setting}
+
+## Existing Canon Facts (DO NOT duplicate these)
+${store.facts.map(f => `- ${f.subject} ${f.attribute}: ${f.value}`).join('\n') || 'None yet'}
+
+## Chapter ${chapter.number}: ${chapter.title}
+${chapter.content.substring(0, 6000)}
+
+## IMPORTANT: Canon vs World State Boundary
+
+**Canon (IMMUTABLE - Extract these):**
+- Events that OCCURRED: "主角在第${chapter.number}章于古城受伤"
+- Revelations/Discoveries: "神秘人的真实身份是主角的哥哥"
+- Backstory established: "主角童年在孤儿院长大"
+- World rules revealed: "古城的魔法阵需要血祭激活"
+- Relationships established: "A和B是兄妹关系"
+- Permanent changes: "古城被摧毁"
+
+**World State (DYNAMIC - DO NOT extract):**
+- Current location: "主角目前在客栈" ❌
+- Current emotion: "主角现在很愤怒" ❌
+- Current inventory: "主角持有宝剑" ❌
+- Temporary status: "主角正在战斗中" ❌
+
+## Extraction Task
+
+Identify NEW immutable facts established in this chapter. For each fact:
+- category: 'character' | 'world' | 'plot' | 'timeline'
+- subject: who or what the fact is about
+- attribute: what aspect (e.g., 'event_chapter${chapter.number}', 'backstory', 'identity', 'relationship', 'world_rule')
+- value: the permanent fact (include chapter number for events)
+
+Only include facts that:
+- Are PERMANENT (won't change in future chapters)
+- Are EXPLICITLY stated or clearly implied
+- Would violate continuity if contradicted later
+- Are NOT already in existing canon
+
+Respond with JSON only:
+{
+  "facts": [
+    {"category": "character", "subject": "主角", "attribute": "event_chapter${chapter.number}", "value": "在古城与黑衣人战斗，左臂受伤"},
+    {"category": "character", "subject": "神秘人", "attribute": "identity", "value": "主角的亲生哥哥"},
+    {"category": "world", "subject": "古城", "attribute": "world_rule", "value": "魔法阵需要血祭才能激活"},
+    {"category": "plot", "subject": "主线剧情", "attribute": "revelation_chapter${chapter.number}", "value": "宝藏其实是封印恶魔的容器"}
+  ]
+}`;
+
+  try {
+    const result = await getLLM().completeJSON<{ facts: Array<Omit<CanonFact, 'id' | 'chapterEstablished'>> }>(prompt, {
+      temperature: 0.3,
+      maxTokens: 1500,
+      task: 'extraction',
+    });
+
+    if (!result.facts || result.facts.length === 0) {
+      return store;
+    }
+
+    // Add new facts to store
+    let updatedStore = store;
+    for (const fact of result.facts) {
+      // Check if fact already exists (same subject + attribute)
+      const exists = store.facts.some(f => 
+        f.subject === fact.subject && f.attribute === fact.attribute
+      );
+      
+      if (!exists) {
+        updatedStore = addFact(updatedStore, {
+          ...fact,
+          chapterEstablished: chapter.number,
+        });
+      }
+    }
+
+    return updatedStore;
+  } catch (error) {
+    console.warn('Failed to extract canon from chapter:', error);
+    return store;
+  }
 }

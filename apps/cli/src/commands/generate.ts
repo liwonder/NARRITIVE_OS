@@ -1,4 +1,4 @@
-import { generateChapter, updateStoryState, type GenerationContext, getVectorStore } from '@narrative-os/engine';
+import { generateChapter, updateStoryState, type GenerationContext, getVectorStore, createWorldStateEngine } from '@narrative-os/engine';
 import { loadStory, saveStory, saveVectorStore, loadVectorStore } from '../config/store.js';
 
 export async function generateCommand(storyId: string) {
@@ -13,7 +13,14 @@ export async function generateCommand(storyId: string) {
     process.exit(1);
   }
 
-  const { bible, state, chapters, canon } = story;
+  const { bible, state, chapters, canon, worldState } = story;
+  
+  // Initialize world state engine
+  const worldStateEngine = createWorldStateEngine(storyId);
+  if (worldState) {
+    // Load existing world state
+    Object.assign(worldStateEngine.getState(), worldState);
+  }
   
   if (state.currentChapter >= state.totalChapters) {
     console.log('Story is complete!');
@@ -39,12 +46,15 @@ export async function generateCommand(storyId: string) {
   }
 
   try {
-    const result = await generateChapter(context, { canon, vectorStore });
+    const result = await generateChapter(context, { canon, vectorStore, worldStateEngine });
     
     const newChapters = [...chapters, result.chapter];
     const newState = updateStoryState(state, result.summary);
     
-    saveStory(bible, newState, newChapters, canon);
+    // Use updated canon and world state if available
+    const updatedCanon = result.updatedCanon || canon;
+    const updatedWorldState = result.updatedWorldState || worldStateEngine.getState();
+    saveStory(bible, newState, newChapters, updatedCanon, undefined, updatedWorldState);
     
     // Save vector store
     saveVectorStore(storyId, vectorStore.serialize());

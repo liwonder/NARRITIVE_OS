@@ -9,12 +9,20 @@
 - [worldStateUpdater.ts](file://packages/engine/src/agents/worldStateUpdater.ts)
 - [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts)
 - [structuredState.ts](file://packages/engine/src/story/structuredState.ts)
+- [bible.ts](file://packages/engine/src/story/bible.ts)
 - [client.ts](file://packages/engine/src/llm/client.ts)
 - [index.ts](file://packages/engine/src/index.ts)
 - [types/index.ts](file://packages/engine/src/types/index.ts)
 - [README.md](file://packages/engine/README.md)
 - [world-simulation.test.ts](file://packages/engine/src/test/world-simulation.test.ts)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Enhanced WorldStateEngine with automatic object creation capabilities in `moveObject` and `discoverObject` methods
+- Improved validation for non-existent objects with better error handling
+- Added support for world state initialization from story bible
+- Updated integration documentation to reflect automatic world state initialization
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -29,6 +37,8 @@
 
 ## Introduction
 The World State Engine is a core subsystem responsible for maintaining and evolving the persistent, logically consistent state of a story's world. It tracks characters, locations, objects, relationships, and timeline events, ensuring narrative coherence across generated chapters and scenes. The engine integrates with autonomous character agents, event resolution mechanics, and the broader narrative generation pipeline to produce coherent, causally consistent stories.
+
+**Updated** Enhanced with automatic object creation capabilities and improved validation for non-existent objects, making the engine more robust and user-friendly.
 
 ## Project Structure
 The World State Engine spans several modules within the engine package:
@@ -53,6 +63,7 @@ LLM["LLMClient"]
 end
 subgraph "Story State"
 SS["StructuredState"]
+BIBLE["StoryBible"]
 TYPES["Types"]
 end
 WSE --> WSU
@@ -63,6 +74,7 @@ GCP --> ER
 CA --> ER
 WSM --> GCP
 SS --> GCP
+BIBLE --> GCP
 TYPES --> GCP
 ```
 
@@ -74,6 +86,7 @@ TYPES --> GCP
 - [worldStateUpdater.ts:80-251](file://packages/engine/src/agents/worldStateUpdater.ts#L80-L251)
 - [generateChapter.ts:40-420](file://packages/engine/src/pipeline/generateChapter.ts#L40-L420)
 - [structuredState.ts:33-235](file://packages/engine/src/story/structuredState.ts#L33-L235)
+- [bible.ts:74-101](file://packages/engine/src/story/bible.ts#L74-L101)
 - [types/index.ts:1-152](file://packages/engine/src/types/index.ts#L1-L152)
 
 **Section sources**
@@ -81,7 +94,7 @@ TYPES --> GCP
 - [index.ts:45-84](file://packages/engine/src/index.ts#L45-L84)
 
 ## Core Components
-- WorldStateEngine (Phase 14): Authoritative in-memory database of story reality with CRUD operations for characters, locations, objects, relationships, and timeline events. Provides validation helpers and prompt formatting for downstream agents.
+- WorldStateEngine (Phase 14): Authoritative in-memory database of story reality with CRUD operations for characters, locations, objects, relationships, and timeline events. Provides validation helpers and prompt formatting for downstream agents. **Enhanced** with automatic object creation capabilities.
 - WorldStateManager (Phase 8): Alternative world state manager using Maps and character agents, focused on initialization, movement, and event tracking.
 - EventResolver: Converts character decisions into world events and resolves them into outcomes with consequences.
 - CharacterAgentSystem: Creates agents from structured state, manages agendas, and generates decisions via LLM or fallback logic.
@@ -99,29 +112,33 @@ TYPES --> GCP
 ## Architecture Overview
 The World State Engine operates as a persistent, authoritative layer integrated into the narrative generation pipeline. It receives updates from generated scenes, validates logical consistency, and informs subsequent generation steps.
 
+**Updated** The engine now automatically initializes world state from story bible characters and provides enhanced object management capabilities.
+
 ```mermaid
 sequenceDiagram
 participant GC as "generateChapter"
-participant CA as "CharacterAgentSystem"
-participant ER as "EventResolver"
-participant WSU as "WorldStateUpdater"
+participant BIBLE as "StoryBible"
 participant WSE as "WorldStateEngine"
+GC->>BIBLE : Check if world state empty
+BIBLE-->>GC : Empty state detected
+GC->>WSE : Initialize from story bible
+WSE->>WSE : Auto-create characters from bible
 GC->>CA : Collect character decisions
 CA-->>GC : CharacterDecision[]
 GC->>ER : Resolve decisions to events
 ER-->>GC : EventResolution[]
 GC->>WSU : Extract updates from scene content
 WSU->>WSE : Apply updates (moves, deaths, discoveries,<br/>relationships, emotions, events)
+Note over WSE : Automatic object creation<br/>for non-existent objects
 WSE-->>GC : Updated world state
 GC-->>GC : Assemble chapter with consistent world state
 ```
 
 **Diagram sources**
-- [generateChapter.ts:138-335](file://packages/engine/src/pipeline/generateChapter.ts#L138-L335)
-- [characterAgent.ts:270-304](file://packages/engine/src/world/characterAgent.ts#L270-L304)
-- [eventResolver.ts:231-272](file://packages/engine/src/world/eventResolver.ts#L231-L272)
-- [worldStateUpdater.ts:80-251](file://packages/engine/src/agents/worldStateUpdater.ts#L80-L251)
-- [worldStateEngine.ts:64-352](file://packages/engine/src/world/worldStateEngine.ts#L64-L352)
+- [generateChapter.ts:90-100](file://packages/engine/src/pipeline/generateChapter.ts#L90-L100)
+- [bible.ts:74-101](file://packages/engine/src/story/bible.ts#L74-L101)
+- [worldStateEngine.ts:181-220](file://packages/engine/src/world/worldStateEngine.ts#L181-L220)
+- [worldStateUpdater.ts:130-247](file://packages/engine/src/agents/worldStateUpdater.ts#L130-L247)
 
 ## Detailed Component Analysis
 
@@ -133,7 +150,10 @@ The authoritative world state database tracks:
 - Relationships: bidirectional trust/hostility with normalized keys
 - Timeline: ordered events with chapter/scene, timestamp, participants, location
 
-Key operations include adding/modifying characters and locations, moving characters and objects, discovering objects, setting relationships, adding events, and validation helpers for knowledge checks, co-location, and life status. The engine also formats its state for prompts and serializes to JSON.
+**Enhanced** Key operations now include automatic object creation and improved validation:
+- **Automatic Object Creation**: `moveObject` and `discoverObject` methods automatically create objects if they don't exist
+- **Improved Validation**: Better error handling for non-existent objects with graceful fallbacks
+- Adding/modifying characters and locations, moving characters and objects, discovering objects, setting relationships, adding events, and validation helpers for knowledge checks, co-location, and life status. The engine also formats its state for prompts and serializes to JSON.
 
 ```mermaid
 classDiagram
@@ -149,7 +169,7 @@ class WorldStateEngine {
 +connectLocations(locA, locB)
 +addObject(name, location, properties)
 +moveObject(name, newLocation)
-+discoverObject(objectName, characterName)
++discoverObject(objectName, characterName, location?)
 +setRelationship(charA, charB, type, trust, hostility)
 +getRelationship(charA, charB)
 +addEvent(description, participants, location)
@@ -250,7 +270,7 @@ Interactions --> |Yes| CheckPairs["Check pairwise interactions"]
 Interactions --> |No| AddIndividual["Add individual actions as events"]
 CheckPairs --> AddInteraction["Add interaction events"]
 AddIndividual --> AddEvents["Add individual events"]
-AddInteraction --> AddEvents
+CheckPairs --> AddEvents
 AddEvents --> ResolveLoop{"More pending events?"}
 ResolveLoop --> |Yes| ResolveOne["Resolve one event"]
 ResolveOne --> Consequences["Apply consequences"]
@@ -324,13 +344,14 @@ WSU->>WSE : Apply character moves/deaths
 WSU->>WSE : Apply object moves/discoveries
 WSU->>WSE : Apply relationship/emotional changes
 WSU->>WSE : Add new events
+Note over WSE : Automatic object creation<br/>for non-existent objects
 WSE-->>WSU : Updated state
 ```
 
 **Diagram sources**
 - [worldStateUpdater.ts:80-251](file://packages/engine/src/agents/worldStateUpdater.ts#L80-L251)
 - [client.ts:174-249](file://packages/engine/src/llm/client.ts#L174-L249)
-- [worldStateEngine.ts:64-352](file://packages/engine/src/world/worldStateEngine.ts#L64-L352)
+- [worldStateEngine.ts:181-220](file://packages/engine/src/world/worldStateEngine.ts#L181-L220)
 
 **Section sources**
 - [worldStateUpdater.ts:80-251](file://packages/engine/src/agents/worldStateUpdater.ts#L80-L251)
@@ -338,30 +359,40 @@ WSE-->>WSU : Updated state
 ### Integration in generateChapter
 The pipeline coordinates world state updates during scene-level generation:
 - Initializes WorldStateEngine if not provided
+- **Enhanced** Automatically initializes world state from story bible characters if empty
 - Creates agents per scene and collects decisions
 - Generates scenes with character guidance
 - Updates world state after each scene
 - Assembles chapter with consistent world state
 
+**Updated** The integration now includes automatic world state initialization from story bible.
+
 ```mermaid
 sequenceDiagram
 participant GC as "generateChapter"
+participant BIBLE as "StoryBible"
 participant WSE as "WorldStateEngine"
 participant WSU as "WorldStateUpdater"
 participant CA as "CharacterAgentSystem"
 GC->>WSE : Initialize/ensure state
+GC->>BIBLE : Check if world state empty
+BIBLE-->>GC : Empty state detected
+GC->>WSE : Initialize from story bible
+WSE->>WSE : Auto-create characters from bible
 GC->>CA : Get decisions per scene
 CA-->>GC : CharacterDecision[]
 GC->>WSU : updateFromScene(content, bible, chapter, scene)
 WSU->>WSE : Apply extracted updates
+Note over WSE : Automatic object creation<br/>for non-existent objects
 WSE-->>GC : Updated world state
 GC-->>GC : Assemble chapter
 ```
 
 **Diagram sources**
-- [generateChapter.ts:92-335](file://packages/engine/src/pipeline/generateChapter.ts#L92-L335)
+- [generateChapter.ts:90-100](file://packages/engine/src/pipeline/generateChapter.ts#L90-L100)
+- [bible.ts:74-101](file://packages/engine/src/story/bible.ts#L74-L101)
 - [worldStateUpdater.ts:231-251](file://packages/engine/src/agents/worldStateUpdater.ts#L231-L251)
-- [worldStateEngine.ts:64-352](file://packages/engine/src/world/worldStateEngine.ts#L64-L352)
+- [worldStateEngine.ts:181-220](file://packages/engine/src/world/worldStateEngine.ts#L181-L220)
 
 **Section sources**
 - [generateChapter.ts:40-420](file://packages/engine/src/pipeline/generateChapter.ts#L40-L420)
@@ -382,6 +413,7 @@ GCP["generateChapter"] --> WSE
 GCP --> CA["CharacterAgentSystem"]
 GCP --> ER["EventResolver"]
 SS["StructuredState"] --> GCP
+BIBLE["StoryBible"] --> GCP
 TYPES["Types"] --> GCP
 ```
 
@@ -391,6 +423,7 @@ TYPES["Types"] --> GCP
 - [worldStateUpdater.ts:80-251](file://packages/engine/src/agents/worldStateUpdater.ts#L80-L251)
 - [generateChapter.ts:40-420](file://packages/engine/src/pipeline/generateChapter.ts#L40-L420)
 - [structuredState.ts:33-235](file://packages/engine/src/story/structuredState.ts#L33-L235)
+- [bible.ts:74-101](file://packages/engine/src/story/bible.ts#L74-L101)
 - [types/index.ts:1-152](file://packages/engine/src/types/index.ts#L1-L152)
 
 **Section sources**
@@ -401,6 +434,7 @@ TYPES["Types"] --> GCP
 - Event resolution loops iterate over pending events; batch processing and early termination can reduce overhead.
 - LLM calls in WorldStateUpdater and CharacterAgentSystem should be rate-limited and cached where appropriate.
 - Serialization/deserialization costs can be minimized by incremental updates and selective state exports.
+- **Enhanced** Automatic object creation adds minimal overhead but improves robustness by eliminating the need for explicit object existence checks.
 
 ## Troubleshooting Guide
 Common issues and remedies:
@@ -408,6 +442,7 @@ Common issues and remedies:
 - Relationship normalization: Keys are normalized; always use the same ordering for character pairs to avoid duplicates.
 - LLM JSON parsing failures: Validate prompt formatting and consider fallback strategies when JSON extraction fails.
 - Event resolution inconsistencies: Verify that participants exist in the agent map and that event types are categorized correctly.
+- **New** Non-existent object errors: The engine now automatically creates objects when they don't exist, reducing manual object management overhead.
 
 **Section sources**
 - [worldStateEngine.ts:97-119](file://packages/engine/src/world/worldStateEngine.ts#L97-L119)
@@ -415,4 +450,4 @@ Common issues and remedies:
 - [eventResolver.ts:231-272](file://packages/engine/src/world/eventResolver.ts#L231-L272)
 
 ## Conclusion
-The World State Engine provides a robust, authoritative foundation for narrative consistency in AI-generated stories. By integrating autonomous character agents, event resolution, and LLM-driven state updates, it ensures coherent evolution of story worlds across chapters and scenes. Its modular design enables seamless integration with the broader narrative generation pipeline while maintaining logical consistency and persistent memory.
+The World State Engine provides a robust, authoritative foundation for narrative consistency in AI-generated stories. By integrating autonomous character agents, event resolution, and LLM-driven state updates, it ensures coherent evolution of story worlds across chapters and scenes. **Enhanced** with automatic object creation capabilities and improved validation, the engine now offers better user experience while maintaining logical consistency and persistent memory. The addition of automatic world state initialization from story bible makes the system more accessible and reduces manual setup requirements.

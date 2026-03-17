@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
-import type { StoryBible, StoryState, Chapter, CanonStore, StoryStructuredState, WorldState as WorldStateEngineState } from '@narrative-os/engine';
+import type { StoryBible, StoryState, Chapter, CanonStore, StoryStructuredState, WorldStateEngineState } from '@narrative-os/engine';
 import { extractCanonFromBible, createStructuredState, initializeCharactersFromBible, initializePlotThreadsFromBible } from '@narrative-os/engine';
 
 const DATA_DIR = join(homedir(), '.narrative-os');
