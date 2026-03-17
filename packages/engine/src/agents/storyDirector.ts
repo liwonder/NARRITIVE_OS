@@ -139,7 +139,7 @@ export class StoryDirector {
     
     const result = await getLLM().completeJSON<DirectorOutput>(prompt, {
       temperature: 0.4,
-      maxTokens: 2000,
+      maxTokens: 5000,
     });
     
     return result;

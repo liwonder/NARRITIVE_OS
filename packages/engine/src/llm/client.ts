@@ -211,6 +211,14 @@ export class LLMClient {
       }
     }
     
+    // Check if JSON appears to be truncated (starts with { but doesn't end with })
+    if (jsonText.startsWith('{') && !jsonText.endsWith('}')) {
+      throw new Error(`JSON response appears to be truncated (incomplete). Response ended unexpectedly. Try increasing maxTokens.`);
+    }
+    if (jsonText.startsWith('[') && !jsonText.endsWith(']')) {
+      throw new Error(`JSON response appears to be truncated (incomplete). Response ended unexpectedly. Try increasing maxTokens.`);
+    }
+    
     try {
       return JSON.parse(jsonText) as T;
     } catch (error) {

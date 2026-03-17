@@ -30,6 +30,9 @@
 - [packages/engine/src/pipeline/generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts)
 - [packages/engine/src/llm/client.ts](file://packages/engine/src/llm/client.ts)
 - [packages/engine/src/memory/vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts)
+- [packages/engine/src/world/worldStateEngine.ts](file://packages/engine/src/world/worldStateEngine.ts)
+- [packages/engine/src/world/worldState.ts](file://packages/engine/src/world/worldState.ts)
+- [packages/engine/src/agents/worldStateUpdater.ts](file://packages/engine/src/agents/worldStateUpdater.ts)
 - [apps/cli/package.json](file://apps/cli/package.json)
 - [package.json](file://package.json)
 - [PROGRESS.md](file://PROGRESS.md)
@@ -37,12 +40,11 @@
 
 ## Update Summary
 **Changes Made**
-- Updated configuration system documentation to reflect the new task-based configuration replacing legacy multi-model configuration
-- Added comprehensive documentation for the three task types (simple, reasoning, embedding) with provider-specific models
-- Enhanced security features documentation for API key management and masking
-- Updated LLM client integration to show task-based model selection
-- Added new task-based configuration workflow and migration from legacy formats
-- Enhanced memory system documentation with embedding model support
+- Enhanced generate command with World State Engine integration for automatic memory extraction and improved story state management
+- Added new world state persistence functionality with automatic world-state.json file management
+- Integrated WorldStateEngine with scene-level generation pipeline for comprehensive narrative consistency
+- Enhanced memory extraction system with automatic memory persistence and retrieval
+- Updated story state management with integrated world state tracking and validation
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -57,12 +59,12 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document provides a comprehensive command reference for the Narrative Operating System CLI (nos). It covers command syntax, parameters, flags, usage patterns, and integration points for all nos commands including the newly added 14 commands: bible, clone, delete, export, hint, list, memories, read, regenerate, state, validate, version, and the new use command for active story management. The system features enhanced structured state persistence, interactive hints system with contextual suggestions, comprehensive story management capabilities with automated AI-assisted initialization, robust error handling for improved reliability, and advanced storytelling capabilities.
+This document provides a comprehensive command reference for the Narrative Operating System CLI (nos). It covers command syntax, parameters, flags, usage patterns, and integration points for all nos commands including the newly enhanced generate command with World State Engine integration, automatic memory extraction support, and improved story state management. The system features enhanced structured state persistence, interactive hints system with contextual suggestions, comprehensive story management capabilities with automated AI-assisted initialization, robust error handling for improved reliability, and advanced storytelling capabilities with automatic world state tracking.
 
-**Updated** The CLI now implements a revolutionary task-based configuration system that replaces the legacy multi-model configuration, supporting three distinct task types (simple, reasoning, embedding) with provider-specific models and enhanced security features.
+**Updated** The CLI now features revolutionary World State Engine integration that automatically tracks and maintains logical consistency across all narrative elements, including characters, locations, objects, relationships, and timeline events. The generate command now includes automatic memory extraction and world state persistence for comprehensive narrative continuity.
 
 ## Project Structure
-The CLI is implemented as a TypeScript application using Commander for command parsing and Inquirer for interactive configuration. Commands delegate to the engine package for story generation and rely on a local filesystem store under the user's home directory with enhanced structured state management and memory systems. The new task-based configuration system uses a version 2 configuration format with separate models for different task types, providing granular control over model selection and enhanced security through API key masking.
+The CLI is implemented as a TypeScript application using Commander for command parsing and Inquirer for interactive configuration. Commands delegate to the engine package for story generation and rely on a local filesystem store under the user's home directory with enhanced structured state management, memory systems, and the new World State Engine integration. The World State Engine provides comprehensive tracking of story reality with automatic consistency enforcement and logical validation.
 
 ```mermaid
 graph TB
@@ -113,6 +115,8 @@ CMD_STATE --> STRUCTURED_STATE["Structured State<br/>packages/engine/src/story/s
 CMD_STATE --> STATE_UPDATER["State Updater<br/>packages/engine/src/agents/stateUpdater.ts"]
 CMD_CONFIG --> ENGINE_CLIENT["LLM Client<br/>packages/engine/src/llm/client.ts"]
 CMD_CONFIG --> VECTOR_STORE["Vector Store<br/>packages/engine/src/memory/vectorStore.ts"]
+CMD_GENERATE --> WORLD_STATE_ENGINE["World State Engine<br/>packages/engine/src/world/worldStateEngine.ts"]
+CMD_GENERATE --> WORLD_STATE_UPDATER["World State Updater<br/>packages/engine/src/agents/worldStateUpdater.ts"]
 ```
 
 **Diagram sources**
@@ -143,6 +147,8 @@ CMD_CONFIG --> VECTOR_STORE["Vector Store<br/>packages/engine/src/memory/vectorS
 - [packages/engine/src/agents/stateUpdater.ts:1-193](file://packages/engine/src/agents/stateUpdater.ts#L1-L193)
 - [packages/engine/src/llm/client.ts:1-249](file://packages/engine/src/llm/client.ts#L1-L249)
 - [packages/engine/src/memory/vectorStore.ts:1-258](file://packages/engine/src/memory/vectorStore.ts#L1-L258)
+- [packages/engine/src/world/worldStateEngine.ts:1-361](file://packages/engine/src/world/worldStateEngine.ts#L1-L361)
+- [packages/engine/src/agents/worldStateUpdater.ts:1-251](file://packages/engine/src/agents/worldStateUpdater.ts#L1-L251)
 
 **Section sources**
 - [apps/cli/src/index.ts:1-177](file://apps/cli/src/index.ts#L1-L177)
@@ -150,33 +156,30 @@ CMD_CONFIG --> VECTOR_STORE["Vector Store<br/>packages/engine/src/memory/vectorS
 - [package.json:1-17](file://package.json#L1-L17)
 
 ## Core Components
-- CLI entrypoint defines the nos binary, version, and registers commands with their options and actions, including the new 14 commands with enhanced active story management.
-- Commands share a common configuration and storage layer for persistent story data with enhanced structured state management and memory systems.
-- Engine types define the data structures used across commands (StoryBible, StoryState, Chapter, GenerationContext, StoryStructuredState).
-- **New**: Task-based configuration system with version 2 format supporting three distinct task types: simple, reasoning, and embedding.
-- **New**: Enhanced security features with API key masking and provider-specific model management.
-- **New**: Structured state persistence system automatically initializes and manages character and plot thread states with comprehensive narrative tracking.
-- **New**: Interactive hints system provides contextual guidance and quick tips based on story progress and user context with enhanced command suggestions.
-- **New**: Enhanced init command with AI-assisted character generation via LLM-based prompts, replacing the previous manual placeholder creation approach.
-- **New**: Multi-model configuration system supporting separate reasoning, chat, and embedding models with backward compatibility for single-model setups.
-- **New**: Task-based model selection system with automatic model assignment based on operation type (generation/planning, validation/summarization, extraction, embedding).
-- **New**: Version command provides detailed version information for CLI and engine modules.
-- **New**: Welcome screen with comprehensive command overview and active story integration.
+- CLI entrypoint defines the nos binary, version, and registers commands with their options and actions, including the enhanced generate command with World State Engine integration.
+- Commands share a common configuration and storage layer for persistent story data with enhanced structured state management, memory systems, and the new World State Engine integration.
+- Engine types define the data structures used across commands (StoryBible, StoryState, Chapter, GenerationContext, StoryStructuredState, WorldStateEngineState).
+- **New**: World State Engine provides comprehensive tracking of story reality with automatic consistency enforcement across characters, locations, objects, relationships, and timeline events.
+- **New**: Automatic memory extraction system that extracts narrative facts from generated content and stores them in the vector memory system.
+- **New**: World State persistence system that automatically saves and loads world-state.json files for comprehensive narrative continuity.
+- **New**: Scene-level generation pipeline with integrated World State Engine for logical consistency validation and automatic state updates.
+- **New**: Enhanced memory extraction with automatic categorization and storage of narrative elements (events, characters, world details, plot developments).
+- **New**: World State Updater agent that extracts changes from scene/chapter content and applies them to the World State Engine.
+- **New**: Integrated validation system that checks narrative consistency against the World State Engine's logical constraints.
 
 Key runtime behaviors:
 - Interactive configuration via inquirer prompts with task-based model selection.
 - AI-assisted story creation via LLM-powered character generation for title, genre, theme, setting, tone, premise, and target chapters.
-- Local persistence under ~/.narrative-os/{config.json, stories/<id>/} with automatic structured state initialization.
+- Local persistence under ~/.narrative-os/{config.json, stories/<id>/} with automatic structured state initialization and world state management.
 - Structured state includes character emotional states, locations, relationships, plot thread tensions, and unresolved questions.
-- Memory systems support vector-based narrative recall and semantic search with embedding model support.
+- Memory systems support vector-based narrative recall and semantic search with embedding model support and automatic memory extraction.
+- World State Engine tracks characters, locations, objects, relationships, and timeline events with automatic consistency validation.
 - Exit codes: non-zero on errors (e.g., missing story ID, invalid chapter numbers).
-- **New**: Contextual help system provides intelligent suggestions based on story state and user actions with enhanced command recommendations.
-- **New**: Task-based LLM client automatically selects appropriate models based on task type with embedding support.
-- **New**: Version command displays CLI and engine module versions with development mode detection.
-- **New**: Character generation fallback system provides default characters when LLM generation fails.
-- **New**: Active story file system (.current) enables shortcut commands without explicit story ID specification.
-- **New**: Welcome screen provides comprehensive command overview and active story guidance.
-- **New**: Enhanced configuration display shows task-based model purposes with clear labeling and examples.
+- **New**: Automatic world state persistence with world-state.json file management for comprehensive narrative continuity.
+- **New**: Scene-level generation with integrated World State Engine for logical consistency enforcement.
+- **New**: Automatic memory extraction and storage with categorization of narrative elements.
+- **New**: World State Updater agent that processes scene/chapter content and updates the World State Engine.
+- **New**: Enhanced validation system that checks narrative consistency against logical constraints.
 
 **Section sources**
 - [apps/cli/src/index.ts:11-53](file://apps/cli/src/index.ts#L11-L53)
@@ -188,71 +191,41 @@ Key runtime behaviors:
 - [apps/cli/src/commands/init.ts:17-90](file://apps/cli/src/commands/init.ts#L17-L90)
 - [packages/engine/src/llm/client.ts:39-48](file://packages/engine/src/llm/client.ts#L39-L48)
 - [packages/engine/src/memory/vectorStore.ts:1-258](file://packages/engine/src/memory/vectorStore.ts#L1-L258)
-- [apps/cli/src/commands/version.ts:64-123](file://apps/cli/src/commands/version.ts#L64-L123)
-- [apps/cli/src/commands/use.ts:1-92](file://apps/cli/src/commands/use.ts#L1-L92)
+- [packages/engine/src/world/worldStateEngine.ts:1-361](file://packages/engine/src/world/worldStateEngine.ts#L1-L361)
+- [packages/engine/src/agents/worldStateUpdater.ts:1-251](file://packages/engine/src/agents/worldStateUpdater.ts#L1-L251)
 
 ## Architecture Overview
-The CLI orchestrates story lifecycle operations backed by the engine with enhanced structured state management and comprehensive story management capabilities. Configuration is applied at startup and injected into environment variables for downstream LLM clients, while structured state provides detailed narrative tracking and memory systems enable sophisticated narrative recall with embedding support. The new task-based configuration system integrates seamlessly with all commands through the `resolveStoryId` function and provides granular model selection for different operation types.
+The CLI orchestrates story lifecycle operations backed by the engine with enhanced structured state management, comprehensive story management capabilities, and the revolutionary World State Engine integration. Configuration is applied at startup and injected into environment variables for downstream LLM clients, while structured state provides detailed narrative tracking, memory systems enable sophisticated narrative recall with embedding support, and the World State Engine maintains logical consistency across all narrative elements. The generate command now includes automatic memory extraction and world state persistence for comprehensive narrative continuity.
 
 ```mermaid
 sequenceDiagram
 participant User as "User"
 participant CLI as "nos CLI"
-participant Use as "use.ts"
-participant Hint as "hint.ts"
-participant Config as "config.ts"
-participant Version as "version.ts"
+participant Generate as "generate.ts"
+participant WorldEngine as "WorldStateEngine"
+participant MemoryExtractor as "MemoryExtractor"
+participant VectorStore as "VectorStore"
 participant Store as "store.ts"
-participant Engine as "Engine (types/state/bible/structuredState)"
-participant LLMClient as "LLM Client"
-participant VectorStore as "Vector Store"
-User->>CLI : "nos version"
-CLI->>Version : "versionCommand()"
-Version-->>User : "Display CLI and engine versions"
-User->>CLI : "nos config"
-CLI->>Config : "configCommand()"
-Config->>Config : "loadConfig()/configureTask()"
-Config->>Store : "saveConfig()"
-Store-->>Config : "write ~/.narrative-os/config.json (v2)"
-Config-->>User : "Saved task-based configuration"
-User->>CLI : "nos use <story-id>"
-CLI->>Use : "useCommand(storyId)"
-Use->>Use : "setCurrentStoryId(storyId)"
-Use->>Store : "validate story exists"
-Store-->>Use : "story validation result"
-Use-->>User : "Active story set confirmation"
 User->>CLI : "nos generate"
-CLI->>Use : "resolveStoryId(undefined)"
-Use-->>CLI : "returns active story ID"
-CLI->>LLMClient : "complete(prompt, { task : 'generation' })"
-LLMClient->>LLMClient : "select reasoning model for generation"
-LLMClient-->>User : "Generated chapter"
-User->>CLI : "nos hint [story-id]"
-CLI->>Hint : "showHint({ storyId : storyId || getCurrentStoryId() })"
-Hint->>Use : "getCurrentStoryId()"
-Use-->>Hint : "active story ID"
-Hint-->>User : "Contextual suggestions with active story context"
-User->>CLI : "nos memories <story-id> [query]"
-CLI->>VectorStore : "getVectorStore(storyId)"
-VectorStore->>VectorStore : "searchSimilar(query, embedding model)"
-VectorStore-->>User : "Memory search results"
+CLI->>Generate : "generateCommand(storyId)"
+Generate->>WorldEngine : "createWorldStateEngine(storyId)"
+Generate->>WorldEngine : "loadState(worldState) if exists"
+Generate->>MemoryExtractor : "extract(chapter, bible)"
+MemoryExtractor->>MemoryExtractor : "completeJSON(extraction prompt)"
+MemoryExtractor-->>Generate : "Extracted memories"
+Generate->>VectorStore : "addMemory(memory) for each extracted"
+Generate->>Store : "saveStory(updatedWorldState)"
+Store-->>Generate : "world-state.json saved"
+Generate-->>User : "Chapter generated with memories extracted"
 ```
 
 **Diagram sources**
 - [apps/cli/src/index.ts:18-33](file://apps/cli/src/index.ts#L18-L33)
-- [apps/cli/src/commands/config.ts:38-66](file://apps/cli/src/commands/config.ts#L38-L66)
-- [apps/cli/src/commands/version.ts:64-123](file://apps/cli/src/commands/version.ts#L64-L123)
-- [apps/cli/src/config/store.ts:15-26](file://apps/cli/src/config/store.ts#L15-L26)
-- [packages/engine/src/story/bible.ts:153-217](file://packages/engine/src/story/bible.ts#L153-L217)
-- [packages/engine/src/story/state.ts:3-12](file://packages/engine/src/story/state.ts#L3-L12)
-- [packages/engine/src/story/structuredState.ts:33-85](file://packages/engine/src/story/structuredState.ts#L33-L85)
-- [apps/cli/src/config/store.ts:139-151](file://apps/cli/src/config/store.ts#L139-L151)
-- [apps/cli/src/commands/hint.ts:3-47](file://apps/cli/src/commands/hint.ts#L3-L47)
-- [apps/cli/src/commands/init.ts:68-76](file://apps/cli/src/commands/init.ts#L68-L76)
-- [packages/engine/src/llm/client.ts:39-48](file://packages/engine/src/llm/client.ts#L39-L48)
-- [packages/engine/src/llm/client.ts:174-186](file://packages/engine/src/llm/client.ts#L174-L186)
+- [apps/cli/src/commands/generate.ts:18-60](file://apps/cli/src/commands/generate.ts#L18-L60)
+- [packages/engine/src/world/worldStateEngine.ts:358-360](file://packages/engine/src/world/worldStateEngine.ts#L358-L360)
+- [packages/engine/src/agents/memoryExtractor.ts:52-99](file://packages/engine/src/agents/memoryExtractor.ts#L52-L99)
 - [packages/engine/src/memory/vectorStore.ts:125-177](file://packages/engine/src/memory/vectorStore.ts#L125-L177)
-- [apps/cli/src/commands/use.ts:45-72](file://apps/cli/src/commands/use.ts#L45-L72)
+- [apps/cli/src/config/store.ts:189-208](file://apps/cli/src/config/store.ts#L189-L208)
 
 ## Detailed Component Analysis
 
@@ -458,7 +431,9 @@ Interactive Usage Examples
 
 ### Command: nos generate [story-id]
 Purpose
-- Generate the next chapter for a given story ID with enhanced structured state tracking. Validates completion state and handles errors gracefully. **Enhanced**: Now supports active story management through the resolveStoryId function.
+- Generate the next chapter for a given story ID with enhanced structured state tracking and World State Engine integration. Validates completion state and handles errors gracefully. **Enhanced**: Now supports active story management through the resolveStoryId function and includes automatic memory extraction with world state persistence.
+
+**Updated** Enhanced with World State Engine integration, automatic memory extraction, and improved story state management
 
 Syntax
 - nos generate [story-id]
@@ -469,11 +444,15 @@ Behavior
 - Loads story data from ~/.narrative-os/stories/<id>.
 - Checks if the story is complete; if so, prints a completion message.
 - **Enhanced**: Automatically initializes structured state if it doesn't exist.
+- **New**: Initializes World State Engine and loads existing world state if available.
+- **New**: Integrates automatic memory extraction from generated chapters.
+- **New**: Applies World State updates from scene/chapter content.
+- **New**: Persists updated world state to world-state.json for comprehensive narrative continuity.
 - Builds a GenerationContext with target word count and invokes the engine pipeline.
 - **New**: Integrates structured state updates through the StateUpdater agent.
 - **New**: Uses task-based LLM client with automatic model selection (reasoning model for generation).
 - **New**: Embedding operations supported for vector memory integration.
-- Saves updated state and chapters; prints chapter details and progress.
+- Saves updated state, chapters, and world state; prints chapter details and progress.
 - On failure, logs an error and exits with non-zero code.
 
 Exit codes
@@ -493,6 +472,7 @@ Automation tip
 - [packages/engine/src/types/index.ts:60-65](file://packages/engine/src/types/index.ts#L60-L65)
 - [packages/engine/src/agents/stateUpdater.ts:85-193](file://packages/engine/src/agents/stateUpdater.ts#L85-L193)
 - [packages/engine/src/llm/client.ts:174-186](file://packages/engine/src/llm/client.ts#L174-L186)
+- [packages/engine/src/world/worldStateEngine.ts:287-293](file://packages/engine/src/world/worldStateEngine.ts#L287-L293)
 
 ### Command: nos status [story-id]
 Purpose
@@ -523,7 +503,9 @@ Example
 
 ### Command: nos continue [story-id]
 Purpose
-- Generate all remaining chapters for a story in a loop until completion with enhanced structured state management. **Enhanced**: Now supports active story management through the resolveStoryId function.
+- Generate all remaining chapters for a story in a loop until completion with enhanced structured state management and World State Engine integration. **Enhanced**: Now supports active story management through the resolveStoryId function.
+
+**Updated** Enhanced with World State Engine integration for comprehensive narrative consistency
 
 Syntax
 - nos continue [story-id]
@@ -533,6 +515,8 @@ Behavior
 - **Active story support**: Uses resolveStoryId() to automatically use the active story if no ID is provided
 - Loads story data and verifies it is not complete.
 - **Enhanced**: Automatically initializes structured state if it doesn't exist.
+- **New**: Initializes World State Engine for logical consistency tracking.
+- **New**: Integrates automatic memory extraction and world state updates.
 - Iteratively generates chapters, integrating structured state updates through the StateUpdater agent.
 - **New**: Uses task-based LLM client with automatic model selection for optimal performance.
 - **New**: Embedding operations supported for vector memory integration.
@@ -555,6 +539,7 @@ Batch operations
 - [apps/cli/src/config/store.ts:28-49](file://apps/cli/src/config/store.ts#L28-L49)
 - [packages/engine/src/agents/stateUpdater.ts:85-193](file://packages/engine/src/agents/stateUpdater.ts#L85-L193)
 - [packages/engine/src/llm/client.ts:174-186](file://packages/engine/src/llm/client.ts#L174-L186)
+- [packages/engine/src/world/worldStateEngine.ts:287-293](file://packages/engine/src/world/worldStateEngine.ts#L287-L293)
 
 ### Command: nos list
 Purpose
@@ -634,7 +619,9 @@ Example
 
 ### Command: nos export [story-id] [--format <format>] [--output <file>]
 Purpose
-- Export a story to external file formats with configurable output options. **Enhanced**: Now supports active story management through the resolveStoryId function.
+- Export a story to external file formats with configurable output options. **Enhanced**: Now supports active story management and includes world state information in exports.
+
+**Updated** Enhanced with world state information in exports
 
 Syntax
 - nos export [story-id] [--format <format>] [--output <file>]
@@ -649,6 +636,7 @@ Behavior
 - Loads the target story and validates its existence.
 - Supports markdown (default) and plain text formats.
 - Generates formatted content with story metadata and all chapters.
+- **New**: Includes world state information in exported content when available.
 - Writes output file to current directory with automatic naming if not specified.
 
 Exit codes
@@ -776,7 +764,9 @@ Example
 
 ### Command: nos validate [story-id]
 Purpose
-- Perform comprehensive validation of story consistency and quality standards. **Enhanced**: Now supports active story management through the resolveStoryId function.
+- Perform comprehensive validation of story consistency and quality standards. **Enhanced**: Now supports active story management through the resolveStoryId function and includes World State Engine validation.
+
+**Updated** Enhanced with World State Engine validation for logical consistency
 
 Syntax
 - nos validate [story-id]
@@ -784,11 +774,13 @@ Syntax
 
 Behavior
 - **Active story support**: Uses resolveStoryId() to automatically use the active story if no ID is provided
-- Loads story data including constraint graphs, vector stores, and structured state.
-- Performs chapter-by-chapter validation against narrative constraints and canon.
+- Loads story data including constraint graphs, vector stores, structured state, and world state.
+- Performs chapter-by-chapter validation against narrative constraints, canon, and logical consistency.
+- **New**: Validates against World State Engine for logical consistency (no impossible knowledge, no teleportation).
 - Checks for common issues like missing summaries, unusually short chapters, and orphaned facts.
+- **New**: Validates narrative consistency against world state constraints.
 - Reports violations with severity levels (errors vs warnings).
-- Provides statistics on story metrics (chapters, canon facts, constraint graph size, memory count).
+- Provides statistics on story metrics (chapters, canon facts, constraint graph size, memory count, world state events).
 
 Exit codes
 - 0 on success; 1 if story not found.
@@ -803,22 +795,27 @@ Example
 
 ### Command: nos regenerate <story-id> <chapter-number>
 Purpose
-- Regenerate a specific chapter while preserving story continuity and narrative consistency. **Enhanced**: Now supports active story management through the resolveStoryId function.
+- Regenerate a specific chapter while preserving story continuity and narrative consistency. **Enhanced**: Now supports active story management through the resolveStoryId function and includes World State Engine integration.
+
+**Updated** Enhanced with World State Engine integration for logical consistency
 
 Syntax
 - nos regenerate <story-id> <chapter-number>
-- nos regenerate (with active story set)
+- nos regenerate (with active story is set)
 
 Behavior
 - **Active story support**: Uses resolveStoryId() to automatically use the active story if no ID is provided
 - Loads the target story and validates chapter existence.
 - Initializes or loads vector store for memory consistency.
+- **New**: Initializes World State Engine for logical consistency validation.
 - Creates generation context based on state before the target chapter.
 - **New**: Uses task-based LLM client with reasoning model for regeneration.
 - **New**: Embedding operations supported for vector memory integration.
+- **New**: Integrates automatic memory extraction and world state updates.
 - Generates replacement chapter with canonical validation.
+- **New**: Validates regenerated chapter against World State Engine constraints.
 - Replaces the old chapter and updates story data.
-- Displays regeneration results including new title, word count, and any violations.
+- Displays regeneration results including new title, word count, violations, and memories extracted.
 
 Exit codes
 - 0 on success; 1 if story not found, chapter not found, or regeneration fails.
@@ -831,6 +828,7 @@ Example
 - [apps/cli/src/index.ts:107-113](file://apps/cli/src/index.ts#L107-L113)
 - [apps/cli/src/commands/regenerate.ts:1-68](file://apps/cli/src/commands/regenerate.ts#L1-L68)
 - [packages/engine/src/llm/client.ts:174-186](file://packages/engine/src/llm/client.ts#L174-L186)
+- [packages/engine/src/world/worldStateEngine.ts:287-293](file://packages/engine/src/world/worldStateEngine.ts#L287-L293)
 
 ### Command: nos hint [story-id]
 Purpose
@@ -864,7 +862,7 @@ Example
 - [apps/cli/src/commands/hint.ts:1-96](file://apps/cli/src/commands/hint.ts#L1-L96)
 
 ## Dependency Analysis
-The CLI depends on the engine package for story types, generation logic, structured state management, and memory systems. It persists data locally and reads/writes JSON files including the new structured-state.json and vector-store.json. Configuration is applied at startup and influences environment variables consumed by the engine. The new task-based configuration system integrates seamlessly with all commands through the resolveStoryId function and provides enhanced security through API key masking.
+The CLI depends on the engine package for story types, generation logic, structured state management, memory systems, and the new World State Engine integration. It persists data locally and reads/writes JSON files including the new world-state.json and vector-store.json. Configuration is applied at startup and influences environment variables consumed by the engine. The World State Engine provides comprehensive tracking of story reality with automatic consistency enforcement and integrates seamlessly with all commands through the resolveStoryId function.
 
 ```mermaid
 graph LR
@@ -914,6 +912,8 @@ CMD_STATE --> STRUCTURED_STATE["engine/story/structuredState.ts"]
 CMD_STATE --> STATE_UPDATER["engine/agents/stateUpdater.ts"]
 CMD_CONFIG --> ENGINE_CLIENT["engine/llm/client.ts"]
 CMD_CONFIG --> VECTOR_STORE["engine/memory/vectorStore.ts"]
+CMD_GENERATE --> WORLD_STATE_ENGINE["engine/world/worldStateEngine.ts"]
+CMD_GENERATE --> WORLD_STATE_UPDATER["engine/agents/worldStateUpdater.ts"]
 STORE --> GENERATE_PIPELINE["engine/pipeline/generateChapter.ts"]
 ```
 
@@ -943,9 +943,11 @@ STORE --> GENERATE_PIPELINE["engine/pipeline/generateChapter.ts"]
 - [packages/engine/src/story/state.ts:1-30](file://packages/engine/src/story/state.ts#L1-L30)
 - [packages/engine/src/story/structuredState.ts:1-235](file://packages/engine/src/story/structuredState.ts#L1-L235)
 - [packages/engine/src/agents/stateUpdater.ts:1-193](file://packages/engine/src/agents/stateUpdater.ts#L1-L193)
-- [packages/engine/src/pipeline/generateChapter.ts:1-399](file://packages/engine/src/pipeline/generateChapter.ts#L1-L399)
+- [packages/engine/src/pipeline/generateChapter.ts:1-418](file://packages/engine/src/pipeline/generateChapter.ts#L1-L418)
 - [packages/engine/src/llm/client.ts:1-249](file://packages/engine/src/llm/client.ts#L1-L249)
 - [packages/engine/src/memory/vectorStore.ts:1-258](file://packages/engine/src/memory/vectorStore.ts#L1-L258)
+- [packages/engine/src/world/worldStateEngine.ts:1-361](file://packages/engine/src/world/worldStateEngine.ts#L1-L361)
+- [packages/engine/src/agents/worldStateUpdater.ts:1-251](file://packages/engine/src/agents/worldStateUpdater.ts#L1-L251)
 
 **Section sources**
 - [apps/cli/src/index.ts:1-177](file://apps/cli/src/index.ts#L1-L177)
@@ -956,10 +958,13 @@ STORE --> GENERATE_PIPELINE["engine/pipeline/generateChapter.ts"]
 ## Performance Considerations
 - Each nos generate invocation performs disk I/O to load/save story data; batching via nos continue reduces overhead.
 - **Enhanced**: Structured state initialization adds minimal overhead but provides significant narrative tracking benefits.
+- **New**: World State Engine initialization and persistence adds minimal overhead but ensures comprehensive narrative consistency.
+- **New**: Automatic memory extraction via MemoryExtractor adds processing time but provides rich memory recall capabilities.
+- **New**: World State Updater agent adds validation overhead but maintains logical consistency across narrative elements.
 - **New**: AI-assisted character generation via LLM adds network latency but provides rich, authentic character data.
 - **New**: Interactive prompts via Inquirer add minimal runtime overhead but greatly improve user experience.
 - **New**: Memory operations (vector store loading/searching) have minimal performance impact but can be optimized by caching frequently accessed data.
-- **New**: Validation operations scale with chapter count and constraint complexity; consider running selectively during development.
+- **New**: Validation operations scale with chapter count, constraint complexity, and world state size; consider running selectively during development.
 - **New**: Task-based model selection ensures optimal performance by using appropriate models for each operation type.
 - **New**: Enhanced security features (API key masking) add negligible overhead while improving security.
 - **New**: Provider-specific optimizations (DeepSeek reasoning models, OpenAI embeddings, Alibaba Cloud Qwen) improve performance for specialized tasks.
@@ -971,6 +976,8 @@ STORE --> GENERATE_PIPELINE["engine/pipeline/generateChapter.ts"]
 - Network latency dominates LLM calls; consider rate limits and provider quotas.
 - For large-scale automation, cache configuration and reuse environment variables to avoid repeated file reads.
 - **New**: Structured state serialization/deserialization is lightweight JSON operations that do not significantly impact performance.
+- **New**: World State Engine serialization/deserialization is optimized for efficient file I/O operations.
+- **New**: Memory extraction and storage operations are batched to minimize I/O overhead.
 - **New**: Contextual hints system provides immediate feedback without heavy computation.
 - **New**: Configuration display operation is extremely fast as it only reads from local file system without any interactive prompts.
 - **New**: Interactive prompts are asynchronous and provide immediate feedback, making the CLI feel responsive even with user input.
@@ -986,6 +993,15 @@ Common issues and resolutions
 - Configuration missing
   - Cause: No ~/.narrative-os/config.json.
   - Resolution: Run nos config to set provider, model, and API key.
+- **New**: World State Engine issues
+  - Cause: Corrupted or missing world-state.json file.
+  - Resolution: Run nos regenerate on problematic chapters to rebuild world state; check world state persistence; verify World State Engine initialization.
+- **New**: Memory extraction failures
+  - Cause: LLM API errors during memory extraction or vector store initialization.
+  - Resolution: Verify API credentials; retry memory extraction; check vector store configuration; ensure embedding model availability.
+- **New**: World State validation errors
+  - Cause: Logical inconsistencies detected by World State Engine (impossible knowledge, teleportation, etc.).
+  - Resolution: Review generated content for logical inconsistencies; adjust story logic; use nos validate to identify specific violations.
 - **New**: Task-based configuration issues
   - Cause: Corrupted or incomplete task-based configuration (version 2).
   - Resolution: Run `nos config` to reconfigure; use `nos config --show` to verify setup; check that all three task types (simple, reasoning, embedding) are properly configured; ensure embedding model is set if needed.
@@ -1029,7 +1045,7 @@ Common issues and resolutions
   - Cause: Missing or corrupted vector-store.json or embedding model problems.
   - Resolution: Run nos regenerate on problematic chapters to rebuild memory data; check embedding configuration; verify API key if using embeddings.
 - **New**: Validation failures
-  - Cause: Canon violations or constraint graph issues.
+  - Cause: Canon violations, constraint graph issues, or World State Engine logical inconsistencies.
   - Resolution: Review validation output; fix narrative inconsistencies; run nos validate again to confirm resolution.
 - **New**: Chapter not found errors
   - Cause: Invalid chapter number or story progression issues.
@@ -1058,12 +1074,12 @@ Exit codes summary
 - [apps/cli/src/commands/use.ts:60-64](file://apps/cli/src/commands/use.ts#L60-L64)
 
 ## Conclusion
-The nos CLI provides a comprehensive and powerful workflow for creating, generating, managing, and validating stories powered by the Narrative Operating System engine. With the addition of 14 new commands, enhanced structured state persistence, interactive hints system with contextual suggestions, sophisticated memory management, the new AI-assisted initialization process with automated character generation via LLM-based prompts, the revolutionary task-based configuration system with three distinct task types (simple, reasoning, embedding) and provider-specific models, the new active story management system with shortcut command support, and the new version command for detailed version information, it now offers advanced narrative tracking capabilities, comprehensive story management, intelligent assistance, task-based performance optimization, embedding support for vector memory operations, an intuitive user experience with AI-powered character creation, detailed version management, seamless active story integration, and detailed version management while maintaining both beginner-friendly workflows and advanced automation scenarios.
+The nos CLI provides a comprehensive and powerful workflow for creating, generating, managing, and validating stories powered by the Narrative Operating System engine. With the addition of 14 new commands, enhanced structured state persistence, interactive hints system with contextual suggestions, sophisticated memory management, the new AI-assisted initialization process with automated character generation via LLM-based prompts, the revolutionary task-based configuration system with three distinct task types (simple, reasoning, embedding) and provider-specific models, the new active story management system with shortcut command support, the new version command for detailed version information, the revolutionary World State Engine integration with automatic memory extraction and world state persistence, and the new enhanced generate command with comprehensive narrative consistency validation, it now offers advanced narrative tracking capabilities, comprehensive story management, intelligent assistance, task-based performance optimization, embedding support for vector memory operations, an intuitive user experience with AI-powered character creation, detailed version management, seamless active story integration, detailed version management, automatic world state tracking and validation, comprehensive memory extraction and persistence, and detailed version management while maintaining both beginner-friendly workflows and advanced automation scenarios.
 
 ## Appendices
 
 ### Data Model Overview
-The CLI operates on core engine types that define story structure and generation context, now enhanced with structured state management, memory systems, task-based configuration, AI-assisted character generation, and active story management.
+The CLI operates on core engine types that define story structure and generation context, now enhanced with structured state management, memory systems, task-based configuration, AI-assisted character generation, active story management, and the revolutionary World State Engine integration.
 
 ```mermaid
 classDiagram
@@ -1207,7 +1223,47 @@ class ActiveStoryManager {
 +void clearCurrentStory()
 +string resolveStoryId(providedId)
 }
-StoryBible "1" o-- "many" CharacterProfile
+class WorldStateEngine {
++string storyId
++number chapter
++number scene
++Record~string, WorldCharacter~ characters
++Record~string, WorldLocation~ locations
++Record~string, WorldObject~ objects
++Record~string, WorldRelationship~ relationships
++WorldEvent[] timeline
++Date lastUpdated
++getState()
++loadState(state)
++addCharacter(name, location, emotionalState)
++moveCharacter(name, newLocation)
++killCharacter(name)
++addLocation(name, description, connectedTo)
++connectLocations(locA, locB)
++addObject(name, location, properties)
++moveObject(name, newLocation)
++discoverObject(objectName, characterName, location)
++setRelationship(charA, charB, type, trust, hostility)
++getRelationship(charA, charB)
++addEvent(description, participants, location)
++canCharacterKnow(characterName, fact)
++areCharactersInSameLocation(charA, charB)
++isCharacterAlive(name)
++getCharactersAtLocation(location)
++setChapterScene(chapter, scene)
++formatForPrompt()
++exportToJSON()
+}
+class WorldStateUpdater {
++extractUpdates(input)
++applyUpdates(engine, updates)
++updateFromScene(engine, content, bible, chapterNumber, sceneNumber)
+}
+class MemoryExtractor {
++extract(chapter, bible)
++extractFromSummary(chapterNumber, summary, bible)
+}
+WorldBible "1" o-- "many" CharacterProfile
 StoryBible "1" o-- "many" PlotThread
 StoryState "1" o-- "many" ChapterSummary
 StoryStructuredState "1" o-- "many" CharacterState
@@ -1220,6 +1276,8 @@ LLMClient --> ModelConfig
 TaskBasedConfig --> TaskModelConfig
 VectorStore --> VectorMemory
 ActiveStoryManager --> StoryBible
+WorldStateEngine --> WorldStateUpdater
+MemoryExtractor --> VectorStore
 ```
 
 **Diagram sources**
@@ -1230,6 +1288,9 @@ ActiveStoryManager --> StoryBible
 - [packages/engine/src/types/index.ts:92-113](file://packages/engine/src/types/index.ts#L92-L113)
 - [packages/engine/src/llm/client.ts:49-249](file://packages/engine/src/llm/client.ts#L49-L249)
 - [apps/cli/src/commands/use.ts:1-92](file://apps/cli/src/commands/use.ts#L1-L92)
+- [packages/engine/src/world/worldStateEngine.ts:1-361](file://packages/engine/src/world/worldStateEngine.ts#L1-L361)
+- [packages/engine/src/agents/worldStateUpdater.ts:1-251](file://packages/engine/src/agents/worldStateUpdater.ts#L1-L251)
+- [packages/engine/src/agents/memoryExtractor.ts:1-99](file://packages/engine/src/agents/memoryExtractor.ts#L1-L99)
 
 ### Storage Layout
 Stories are persisted under ~/.narrative-os/stories/<id> with the following files:
@@ -1237,6 +1298,7 @@ Stories are persisted under ~/.narrative-os/stories/<id> with the following file
 - state.json: StoryState
 - chapters.json: Chapter[]
 - **New**: structured-state.json: StoryStructuredState (automatically initialized)
+- **New**: world-state.json: WorldStateEngineState (automatically managed)
 - **New**: vector-store.json: VectorStore data (for memory with embeddings)
 - **New**: constraint-graph.json: ConstraintGraph data (for validation)
 - canon.json: CanonStore (optional, extracted if missing)
@@ -1269,9 +1331,9 @@ Power-user techniques
 - CI integration: pre-set environment variables for providers; run nos continue in a job
 - **New**: Advanced narrative tracking: monitor character development and plot thread progression through structured state
 - **New**: Memory management: search relevant story elements using nos memories with embedding support
-- **New**: Quality assurance: validate story consistency with nos validate
+- **New**: Quality assurance: validate story consistency with nos validate including World State Engine validation
 - **New**: Story management: clone templates with nos clone, export finished works with nos export
-- **New**: Chapter correction: regenerate specific chapters with nos regenerate
+- **New**: Chapter correction: regenerate specific chapters with nos regenerate including World State Engine validation
 - **New**: Configuration verification: use `nos config --show` in deployment scripts to verify environment setup
 - **New**: Version management: use `nos version` to verify CLI and engine versions in deployment scripts
 - **New**: Interactive workflow optimization: combine interactive prompts with parameter overrides for partial automation
@@ -1281,6 +1343,9 @@ Power-user techniques
 - **New**: Character generation customization: provide rich story context (title, premise, genre, setting) for authentic AI-generated characters
 - **New**: Active story management: streamline workflows by setting active stories for frequent commands
 - **New**: Shortcut command usage: run commands without specifying story ID after setting active story
+- **New**: World State Engine integration: leverage automatic consistency validation and logical tracking
+- **New**: Automatic memory extraction: benefit from comprehensive narrative memory management
+- **New**: World state persistence: ensure comprehensive narrative continuity across sessions
 
 **Section sources**
 - [PROGRESS.md:126-137](file://PROGRESS.md#L126-L137)
@@ -1292,6 +1357,7 @@ Power-user techniques
 - [packages/engine/src/memory/vectorStore.ts:125-177](file://packages/engine/src/memory/vectorStore.ts#L125-L177)
 - [apps/cli/src/commands/version.ts:64-123](file://apps/cli/src/commands/version.ts#L64-L123)
 - [apps/cli/src/commands/use.ts:45-72](file://apps/cli/src/commands/use.ts#L45-L72)
+- [packages/engine/src/world/worldStateEngine.ts:287-331](file://packages/engine/src/world/worldStateEngine.ts#L287-L331)
 
 ### Active Story Management Features
 **New**: Revolutionary active story management system:
@@ -1380,6 +1446,36 @@ Power-user techniques
 - [packages/engine/src/agents/stateUpdater.ts:85-193](file://packages/engine/src/agents/stateUpdater.ts#L85-L193)
 - [apps/cli/src/config/store.ts:139-151](file://apps/cli/src/config/store.ts#L139-L151)
 
+### World State Engine Integration Features
+**New**: Revolutionary World State Engine integration:
+
+- **Comprehensive Tracking**: Tracks characters, locations, objects, relationships, and timeline events
+- **Logical Consistency**: Enforces logical consistency (no impossible knowledge, no teleportation)
+- **Automatic Updates**: Processes scene/chapter content to extract and apply changes
+- **Persistence**: Automatically saves and loads world-state.json for comprehensive narrative continuity
+- **Validation**: Validates narrative consistency against logical constraints
+- **Format for Prompts**: Provides formatted world state for LLM prompts and narrative consistency checks
+- **Integration**: Seamlessly integrates with generation pipeline and validation system
+
+**Section sources**
+- [packages/engine/src/world/worldStateEngine.ts:1-361](file://packages/engine/src/world/worldStateEngine.ts#L1-L361)
+- [packages/engine/src/agents/worldStateUpdater.ts:1-251](file://packages/engine/src/agents/worldStateUpdater.ts#L1-L251)
+- [apps/cli/src/config/store.ts:189-208](file://apps/cli/src/config/store.ts#L189-L208)
+
+### Automatic Memory Extraction Features
+**New**: Advanced automatic memory extraction system:
+
+- **Memory Extraction**: Extracts narrative facts from generated chapters using MemoryExtractor
+- **Categorization**: Automatically categorizes memories as events, characters, world details, or plot developments
+- **Vector Storage**: Stores extracted memories in vector memory system with embedding support
+- **Integration**: Seamlessly integrates with generation pipeline for comprehensive memory management
+- **Validation**: Supports memory-based validation and retrieval for narrative consistency
+- **Persistence**: Automatically manages vector-store.json for efficient memory operations
+
+**Section sources**
+- [packages/engine/src/agents/memoryExtractor.ts:1-99](file://packages/engine/src/agents/memoryExtractor.ts#L1-L99)
+- [packages/engine/src/memory/vectorStore.ts:1-258](file://packages/engine/src/memory/vectorStore.ts#L1-L258)
+
 ### Memory System Capabilities
 **New**: The CLI integrates advanced memory management for narrative recall with embedding support:
 
@@ -1389,6 +1485,7 @@ Power-user techniques
 - **Chapter Association**: Links memories to specific story chapters
 - **Relevance Scoring**: Provides confidence ratings for memory matches
 - **Embedding Integration**: Uses configured embedding models for vector operations
+- **Automatic Extraction**: Memory extraction integrated into generation pipeline
 
 **Section sources**
 - [apps/cli/src/commands/memories.ts:1-66](file://apps/cli/src/commands/memories.ts#L1-L66)
@@ -1399,14 +1496,17 @@ Power-user techniques
 
 - **Constraint Checking**: Validates against established narrative constraints
 - **Canon Compliance**: Ensures factual accuracy and timeline consistency
+- **World State Validation**: Validates logical consistency against World State Engine constraints
 - **Quality Metrics**: Identifies issues like missing summaries or short chapters
 - **Violation Reporting**: Distinguishes between errors and warnings
 - **Progressive Validation**: Validates chapters as they're generated
+- **Integrated Validation**: Combines constraint validation with World State Engine consistency checks
 
 **Section sources**
 - [apps/cli/src/commands/validate.ts:1-107](file://apps/cli/src/commands/validate.ts#L1-L107)
 - [packages/engine/src/constraints/constraintGraph.ts:1-150](file://packages/engine/src/constraints/constraintGraph.ts#L1-L150)
 - [packages/engine/src/constraints/validator.ts:1-200](file://packages/engine/src/constraints/validator.ts#L1-L200)
+- [packages/engine/src/world/worldStateEngine.ts:256-284](file://packages/engine/src/world/worldStateEngine.ts#L256-L284)
 
 ### Configuration Display Features
 **New**: The CLI now provides a convenient way to display current configuration without interactive setup:
@@ -1488,6 +1588,7 @@ Power-user techniques
 - **Fallback Mechanisms**: Mock embeddings for testing environments
 - **API Integration**: Direct provider-specific embeddings API integration with error handling
 - **Memory Persistence**: Vector store data stored in vector-store.json for efficient retrieval
+- **Automatic Extraction**: Memory extraction integrated into generation pipeline
 
 **Section sources**
 - [apps/cli/src/commands/config.ts:126-147](file://apps/cli/src/commands/config.ts#L126-L147)

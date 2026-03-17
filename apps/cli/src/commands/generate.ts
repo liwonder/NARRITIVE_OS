@@ -19,7 +19,7 @@ export async function generateCommand(storyId: string) {
   const worldStateEngine = createWorldStateEngine(storyId);
   if (worldState) {
     // Load existing world state
-    Object.assign(worldStateEngine.getState(), worldState);
+    worldStateEngine.loadState(worldState);
   }
   
   if (state.currentChapter >= state.totalChapters) {

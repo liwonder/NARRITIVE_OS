@@ -23,6 +23,8 @@
 - Improved validation for non-existent objects with better error handling
 - Added support for world state initialization from story bible
 - Updated integration documentation to reflect automatic world state initialization
+- Enhanced automatic character initialization from story bible
+- Added comprehensive validation helpers and spatial connectivity mapping
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -38,7 +40,7 @@
 ## Introduction
 The World State Engine is a core subsystem responsible for maintaining and evolving the persistent, logically consistent state of a story's world. It tracks characters, locations, objects, relationships, and timeline events, ensuring narrative coherence across generated chapters and scenes. The engine integrates with autonomous character agents, event resolution mechanics, and the broader narrative generation pipeline to produce coherent, causally consistent stories.
 
-**Updated** Enhanced with automatic object creation capabilities and improved validation for non-existent objects, making the engine more robust and user-friendly.
+**Updated** Enhanced with automatic object creation capabilities, automatic character initialization from story bible, improved validation for non-existent objects, and comprehensive spatial connectivity mapping, making the engine more robust and user-friendly.
 
 ## Project Structure
 The World State Engine spans several modules within the engine package:
@@ -94,7 +96,7 @@ TYPES --> GCP
 - [index.ts:45-84](file://packages/engine/src/index.ts#L45-L84)
 
 ## Core Components
-- WorldStateEngine (Phase 14): Authoritative in-memory database of story reality with CRUD operations for characters, locations, objects, relationships, and timeline events. Provides validation helpers and prompt formatting for downstream agents. **Enhanced** with automatic object creation capabilities.
+- WorldStateEngine (Phase 14): Authoritative in-memory database of story reality with CRUD operations for characters, locations, objects, relationships, and timeline events. Provides validation helpers and prompt formatting for downstream agents. **Enhanced** with automatic object creation capabilities and automatic character initialization from story bible.
 - WorldStateManager (Phase 8): Alternative world state manager using Maps and character agents, focused on initialization, movement, and event tracking.
 - EventResolver: Converts character decisions into world events and resolves them into outcomes with consequences.
 - CharacterAgentSystem: Creates agents from structured state, manages agendas, and generates decisions via LLM or fallback logic.
@@ -112,7 +114,7 @@ TYPES --> GCP
 ## Architecture Overview
 The World State Engine operates as a persistent, authoritative layer integrated into the narrative generation pipeline. It receives updates from generated scenes, validates logical consistency, and informs subsequent generation steps.
 
-**Updated** The engine now automatically initializes world state from story bible characters and provides enhanced object management capabilities.
+**Updated** The engine now automatically initializes world state from story bible characters and provides enhanced object management capabilities with automatic object creation and improved validation.
 
 ```mermaid
 sequenceDiagram
@@ -153,6 +155,7 @@ The authoritative world state database tracks:
 **Enhanced** Key operations now include automatic object creation and improved validation:
 - **Automatic Object Creation**: `moveObject` and `discoverObject` methods automatically create objects if they don't exist
 - **Improved Validation**: Better error handling for non-existent objects with graceful fallbacks
+- **Automatic Character Initialization**: Characters are automatically created from story bible during world state initialization
 - Adding/modifying characters and locations, moving characters and objects, discovering objects, setting relationships, adding events, and validation helpers for knowledge checks, co-location, and life status. The engine also formats its state for prompts and serializes to JSON.
 
 ```mermaid
@@ -365,7 +368,7 @@ The pipeline coordinates world state updates during scene-level generation:
 - Updates world state after each scene
 - Assembles chapter with consistent world state
 
-**Updated** The integration now includes automatic world state initialization from story bible.
+**Updated** The integration now includes automatic world state initialization from story bible with automatic character creation.
 
 ```mermaid
 sequenceDiagram
@@ -435,6 +438,7 @@ TYPES["Types"] --> GCP
 - LLM calls in WorldStateUpdater and CharacterAgentSystem should be rate-limited and cached where appropriate.
 - Serialization/deserialization costs can be minimized by incremental updates and selective state exports.
 - **Enhanced** Automatic object creation adds minimal overhead but improves robustness by eliminating the need for explicit object existence checks.
+- **Enhanced** Automatic character initialization from story bible eliminates manual setup overhead and ensures consistent world state initialization.
 
 ## Troubleshooting Guide
 Common issues and remedies:
@@ -443,6 +447,8 @@ Common issues and remedies:
 - LLM JSON parsing failures: Validate prompt formatting and consider fallback strategies when JSON extraction fails.
 - Event resolution inconsistencies: Verify that participants exist in the agent map and that event types are categorized correctly.
 - **New** Non-existent object errors: The engine now automatically creates objects when they don't exist, reducing manual object management overhead.
+- **New** Automatic character initialization: Characters are automatically created from story bible during world state initialization, eliminating manual character setup requirements.
+- **New** Spatial connectivity issues: Use `connectLocations` method to establish connections between locations, ensuring proper spatial mapping.
 
 **Section sources**
 - [worldStateEngine.ts:97-119](file://packages/engine/src/world/worldStateEngine.ts#L97-L119)
@@ -450,4 +456,4 @@ Common issues and remedies:
 - [eventResolver.ts:231-272](file://packages/engine/src/world/eventResolver.ts#L231-L272)
 
 ## Conclusion
-The World State Engine provides a robust, authoritative foundation for narrative consistency in AI-generated stories. By integrating autonomous character agents, event resolution, and LLM-driven state updates, it ensures coherent evolution of story worlds across chapters and scenes. **Enhanced** with automatic object creation capabilities and improved validation, the engine now offers better user experience while maintaining logical consistency and persistent memory. The addition of automatic world state initialization from story bible makes the system more accessible and reduces manual setup requirements.
+The World State Engine provides a robust, authoritative foundation for narrative consistency in AI-generated stories. By integrating autonomous character agents, event resolution, and LLM-driven state updates, it ensures coherent evolution of story worlds across chapters and scenes. **Enhanced** with automatic object creation capabilities, automatic character initialization from story bible, improved validation, and comprehensive spatial connectivity mapping, the engine now offers significantly better user experience while maintaining logical consistency and persistent memory. The addition of automatic world state initialization from story bible makes the system extremely accessible and reduces manual setup requirements to virtually zero.

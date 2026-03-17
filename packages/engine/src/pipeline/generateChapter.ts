@@ -90,8 +90,8 @@ async function generateChapterSceneLevel(
   // Phase 14: Initialize World State Engine
   const worldStateEngine = providedWorldState || createWorldStateEngine(bible.id);
   
-  // Initialize world state from bible characters if empty
-  if (Object.keys(worldStateEngine.getState().characters).length === 0) {
+  // Initialize world state from bible characters only if no world state was provided
+  if (!providedWorldState) {
     console.log('  Initializing world state from story bible...');
     for (const char of bible.characters) {
       worldStateEngine.addCharacter(char.name, 'unknown', 'neutral');

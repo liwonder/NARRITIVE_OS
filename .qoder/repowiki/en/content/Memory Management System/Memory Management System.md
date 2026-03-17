@@ -34,11 +34,12 @@
 
 ## Update Summary
 **Changes Made**
-- Enhanced sceneAssembler.ts to support multilingual content with language-aware summary concatenation and connector selection for different cultural narrative flows
-- Updated generateChapter.ts to pass language parameter to scene assembly process
-- Enhanced generateNaturalChapterSummary to support multilingual chapter summaries
-- Improved language detection and handling throughout the scene generation pipeline
-- Added comprehensive language support for scene-level generation with cultural narrative flow adaptation
+- Enhanced MemoryExtractor Agent with automatic memory extraction from generated chapters and improved structured memory categorization
+- Integrated automatic vector store memory extraction into the generation pipeline with dual extraction modes (full chapter and summary-based)
+- Improved VectorStore with enhanced embedding provider flexibility and mock embedding fallback mechanisms
+- Added comprehensive memory lifecycle management with automatic extraction, validation, and integration
+- Enhanced StateUpdaterPipeline with integrated memory extraction and structured categorization
+- Updated CLI integration with automatic memory persistence and vector store management
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -55,7 +56,7 @@
 ## Introduction
 This document describes the Memory Management System with a focus on Canonical Fact Storage, Enhanced Vector Memory System with Flexible Embedding Providers, Memory Validation, and Comprehensive State Management. The system now includes a sophisticated vector memory system with flexible embedding provider architecture that enables seamless switching between multiple providers (OpenAI, DeepSeek) for embedding generation, while maintaining backward compatibility and robust fallback mechanisms. The enhanced vector memory system integrates seamlessly with the canonical fact storage, memory validation, and state management components to provide a comprehensive memory infrastructure for narrative coherence and intelligent story generation.
 
-**Updated** Enhanced multilingual support has been integrated throughout the scene assembly and chapter generation pipeline, enabling culturally-aware narrative flow adaptation and language-specific connector selection for different storytelling traditions.
+**Updated** Enhanced memory management now features automatic memory extraction from generated chapters, structured memory categorization (events, characters, world, plot), and comprehensive vector store integration with improved embedding provider flexibility and mock embedding fallback mechanisms.
 
 ## Project Structure
 The memory system now encompasses a comprehensive vector memory infrastructure with enhanced state management capabilities and flexible embedding provider architecture:
@@ -72,14 +73,14 @@ graph TB
 subgraph "Enhanced Vector Memory System"
 VS["VectorStore<br/>Flexible Embedding Providers<br/>Auto-resize()<br/>searchSimilar()<br/>serialize()/load()"]
 MR["MemoryRetriever<br/>retrieveForChapter()<br/>retrieveForCharacter()<br/>formatMemoriesForPrompt()"]
-ME["MemoryExtractor<br/>extract()<br/>extractFromSummary()"]
+ME["MemoryExtractor<br/>extract()<br/>extractFromSummary()<br/>Automatic Chapter Memory Extraction"]
 end
 subgraph "Canonical Memory"
-CS["CanonStore<br/>createCanonStore()<br/>extractCanonFromBible()<br/>addFact()/updateFact()"]
+CS["CanonStore<br/>createCanonStore()<br/>extractCanonFromBible()<br/>extractCanonFromChapter()<br/>addFact()/updateFact()"]
 end
 subgraph "Enhanced State Management"
 SS["StructuredState<br/>createStructuredState()<br/>initializeCharactersFromBible()"]
-SU["StateUpdaterPipeline<br/>update()<br/>extractChanges()<br/>quickUpdate()"]
+SU["StateUpdaterPipeline<br/>update()<br/>extractChanges()<br/>quickUpdate()<br/>Integrated Memory Extraction"]
 end
 subgraph "Story & Agents"
 B["StoryBible<br/>createStoryBible()/addCharacter()/addPlotThread()"]
@@ -92,7 +93,7 @@ SW["SceneWriter<br/>writeScene()<br/>language-aware content"]
 SA["SceneAssembler<br/>assembleChapter()<br/>multilingual connectors"]
 end
 subgraph "Enhanced Pipeline & CLI"
-G["generateChapter()<br/>scene-level generation<br/>enhanced orchestration"]
+G["generateChapter()<br/>scene-level generation<br/>enhanced orchestration<br/>Automatic Memory Extraction"]
 CMD["generateCommand()"]
 end
 subgraph "LLM Client & Embedding Providers"
@@ -151,9 +152,9 @@ EP --> LC
 ## Core Components
 - **VectorStore**: Enhanced HNSW (Hierarchical Navigable Small World) algorithm-based vector memory storage with semantic similarity search, flexible embedding generation supporting multiple providers, auto-resizing capabilities, and full persistence support.
 - **MemoryRetriever**: Advanced contextual memory retrieval system that searches vector stores for relevant past events, character memories, plot threads, and world details with intelligent query generation.
-- **MemoryExtractor**: Sophisticated automated narrative memory extraction agent that identifies and categorizes important facts from chapters into four categories: events, characters, world, and plot.
-- **CanonStore**: Immutable store of canonical facts with helpers to extract, add, update, filter, and format facts for prompts.
-- **StateUpdaterPipeline**: Comprehensive post-chapter state management pipeline that extracts narrative changes, updates constraint graphs, maintains recent events, and integrates vector memory extraction with enhanced performance.
+- **MemoryExtractor**: Sophisticated automated narrative memory extraction agent that identifies and categorizes important facts from chapters into four categories: events, characters, world, and plot with automatic extraction from generated chapters.
+- **CanonStore**: Immutable store of canonical facts with helpers to extract, add, update, filter, and format facts for prompts, including new automatic extraction from chapter content.
+- **StateUpdaterPipeline**: Comprehensive post-chapter state management pipeline that extracts narrative changes, updates constraint graphs, maintains recent events, and integrates vector memory extraction with enhanced performance and automatic memory extraction.
 - **StructuredState**: Rich story state representation with characters, plot threads, unresolved questions, and recent events tracking.
 - **StoryBible**: Central story definition containing characters and plot threads used to seed canonical facts and initialize structured state.
 - **LLMClient**: Multi-model configuration system supporting embedding provider flexibility with task-specific model routing, embedding configuration management, and provider switching capabilities.
@@ -165,7 +166,7 @@ EP --> LC
   - ChapterSummarizer: Produces concise chapter summaries for memory extraction.
   - CanonValidator: Validates generated chapters against canonical facts using LLM reasoning.
   - StateUpdater: Extracts and applies state changes for unresolved questions and recent events.
-- **Enhanced Pipeline**: Orchestrates generation, optional canonical validation, vector memory extraction, and comprehensive state updates with scene-level generation capabilities.
+- **Enhanced Pipeline**: Orchestrates generation, optional canonical validation, vector memory extraction, and comprehensive state updates with scene-level generation capabilities and automatic memory extraction.
 - **CLI**: Iteratively generates chapters, updates state, persists progress, and manages vector store persistence with enhanced memory and constraint graph persistence, including embedding provider configuration.
 
 **Section sources**
@@ -192,7 +193,7 @@ The enhanced memory system integrates comprehensive vector memory capabilities w
 - StoryBible seeds both CanonStore and StructuredState via extraction and initialization.
 - VectorStore integrates with LLM client for flexible embedding generation supporting multiple providers.
 - VectorStore and MemoryRetriever are integrated into the writer to provide contextual memory injection.
-- MemoryExtractor automatically extracts narrative memories from generated chapters and adds them to the vector store.
+- MemoryExtractor automatically extracts narrative memories from generated chapters and adds them to the vector store with structured categorization.
 - SceneWriter generates scenes with language-aware content adaptation.
 - SceneAssembler combines scenes with cultural narrative flow adaptation and language-specific connectors.
 - After writing, the pipeline checks completeness and optionally validates against canonical facts.
@@ -261,114 +262,34 @@ Pipe-->>CLI : "GenerateChapterResult"
 
 ## Detailed Component Analysis
 
-### Enhanced SceneAssembler: Multilingual Content with Cultural Narrative Flow Adaptation
-The SceneAssembler now provides sophisticated multilingual scene assembly with cultural narrative flow adaptation:
+### Enhanced MemoryExtractor: Sophisticated Automated Narrative Memory Extraction
+The MemoryExtractor agent automatically identifies and categorizes important narrative elements from chapters with significantly enhanced capabilities:
 
-- **Language-Aware Scene Combination**: The assembleChapter function accepts a language parameter and uses it to adapt scene combination strategies for different cultural narrative traditions.
-- **Cultural Connector Selection**: The system selects appropriate narrative connectors and transitions based on the story's language setting, adapting from Western linear narratives to more circular or episodic storytelling patterns.
-- **Multilingual Summary Processing**: Enhanced generateChapterSummary function can process scene summaries with language-specific concatenation rules and cultural narrative flow preferences.
-- **Adaptive Scene Transition Logic**: Scene transitions are adapted to respect cultural storytelling conventions, such as avoiding abrupt "then" transitions in certain cultures and using more subtle connectors.
-- **Cultural Narrative Flow Integration**: The assembler respects different narrative flow patterns, from chronological Western storytelling to more thematic or associative Eastern narrative styles.
+- **Advanced Extraction Capabilities**: Identifies events, character developments, world details, and plot thread progress from chapter content with better extraction accuracy and structured categorization.
+- **Enhanced Structured Output**: Returns memories in standardized format with content and category classification (event, character, world, plot) with improved consistency.
+- **Dual Extraction Modes**: Can extract from full chapter content or from chapter summaries for efficiency with better content length management and automatic extraction from generated chapters.
+- **Improved Prompt Engineering**: Uses carefully crafted prompts to ensure consistent and relevant memory extraction with better instruction clarity and structured output formatting.
+- **Advanced Content Limiting**: Implements content length limits to control token usage and maintain performance with better content truncation strategies.
+- **Automatic Integration**: Seamlessly integrated into the generation pipeline to automatically extract memories from generated chapters without manual intervention.
 
 ```mermaid
 flowchart TD
-A["Language Parameter"] --> B["Cultural Adaptation Engine"]
-B --> C["Connector Selection"]
-B --> D["Transition Logic"]
-B --> E["Summary Concatenation"]
-C --> F["Western: 'Then', 'Next'"]
-C --> G["Eastern: 'Meanwhile', 'In the meantime'"]
-C --> H["Middle Eastern: 'Afterwards', 'Subsequently'"]
-D --> I["Linear Transitions"]
-D --> J["Circular Transitions"]
-D --> K["Thematic Transitions"]
-E --> L["Sequential Concatenation"]
-E --> M["Thematic Synthesis"]
-E --> N["Cultural Flow Preservation"]
+A["Enhanced Chapter Input"] --> B["Generate Advanced Extraction Prompt"]
+B --> C["LLM Analysis"]
+C --> D["Extract Enhanced Memories"]
+D --> E["Categorize Content<br/>event/character/world/plot"]
+E --> F["Return Enhanced ExtractedMemory[]"]
+F --> G["Automatic VectorStore Integration"]
+G --> H["Structured Memory Storage"]
 ```
 
 **Diagram sources**
-- [sceneAssembler.ts:14-43](file://packages/engine/src/scene/sceneAssembler.ts#L14-L43)
-- [sceneAssembler.ts:86-99](file://packages/engine/src/scene/sceneAssembler.ts#L86-L99)
-- [generateChapter.ts:305](file://packages/engine/src/pipeline/generateChapter.ts#L305)
+- [memoryExtractor.ts:52-68](file://packages/engine/src/agents/memoryExtractor.ts#L52-L68)
+- [memoryExtractor.ts:70-93](file://packages/engine/src/agents/memoryExtractor.ts#L70-L93)
+- [generateChapter.ts:190-207](file://packages/engine/src/pipeline/generateChapter.ts#L190-L207)
 
 **Section sources**
-- [sceneAssembler.ts:14-112](file://packages/engine/src/scene/sceneAssembler.ts#L14-L112)
-
-### Enhanced SceneWriter: Language-Aware Scene Generation
-The SceneWriter provides comprehensive language-aware scene generation with cultural adaptation:
-
-- **Language Detection Integration**: Uses the story's language setting to adapt narrative style and cultural context throughout scene generation.
-- **Cultural Narrative Style Adaptation**: Adapts writing style to match cultural storytelling traditions, from direct Western narrative to more indirect or metaphorical approaches.
-- **Language-Specific Character Development**: Adjusts character dialogue and internal monologue to reflect cultural communication patterns and emotional expression norms.
-- **Cultural Setting Integration**: Ensures scene locations and events are described with cultural authenticity and appropriate narrative emphasis.
-- **Multilingual Fallback Support**: Provides fallback content generation for different languages while maintaining narrative coherence.
-
-```mermaid
-classDiagram
-class SceneWriter {
-+writeScene(input) Promise~SceneOutput~
-+createFallbackScene(scene, bible, chapterNumber) SceneOutput
-}
-class LanguageAdaptation {
-+detectLanguage(text) string
-+adaptStyle(language) string
-+selectConnectors(language) string[]
-+culturalNarrativeFlow(language) string
-}
-class SceneOutput {
-+string content
-+string summary
-+number wordCount
-}
-SceneWriter --> LanguageAdaptation : "uses for cultural adaptation"
-SceneWriter --> SceneOutput : "produces"
-```
-
-**Diagram sources**
-- [sceneWriter.ts:20-144](file://packages/engine/src/agents/sceneWriter.ts#L20-L144)
-- [sceneWriter.ts:146-198](file://packages/engine/src/agents/sceneWriter.ts#L146-L198)
-- [bible.ts:8-50](file://packages/engine/src/story/bible.ts#L8-L50)
-
-**Section sources**
-- [sceneWriter.ts:20-198](file://packages/engine/src/agents/sceneWriter.ts#L20-L198)
-
-### Enhanced generateChapter: Multilingual Chapter Generation Pipeline
-The generateChapter function now orchestrates multilingual scene generation with cultural narrative flow adaptation:
-
-- **Language Parameter Propagation**: The language parameter from StoryBible is passed through the entire generation pipeline to ensure consistent cultural adaptation.
-- **Scene-Level Multilingual Coordination**: Scene generation respects the story's language setting while maintaining narrative coherence across scenes.
-- **Cultural Narrative Flow Integration**: The pipeline coordinates scene assembly with cultural storytelling conventions and language-specific narrative patterns.
-- **Enhanced Chapter Summary Generation**: The generateNaturalChapterSummary function now supports multilingual chapter summaries with cultural adaptation.
-- **Language-Aware Memory Extraction**: Memory extraction respects cultural narrative patterns and language-specific storytelling conventions.
-
-```mermaid
-sequenceDiagram
-participant B as "StoryBible"
-participant G as "generateChapter()"
-participant SP as "ScenePlanner"
-participant SW as "SceneWriter"
-participant SA as "SceneAssembler"
-participant GNS as "generateNaturalChapterSummary"
-B->>G : "language setting"
-G->>SP : "planScenes(language)"
-SP-->>G : "ScenePlan"
-G->>SW : "writeScene(language)"
-SW-->>G : "SceneOutput"
-G->>SA : "assembleChapter(language)"
-SA-->>G : "AssembledChapter"
-G->>GNS : "generateNaturalChapterSummary(language)"
-GNS-->>G : "ChapterSummary"
-G-->>B : "Multilingual Chapter"
-```
-
-**Diagram sources**
-- [generateChapter.ts:71-355](file://packages/engine/src/pipeline/generateChapter.ts#L71-L355)
-- [generateChapter.ts:448-493](file://packages/engine/src/pipeline/generateChapter.ts#L448-L493)
-- [sceneAssembler.ts:14-43](file://packages/engine/src/scene/sceneAssembler.ts#L14-L43)
-
-**Section sources**
-- [generateChapter.ts:71-355](file://packages/engine/src/pipeline/generateChapter.ts#L71-L355)
+- [memoryExtractor.ts:1-99](file://packages/engine/src/agents/memoryExtractor.ts#L1-L99)
 
 ### Enhanced VectorStore: Flexible Embedding Provider Architecture
 The VectorStore provides sophisticated vector memory management with enhanced embedding provider flexibility and improved fallback mechanisms:
@@ -426,89 +347,6 @@ LLMClient --> ModelConfig : "returns"
 **Section sources**
 - [vectorStore.ts:1-237](file://packages/engine/src/memory/vectorStore.ts#L1-L237)
 
-### Enhanced LLM Client: Multi-Model Configuration System
-The LLM Client provides comprehensive multi-model configuration management with embedding provider flexibility:
-
-- **Multi-Model Architecture**: Supports multiple models with different purposes (reasoning, chat, fast, embedding) through JSON configuration with enhanced model routing.
-- **Task-Specific Model Routing**: Automatic model selection based on task type with embedding-specific routing for vector memory operations.
-- **Embedding Provider Configuration**: Dedicated embedding model configuration with separate API keys and provider settings for maximum flexibility.
-- **Provider Flexibility**: Supports both OpenAI and DeepSeek providers with configurable base URLs and model names.
-- **Backward Compatibility**: Maintains legacy single-model configuration while enabling enhanced multi-model setups.
-- **Dynamic Model Loading**: Loads models dynamically from environment configuration with JSON parsing support.
-
-```mermaid
-flowchart TD
-A["LLMClient Configuration"] --> B["Multi-Model Config JSON"]
-B --> C["Parse Models Array"]
-C --> D["Load Provider Config"]
-D --> E["Create Model Config"]
-E --> F["Register Provider"]
-F --> G["Task-Based Routing"]
-G --> H["Embedding Provider Selection"]
-H --> I["Model Execution"]
-```
-
-**Diagram sources**
-- [client.ts:59-112](file://packages/engine/src/llm/client.ts#L59-L112)
-- [client.ts:114-126](file://packages/engine/src/llm/client.ts#L114-L126)
-- [client.ts:192-200](file://packages/engine/src/llm/client.ts#L192-L200)
-
-**Section sources**
-- [client.ts:1-211](file://packages/engine/src/llm/client.ts#L1-L211)
-
-### Enhanced MemoryRetriever: Advanced Contextual Memory Retrieval System
-The MemoryRetriever provides intelligent memory retrieval with enhanced contextual awareness and filtering capabilities:
-
-- **Advanced Contextual Query Generation**: Creates meaningful search queries based on story context, current chapter progress, and active plot threads with improved query construction.
-- **Sophisticated Multi-Category Retrieval**: Supports specialized retrieval for characters, plot threads, and specific memory categories with better filtering mechanisms.
-- **Intelligent Re-ranking and Filtering**: Filters out memories from the current chapter and re-ranks results based on relevance with improved ranking algorithms.
-- **Enhanced Prompt Formatting**: Converts retrieved memories into structured format suitable for LLM prompts with better organization and categorization.
-- **Advanced Category Grouping**: Organizes memories by category (event, character, world, plot) for clear presentation with improved grouping logic.
-- **Intelligent Relevance Reasoning**: Provides explanations for why memories are considered relevant with better reason inference.
-
-```mermaid
-flowchart TD
-A["Enhanced RetrievalContext"] --> B["Generate Advanced Contextual Query"]
-B --> C["VectorStore.searchSimilar()"]
-C --> D["Filter Current Chapter"]
-D --> E["Intelligent Rerank Results"]
-E --> F["Format for Prompt"]
-F --> G["Enhanced RetrievedMemory[]"]
-```
-
-**Diagram sources**
-- [memoryRetriever.ts:25-41](file://packages/engine/src/memory/memoryRetriever.ts#L25-L41)
-- [memoryRetriever.ts:117-132](file://packages/engine/src/memory/memoryRetriever.ts#L117-L132)
-- [memoryRetriever.ts:85-102](file://packages/engine/src/memory/memoryRetriever.ts#L85-L102)
-
-**Section sources**
-- [memoryRetriever.ts:1-174](file://packages/engine/src/memory/memoryRetriever.ts#L1-L174)
-
-### Enhanced MemoryExtractor: Sophisticated Automated Narrative Memory Extraction
-The MemoryExtractor agent automatically identifies and categorizes important narrative elements from chapters with improved capabilities:
-
-- **Advanced Extraction Capabilities**: Identifies events, character developments, world details, and plot thread progress from chapter content with better extraction accuracy.
-- **Enhanced Structured Output**: Returns memories in standardized format with content and category classification with improved consistency.
-- **Dual Extraction Modes**: Can extract from full chapter content or from chapter summaries for efficiency with better content length management.
-- **Improved Prompt Engineering**: Uses carefully crafted prompts to ensure consistent and relevant memory extraction with better instruction clarity.
-- **Advanced Content Limiting**: Implements content length limits to control token usage and maintain performance with better content truncation strategies.
-
-```mermaid
-flowchart TD
-A["Enhanced Chapter Input"] --> B["Generate Advanced Extraction Prompt"]
-B --> C["LLM Analysis"]
-C --> D["Extract Enhanced Memories"]
-D --> E["Categorize Content"]
-E --> F["Return Enhanced ExtractedMemory[]"]
-```
-
-**Diagram sources**
-- [memoryExtractor.ts:52-68](file://packages/engine/src/agents/memoryExtractor.ts#L52-L68)
-- [memoryExtractor.ts:70-93](file://packages/engine/src/agents/memoryExtractor.ts#L70-L93)
-
-**Section sources**
-- [memoryExtractor.ts:1-99](file://packages/engine/src/agents/memoryExtractor.ts#L1-L99)
-
 ### Enhanced StateUpdaterPipeline: Comprehensive Post-Chapter State Management
 The StateUpdaterPipeline represents a significant enhancement to the memory management system, now fully integrated with vector memory capabilities:
 
@@ -538,138 +376,42 @@ G --> H["Enhanced StateUpdateResult"]
 **Section sources**
 - [stateUpdater.ts:90-435](file://packages/engine/src/memory/stateUpdater.ts#L90-L435)
 
-### Enhanced VectorStore: Advanced Persistent Memory Storage
-The VectorStore provides sophisticated memory management with enhanced vector embeddings and similarity search:
+### Enhanced generateChapter: Automatic Memory Extraction Integration
+The generateChapter function now orchestrates automatic memory extraction from generated chapters with enhanced capabilities:
 
-- **Improved Memory Model**: Stores narrative memories with categories (event, character, world, plot) and timestamps with better data structure.
-- **Advanced Embedding Generation**: Uses OpenAI text-embedding-3-small model for semantic similarity with support for DeepSeek API and automatic mock fallback.
-- **Optimized Similarity Search**: Implements HNSW algorithm for efficient nearest neighbor search with improved performance and better result ranking.
-- **Enhanced Serialization**: Full persistence support for memory stores across sessions with better index rebuilding and memory management.
-- **Robust Mock Embeddings**: Includes fallback mechanism for environments without API access with improved vector generation and normalization.
-
-```mermaid
-classDiagram
-class VectorStore {
-+HierarchicalNSW index
-+Map~number, NarrativeMemory~ memories
-+number dimension
-+string storyId
-+number nextId
-+initialize() Promise~void~
-+ensureCapacity(additionalMemories) void
-+resizeIndex(newMaxElements) void
-+addMemory(memory) Promise~NarrativeMemory~
-+searchSimilar(query, k) Promise~MemorySearchResult[]~
-+searchByCategory(query, category, k) Promise~MemorySearchResult[]~
-+serialize() string
-+load(data) Promise~void~
-}
-class NarrativeMemory {
-+number id
-+string storyId
-+number chapterNumber
-+string content
-+string category
-+Date timestamp
-+number[] embedding
-}
-VectorStore --> NarrativeMemory : "manages"
-```
-
-**Diagram sources**
-- [vectorStore.ts:19-58](file://packages/engine/src/memory/vectorStore.ts#L19-L58)
-- [vectorStore.ts:135-157](file://packages/engine/src/memory/vectorStore.ts#L135-L157)
-
-**Section sources**
-- [vectorStore.ts:1-237](file://packages/engine/src/memory/vectorStore.ts#L1-L237)
-
-### Enhanced StructuredState: Rich Story State Representation
-StructuredState provides comprehensive narrative state management with improved capabilities:
-
-- **Advanced Character Model**: Tracks emotional state, location, relationships, goals, knowledge, and development arcs with better state management.
-- **Enhanced Plot Thread Model**: Manages status, tension levels, involvement, and summaries for multiple story threads with improved thread management.
-- **Advanced Question Management**: Maintains unresolved questions that drive narrative progression with better question tracking.
-- **Enhanced Event Tracking**: Keeps rolling window of recent events for context with better event management.
-- **Improved Tension Calculation**: Implements parabolic tension curve for dynamic narrative pacing with better tension management.
+- **Automatic Memory Extraction**: Seamlessly extracts memories from generated chapters using MemoryExtractor and adds them to vector store without manual intervention.
+- **Dual Extraction Modes**: Supports both full chapter extraction and summary-based extraction for efficiency with better content management.
+- **Enhanced Pipeline Integration**: Integrates MemoryExtractor into the generation pipeline with automatic vector store management and embedding generation.
+- **Structured Memory Categorization**: Automatically categorizes extracted memories into events, characters, world, and plot categories for organized storage.
+- **Improved Error Handling**: Robust error handling for memory extraction failures with graceful degradation to ensure chapter generation continues.
 
 ```mermaid
-classDiagram
-class StoryStructuredState {
-+string storyId
-+number chapter
-+number tension
-+Record~string, CharacterState~ characters
-+Record~string, PlotThreadState~ plotThreads
-+string[] unresolvedQuestions
-+string[] recentEvents
-}
-class CharacterState {
-+string name
-+string emotionalState
-+string location
-+Record~string, string~ relationships
-+string[] goals
-+string[] knowledge
-+string[] development
-}
-class PlotThreadState {
-+string id
-+string name
-+'dormant'|'active'|'escalating'|'resolved' status
-+number tension
-+number lastChapter
-+string[] involvedCharacters
-+string summary
-}
-StoryStructuredState --> CharacterState : "contains"
-StoryStructuredState --> PlotThreadState : "contains"
-```
-
-**Diagram sources**
-- [structuredState.ts:23-31](file://packages/engine/src/story/structuredState.ts#L23-L31)
-- [structuredState.ts:3-11](file://packages/engine/src/story/structuredState.ts#L3-L11)
-- [structuredState.ts:13-21](file://packages/engine/src/story/structuredState.ts#L13-L21)
-
-**Section sources**
-- [structuredState.ts:1-235](file://packages/engine/src/story/structuredState.ts#L1-L235)
-
-### Enhanced Constraint Graph: Advanced Narrative Logic Enforcement
-The ConstraintGraph provides comprehensive narrative logic enforcement with improved capabilities:
-
-- **Enhanced Node Types**: Supports characters, locations, facts, events, and items with rich metadata and improved node management.
-- **Advanced Edge Relationships**: Manages relationships like located_at, knows, participates_in, and custom relations with better edge management.
-- **Improved Constraint Checking**: Validates location consistency, knowledge consistency, timeline integrity, and logical coherence with better validation logic.
-- **Enhanced Dynamic Updates**: Automatically updates graph when characters move, learn new knowledge, or participate in events with better graph updates.
-- **Advanced Serialization**: Full persistence support for constraint graph evolution with better serialization and deserialization.
-
-```mermaid
-graph TB
-subgraph "Enhanced Constraint Graph Nodes"
-CHAR["Character Node<br/>properties: emotionalState, location, goals"]
-LOC["Location Node<br/>properties: description"]
-FACT["Fact Node<br/>properties: established in chapter"]
-EVENT["Event Node<br/>properties: participants, chapter"]
+sequenceDiagram
+participant G as "generateChapter()"
+participant ME as "MemoryExtractor"
+participant VS as "VectorStore"
+G->>ME : "extract(chapter, bible)"
+ME-->>G : "ExtractedMemory[]"
+loop "for each memory"
+G->>VS : "addMemory(memory)"
+VS-->>G : "MemoryStored"
 end
-subgraph "Enhanced Constraint Edges"
-CHAR --> |"located_at"| LOC
-CHAR --> |"knows"| FACT
-CHAR --> |"participates_in"| EVENT
-END
+G-->>G : "Automatic Memory Extraction Complete"
 ```
 
 **Diagram sources**
-- [constraintGraph.ts:5-19](file://packages/engine/src/constraints/constraintGraph.ts#L5-L19)
-- [constraintGraph.ts:98-143](file://packages/engine/src/constraints/constraintGraph.ts#L98-L143)
-- [constraintGraph.ts:163-192](file://packages/engine/src/constraints/constraintGraph.ts#L163-L192)
+- [generateChapter.ts:190-207](file://packages/engine/src/pipeline/generateChapter.ts#L190-L207)
+- [memoryExtractor.ts:52-68](file://packages/engine/src/agents/memoryExtractor.ts#L52-L68)
+- [vectorStore.ts:77-105](file://packages/engine/src/memory/vectorStore.ts#L77-L105)
 
 **Section sources**
-- [constraintGraph.ts:29-471](file://packages/engine/src/constraints/constraintGraph.ts#L29-L471)
+- [generateChapter.ts:190-207](file://packages/engine/src/pipeline/generateChapter.ts#L190-L207)
 
 ### Enhanced Memory Lifecycle: Extraction → Validation → Integration → State Updates → Vector Memory
 The enhanced memory lifecycle now includes comprehensive vector memory integration with improved performance and flexible embedding providers:
 
 - **Enhanced Extraction**: extractCanonFromBible reads characters and plot threads from the story bible and writes canonical facts into CanonStore with better extraction logic.
-- **Advanced Vector Memory Extraction**: MemoryExtractor automatically extracts narrative memories from generated chapters and adds them to VectorStore with improved extraction accuracy.
+- **Advanced Vector Memory Extraction**: MemoryExtractor automatically extracts narrative memories from generated chapters and adds them to VectorStore with improved extraction accuracy and structured categorization.
 - **Enhanced Validation**: CanonValidator compares generated chapter content against formatted canonical facts and reports contradictions with better validation logic.
 - **Advanced Integration**: The pipeline passes CanonStore, VectorStore, and MemoryRetriever to the writer and optionally invokes validation; summaries trigger memory extraction with better integration.
 - **Enhanced State Updates**: StateUpdaterPipeline processes chapters to extract narrative changes, update constraint graphs, maintain recent events, and integrate vector memory extraction with improved performance.
@@ -734,10 +476,10 @@ SU-->>SW : "state updates applied"
 Enhanced CLI-driven generation now includes comprehensive vector memory management with flexible embedding providers:
 
 - **Enhanced CLI-driven generation**: The CLI command constructs a GenerationContext, loads or initializes VectorStore, calls generateChapter with CanonStore and VectorStore, and persists the new chapter, updated state, and vector store.
-- **Advanced Memory extraction automation**: The pipeline automatically extracts memories from generated chapters using MemoryExtractor and adds them to the vector store with improved extraction accuracy.
+- **Advanced Memory extraction automation**: The pipeline automatically extracts memories from generated chapters using MemoryExtractor and adds them to the vector store with improved extraction accuracy and structured categorization.
 - **Enhanced Test-driven example**: Demonstrates creating a story bible, adding a character, building a CanonStore, generating a chapter with validation and summarization, extracting memories, and processing state updates.
 - **Flexible Embedding Provider Configuration**: CLI supports embedding provider selection with DeepSeek compatibility and mock embedding fallback for testing environments.
-- **Multilingual Scene Generation**: The pipeline demonstrates language-aware scene generation with cultural narrative flow adaptation.
+- **Automatic Memory Persistence**: Vector store memories are automatically persisted to disk after each chapter generation with enhanced serialization and deserialization.
 
 ```mermaid
 sequenceDiagram
@@ -795,7 +537,6 @@ Enhanced prioritization and growth strategies leverage comprehensive state manag
 - **Enhanced Constraint integration**: New facts from state updates are automatically integrated into the constraint graph for logical consistency with improved graph updates.
 - **Advanced Memory categorization**: Vector memories are categorized (event, character, world, plot) enabling targeted retrieval and context-aware writing with better categorization.
 - **Flexible Embedding Provider Support**: Enhanced vector memory system supports multiple embedding providers with automatic configuration and fallback mechanisms for maximum compatibility.
-- **Multilingual Canonical Integration**: Canonical facts are integrated with language-aware processing to respect cultural narrative conventions and storytelling patterns.
 
 ```mermaid
 flowchart TD
@@ -831,18 +572,18 @@ OptionalUpdate --> Next
 - [stateUpdater.ts:94-248](file://packages/engine/src/memory/stateUpdater.ts#L94-L248)
 
 ## Dependency Analysis
-Enhanced dependency relationships now include comprehensive vector memory integration, flexible embedding provider architecture, and multilingual scene assembly:
+Enhanced dependency relationships now include comprehensive vector memory integration, flexible embedding provider architecture, and automatic memory extraction:
 
 - CanonStore depends on StoryBible for initial extraction and on the pipeline for integration.
 - VectorStore depends on LLM client for embedding configuration and supports serialization for persistence with enhanced provider flexibility.
 - MemoryRetriever depends on VectorStore for semantic search and on LLM client for contextual query generation.
-- MemoryExtractor depends on LLM client for memory extraction and on StoryBible for context.
+- MemoryExtractor depends on LLM client for memory extraction and on StoryBible for context, with automatic integration into generation pipeline.
 - StateUpdaterPipeline depends on all core components: Chapter, StoryBible, StoryStructuredState, CanonStore, VectorStore, MemoryExtractor, and ConstraintGraph.
 - ConstraintGraph integrates with StateUpdaterPipeline for automatic updates and with StateUpdater for manual state changes.
 - Agents depend on LLMClient for completions; CanonValidator, StateUpdater, and MemoryExtractor additionally depend on their respective data structures.
 - SceneWriter depends on StoryBible language setting for cultural adaptation.
 - SceneAssembler depends on language parameter for multilingual connector selection.
-- Enhanced Pipeline composes agents and manages optional validation, memory extraction, and state updates with improved orchestration.
+- Enhanced Pipeline composes agents and manages optional validation, memory extraction, and state updates with improved orchestration and automatic memory extraction.
 - CLI depends on the engine exports to orchestrate generation, persistence, vector store management, and enhanced state management with embedding provider configuration.
 - LLMClient manages multi-model configuration with embedding provider flexibility and task-specific model routing.
 
@@ -901,7 +642,7 @@ CMD --> LC
 - [client.ts:1-211](file://packages/engine/src/llm/client.ts#L1-L211)
 
 ## Performance Considerations
-Enhanced performance considerations for the expanded vector memory system with flexible embedding providers and multilingual scene assembly:
+Enhanced performance considerations for the expanded vector memory system with flexible embedding providers and automatic memory extraction:
 
 - **Advanced HNSW Index Performance**: HNSW algorithm provides O(log N) search complexity with configurable efConstruction and efSearch parameters for balancing recall and speed with improved performance tuning.
 - **Enhanced Embedding Generation Costs**: OpenAI embeddings have token limits and costs; consider batching and caching strategies for repeated embeddings with better cost optimization.
@@ -916,11 +657,11 @@ Enhanced performance considerations for the expanded vector memory system with f
 - **Immutable updates**: CanonStore, VectorStore, and StateUpdaterPipeline operations return new objects; ensure minimal copying and avoid unnecessary re-renders in UI contexts with better memory management.
 - **Provider Switching Overhead**: Embedding provider switching introduces overhead; cache embedding configurations and minimize provider switching frequency with better provider caching strategies.
 - **Embedding API Reliability**: Different providers have varying reliability; implement circuit breaker patterns and graceful degradation with better error handling for provider failures.
-- **Multilingual Processing Overhead**: Language detection and cultural adaptation add computational overhead; optimize language parameter propagation and caching for frequently used languages.
-- **Scene Assembly Complexity**: Multilingual scene assembly with cultural connectors increases processing time; implement efficient connector selection algorithms and caching for common cultural patterns.
+- **Automatic Memory Extraction Efficiency**: MemoryExtractor operates asynchronously and can be batched for better performance; consider parallel extraction for multiple chapters.
+- **Structured Memory Categorization**: Automatic categorization reduces manual processing but adds computational overhead; optimize categorization algorithms for better performance.
 
 ## Troubleshooting Guide
-Enhanced troubleshooting guidance for the expanded vector memory system with flexible embedding providers and multilingual scene assembly:
+Enhanced troubleshooting guidance for the expanded vector memory system with flexible embedding providers and automatic memory extraction:
 
 - **VectorStore Initialization Failures**: Ensure HNSW library is properly installed with native bindings; check node version compatibility with better installation verification.
 - **Enhanced Memory Extraction Failures**: If MemoryExtractor returns empty results, check LLM availability and API keys; verify chapter content length limits with better error handling.
@@ -936,8 +677,8 @@ Enhanced troubleshooting guidance for the expanded vector memory system with fle
 - **Enhanced CLI progress**: Ensure state updates, memory persistence, and constraint graph updates occur after each generation; confirm currentChapter increments and totalChapters thresholds with better progress tracking.
 - **Provider Switching Failures**: If embedding provider switching fails, check LLM client configuration and model availability; verify API credentials and network connectivity with better provider switching diagnostics.
 - **Mock Embedding Issues**: If mock embeddings cause semantic issues, verify USE_MOCK_EMBEDDINGS environment variable and ensure deterministic behavior with better mock embedding validation.
-- **Multilingual Scene Assembly Issues**: If scene assembly fails to respect cultural narrative flow, verify language parameter propagation and connector selection logic with better cultural adaptation validation.
-- **Language Detection Problems**: If language detection fails, check StoryBible language field and ensure proper language code formatting with better language detection fallback mechanisms.
+- **Automatic Memory Extraction Problems**: If automatic extraction fails, verify MemoryExtractor configuration and ensure proper integration with generation pipeline with better extraction monitoring.
+- **Structured Memory Categorization Issues**: If memory categorization fails, check MemoryExtractor prompts and ensure proper category assignment with better categorization validation.
 
 **Section sources**
 - [vectorStore.ts:125-177](file://packages/engine/src/memory/vectorStore.ts#L125-L177)
@@ -954,9 +695,9 @@ Enhanced troubleshooting guidance for the expanded vector memory system with fle
 - [sceneWriter.ts:146-198](file://packages/engine/src/agents/sceneWriter.ts#L146-L198)
 
 ## Conclusion
-The enhanced Memory Management System centers on a robust CanonStore that seeds canonical facts from the story bible, an advanced VectorStore with flexible embedding provider architecture for semantic memory search, comprehensive MemoryRetriever for contextual memory access, and the powerful StateUpdaterPipeline that provides complete post-chapter state management with vector memory integration. The system now includes automatic constraint graph updates, recent events tracking, enhanced CLI persistence for vector stores, automated memory extraction capabilities with improved performance and reliability, and comprehensive embedding provider flexibility supporting multiple providers (OpenAI, DeepSeek) with automatic configuration and fallback mechanisms. 
+The enhanced Memory Management System centers on a robust CanonStore that seeds canonical facts from the story bible, an advanced VectorStore with flexible embedding provider architecture for semantic memory search, comprehensive MemoryRetriever for contextual memory access, and the powerful StateUpdaterPipeline that provides complete post-chapter state management with vector memory integration. The system now includes automatic constraint graph updates, recent events tracking, enhanced CLI persistence for vector stores, automated memory extraction capabilities with improved performance and reliability, and comprehensive embedding provider flexibility supporting multiple providers (OpenAI, DeepSeek) with automatic configuration and fallback mechanisms.
 
-**Updated** The system now features comprehensive multilingual support with language-aware scene assembly, cultural narrative flow adaptation, and language-specific connector selection for different storytelling traditions. SceneWriter and SceneAssembler work together to respect cultural storytelling conventions while maintaining narrative coherence across diverse linguistic contexts. This enhancement enables the system to generate culturally authentic narratives in multiple languages while preserving the core memory management and state management capabilities that ensure narrative coherence across iterations.
+**Updated** The system now features comprehensive automatic memory extraction from generated chapters with structured categorization (events, characters, world, plot), enhanced vector store integration with improved embedding provider flexibility, and seamless integration with the generation pipeline. MemoryExtractor operates automatically during chapter generation, extracting relevant narrative elements and storing them in the vector store with proper categorization. The enhanced StateUpdaterPipeline integrates memory extraction into the state management process, ensuring that new memories are properly categorized and accessible for future generations. This enhancement enables the system to maintain comprehensive narrative coherence across iterations while providing efficient semantic search capabilities for context-aware writing and validation.
 
 ## Appendices
 
