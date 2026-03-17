@@ -14,7 +14,8 @@ interface AssembledChapter {
 export function assembleChapter(
   sceneOutputs: SceneOutput[],
   scenePlan: ScenePlan,
-  chapterNumber: number
+  chapterNumber: number,
+  language?: string
 ): AssembledChapter {
   if (sceneOutputs.length === 0) {
     throw new Error('Cannot assemble chapter with no scenes');
@@ -27,7 +28,7 @@ export function assembleChapter(
   const content = combineScenes(sceneOutputs);
   
   // Generate chapter summary from scene summaries
-  const summary = generateChapterSummary(sceneOutputs, scenePlan);
+  const summary = generateChapterSummary(sceneOutputs, scenePlan, language);
   
   // Calculate total word count
   const wordCount = sceneOutputs.reduce((sum, s) => sum + (s.wordCount || 0), 0);
@@ -77,7 +78,7 @@ function combineScenes(sceneOutputs: SceneOutput[]): string {
   return parts.join('\n\n');
 }
 
-function generateChapterSummary(sceneOutputs: SceneOutput[], scenePlan: ScenePlan): string {
+function generateChapterSummary(sceneOutputs: SceneOutput[], scenePlan: ScenePlan, language?: string): string {
   const summaries = sceneOutputs
     .map(s => s.summary)
     .filter(s => s && s.length > 0);
@@ -91,8 +92,12 @@ function generateChapterSummary(sceneOutputs: SceneOutput[], scenePlan: ScenePla
     return summaries[0];
   }
   
-  // For multiple scenes, create a flowing summary
-  const combined = summaries.join(' Then, ');
+  // For multiple scenes, create a flowing summary with language-appropriate connector
+  const connector = language === 'zh' ? '。接着，' : 
+                    language === 'ja' ? '。そして、' :
+                    language === 'ko' ? '. 그리고 ' :
+                    ' Then, ';
+  const combined = summaries.join(connector);
   
   // Limit length
   if (combined.length > 300) {

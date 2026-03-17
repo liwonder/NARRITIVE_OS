@@ -22,16 +22,23 @@
 - [state.ts](file://packages/engine/src/story/state.ts)
 - [generate.ts](file://apps/cli/src/commands/generate.ts)
 - [simple.test.ts](file://packages/engine/src/test/simple.test.ts)
+- [worldStateEngine.ts](file://packages/engine/src/world/worldStateEngine.ts)
+- [characterAgent.ts](file://packages/engine/src/world/characterAgent.ts)
+- [worldStateUpdater.ts](file://packages/engine/src/agents/worldStateUpdater.ts)
+- [storyDirector.ts](file://packages/engine/src/agents/storyDirector.ts)
+- [eventResolver.ts](file://packages/engine/src/world/eventResolver.ts)
+- [worldState.ts](file://packages/engine/src/world/worldState.ts)
+- [world-simulation.test.ts](file://packages/engine/src/test/world-simulation.test.ts)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Updated to reflect scene-level generation pipeline as the primary approach replacing chapter-level generation
-- Enhanced generateChapter function with dual-mode support (scene-level and legacy chapter-level)
-- Added comprehensive scene-related types and documentation for Scene, ScenePlan, SceneOutput, SceneValidationResult, and SceneOutcome
-- Updated architecture diagrams to show scene-based workflow
-- Revised core components section to include scene-level agents and processors
-- Updated dependency analysis to reflect new scene-level dependencies
+- Enhanced Generation Pipeline with World State Engine integration for Phase 14 world simulation
+- Added character decisions passing mechanism between scene-level generation and world state updates
+- Integrated Story Director for chapter-level direction and tension management
+- Added comprehensive world state tracking with character movements, object discoveries, and relationship changes
+- Implemented event resolution system for character interactions and conflicts
+- Enhanced scene-level generation with world state awareness and character decision integration
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -46,14 +53,14 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document describes the generation pipeline that orchestrates AI-powered story creation with a focus on the scene-level generation approach as the primary method. The pipeline now supports dual-mode operation: scene-level generation (Phase 12) as the default approach and legacy chapter-level generation as a fallback option. It covers the generateChapter function workflow, step-by-step processing stages, and integration with specialized agents for both approaches. The pipeline architecture encompasses input validation, context preparation, agent coordination, and output synthesis with comprehensive scene management capabilities.
+This document describes the enhanced generation pipeline that orchestrates AI-powered story creation with advanced world simulation capabilities for Phase 14. The pipeline now integrates a comprehensive World State Engine that tracks character movements, object discoveries, relationship changes, and timeline events. It coordinates scene-level generation with intelligent character decision-making, world state updates, and event resolution to create coherent, internally consistent narratives. The system supports both scene-level generation (Phase 12) as the primary approach and legacy chapter-level generation as a fallback option, with enhanced world simulation capabilities.
 
 ## Project Structure
-The generation pipeline resides in the engine package and integrates tightly with story metadata, memory stores, scene planning, and LLM providers. The CLI demonstrates end-to-end usage, while tests provide minimal reproducible examples. The structure now includes dedicated scene-level components alongside traditional chapter-level agents.
+The generation pipeline now includes sophisticated world simulation infrastructure alongside traditional story generation components. The enhanced structure integrates World State Engine, Character Agent System, Story Director, and Event Resolver to create a comprehensive narrative world management system.
 
 ```mermaid
 graph TB
-subgraph "Engine"
+subgraph "Enhanced Engine"
 A["generateChapter.ts"]
 B["agents/writer.ts"]
 C["agents/completeness.ts"]
@@ -72,14 +79,20 @@ O["memory/vectorStore.ts"]
 P["memory/memoryRetriever.ts"]
 Q["story/bible.ts"]
 R["story/state.ts"]
+S["agents/storyDirector.ts"]
+T["agents/worldStateUpdater.ts"]
+U["world/worldStateEngine.ts"]
+V["world/characterAgent.ts"]
+W["world/eventResolver.ts"]
+X["world/worldState.ts"]
 end
 subgraph "CLI"
-S["apps/cli/src/commands/generate.ts"]
+Y["apps/cli/src/commands/generate.ts"]
 end
 subgraph "Tests"
-T["packages/engine/src/test/simple.test.ts"]
+Z["packages/engine/src/test/world-simulation.test.ts"]
 end
-S --> A
+Y --> A
 A --> B
 A --> C
 A --> D
@@ -90,6 +103,12 @@ A --> H
 A --> I
 A --> J
 A --> K
+A --> S
+A --> T
+A --> U
+A --> V
+A --> W
+A --> X
 B --> L
 C --> L
 D --> L
@@ -100,17 +119,23 @@ H --> L
 I --> L
 J --> L
 K --> L
+S --> L
+T --> L
+U --> L
+V --> L
+W --> L
+X --> L
 A --> M
 A --> N
 A --> O
 A --> P
 A --> Q
 A --> R
-T --> A
+Z --> A
 ```
 
 **Diagram sources**
-- [generateChapter.ts:1-290](file://packages/engine/src/pipeline/generateChapter.ts#L1-L290)
+- [generateChapter.ts:1-420](file://packages/engine/src/pipeline/generateChapter.ts#L1-L420)
 - [writer.ts](file://packages/engine/src/agents/writer.ts)
 - [completeness.ts](file://packages/engine/src/agents/completeness.ts)
 - [summarizer.ts](file://packages/engine/src/agents/summarizer.ts)
@@ -122,27 +147,38 @@ T --> A
 - [sceneAssembler.ts](file://packages/engine/src/scene/sceneAssembler.ts)
 - [sceneOutcomeExtractor.ts](file://packages/engine/src/scene/sceneOutcomeExtractor.ts)
 - [client.ts](file://packages/engine/src/llm/client.ts)
-- [types/index.ts:1-125](file://packages/engine/src/types/index.ts#L1-L125)
+- [types/index.ts:1-152](file://packages/engine/src/types/index.ts#L1-L152)
 - [canonStore.ts](file://packages/engine/src/memory/canonStore.ts)
 - [vectorStore.ts](file://packages/engine/src/memory/vectorStore.ts)
 - [memoryRetriever.ts](file://packages/engine/src/memory/memoryRetriever.ts)
 - [bible.ts](file://packages/engine/src/story/bible.ts)
 - [state.ts](file://packages/engine/src/story/state.ts)
+- [storyDirector.ts](file://packages/engine/src/agents/storyDirector.ts)
+- [worldStateUpdater.ts](file://packages/engine/src/agents/worldStateUpdater.ts)
+- [worldStateEngine.ts](file://packages/engine/src/world/worldStateEngine.ts)
+- [characterAgent.ts](file://packages/engine/src/world/characterAgent.ts)
+- [eventResolver.ts](file://packages/engine/src/world/eventResolver.ts)
+- [worldState.ts](file://packages/engine/src/world/worldState.ts)
 
 **Section sources**
-- [generateChapter.ts:1-290](file://packages/engine/src/pipeline/generateChapter.ts#L1-L290)
-- [index.ts:1-125](file://packages/engine/src/types/index.ts#L1-L125)
+- [generateChapter.ts:1-420](file://packages/engine/src/pipeline/generateChapter.ts#L1-L420)
+- [index.ts:1-152](file://packages/engine/src/types/index.ts#L1-L152)
 
 ## Core Components
-The pipeline now operates in dual modes with comprehensive scene-level capabilities:
+The enhanced pipeline now operates with sophisticated world simulation capabilities:
 
-### Primary Scene-Level Generation Mode
-- **generateChapter**: Orchestrates scene-level generation by default, coordinating scene planning, individual scene generation, validation, assembly, and outcome extraction.
-- **Scene Planner**: Creates detailed scene plans with locations, characters, purposes, and tension levels for each chapter.
-- **Scene Writer**: Generates individual scenes with proper context, previous scene summaries, and canonical constraints.
-- **Scene Validator**: Validates each scene against canonical facts and extracts validation results.
-- **Scene Assembler**: Combines individual scenes into coherent chapter content with proper transitions.
-- **Scene Outcome Extractor**: Extracts key events, character changes, and plot developments from scene outputs.
+### Primary Scene-Level Generation Mode with World Simulation
+- **generateChapter**: Orchestrates scene-level generation with integrated World State Engine, character decision passing, and world state updates.
+- **Story Director**: Provides chapter-level direction with tension management and objective generation for coherent narrative progression.
+- **Character Agent System**: Manages character decisions, agendas, knowledge, and relationships with both LLM-powered and fallback decision-making.
+- **World State Engine**: Comprehensive world state tracking including characters, locations, objects, relationships, and timeline events.
+- **World State Updater**: Extracts and applies world state changes from scene content to maintain narrative consistency.
+- **Event Resolver**: Processes character decisions into world events and resolves conflicts and interactions systematically.
+- **Enhanced Scene Planner**: Creates detailed scene plans with director guidance and world state awareness.
+- **Scene Writer**: Generates scenes with character decision integration and world state context.
+- **Scene Validator**: Validates scenes against canonical facts and world state consistency.
+- **Scene Assembler**: Combines scenes with world state transitions and narrative flow.
+- **Scene Outcome Extractor**: Extracts key events and character changes with world state implications.
 
 ### Legacy Chapter-Level Generation Mode
 - **Writer Agent**: Generates or continues chapter content using structured prompts with story context and target word count.
@@ -150,46 +186,59 @@ The pipeline now operates in dual modes with comprehensive scene-level capabilit
 - **Summarizer**: Produces concise chapter summaries and extracts key events.
 - **Memory Extractor**: Extracts and stores memories from chapter content into vector store.
 
-### Shared Infrastructure
-- **LLM Client**: Provides unified access to configured LLM providers with configurable models and token limits.
-- **Types**: Defines comprehensive scene-related structures including Scene, ScenePlan, SceneOutput, SceneValidationResult, and SceneOutcome.
-- **Memory Management**: Enhanced with vector store integration for scene memory storage and retrieval.
-- **Story Utilities**: Create and update story metadata and state with scene-level tracking.
+### Enhanced World Simulation Infrastructure
+- **World State Engine**: Authoritative database tracking characters, locations, objects, relationships, and timeline for logical consistency.
+- **Character Agent System**: Intelligent character decision-making with personality, goals, agendas, and relationship dynamics.
+- **Event Resolution System**: Systematic processing of character interactions, conflicts, and environmental events.
+- **Story Director**: Chapter-level narrative guidance with tension management and objective prioritization.
+- **World State Updater**: Automatic extraction and application of world state changes from generated content.
 
 **Section sources**
-- [generateChapter.ts:33-57](file://packages/engine/src/pipeline/generateChapter.ts#L33-L57)
-- [generateChapter.ts:63-205](file://packages/engine/src/pipeline/generateChapter.ts#L63-L205)
-- [generateChapter.ts:210-285](file://packages/engine/src/pipeline/generateChapter.ts#L210-L285)
-- [index.ts:91-125](file://packages/engine/src/types/index.ts#L91-L125)
+- [generateChapter.ts:70-335](file://packages/engine/src/pipeline/generateChapter.ts#L70-L335)
+- [worldStateEngine.ts:64-352](file://packages/engine/src/world/worldStateEngine.ts#L64-L352)
+- [characterAgent.ts:91-304](file://packages/engine/src/world/characterAgent.ts#L91-L304)
+- [storyDirector.ts:100-276](file://packages/engine/src/agents/storyDirector.ts#L100-L276)
+- [worldStateUpdater.ts:80-251](file://packages/engine/src/agents/worldStateUpdater.ts#L80-L251)
+- [eventResolver.ts:30-272](file://packages/engine/src/world/eventResolver.ts#L30-L272)
 
 ## Architecture Overview
-The pipeline now supports two distinct architectural approaches with scene-level generation as the primary method:
+The enhanced pipeline now supports sophisticated world simulation with integrated character decision-making and world state management:
 
 ```mermaid
 sequenceDiagram
 participant CLI as "CLI Command"
 participant Engine as "generateChapter"
 participant Mode as "Mode Selector"
-participant ScenePlan as "ScenePlanner"
+participant Director as "StoryDirector"
+participant Planner as "ScenePlanner"
+participant Agents as "CharacterAgentSystem"
 participant SceneGen as "SceneWriter"
-participant SceneVal as "SceneValidator"
+participant WorldUpd as "WorldStateUpdater"
 participant Assembler as "SceneAssembler"
 participant Outcome as "OutcomeExtractor"
 participant LLM as "LLMClient"
 CLI->>Engine : "generateChapter(context, options)"
 Engine->>Mode : "Check useSceneLevel flag"
 alt "Scene-level mode (default)"
-Mode->>ScenePlan : "planScenes(context)"
-ScenePlan->>LLM : "complete(prompt, config)"
-LLM-->>ScenePlan : "scenePlan"
+Mode->>Director : "direct(context)"
+Director->>LLM : "complete(prompt, config)"
+LLM-->>Director : "DirectorOutput"
+Director-->>Engine : "Chapter direction & objectives"
+Mode->>Planner : "planScenes(context, directorOutput)"
+Planner->>LLM : "complete(prompt, config)"
+LLM-->>Planner : "ScenePlan"
 loop "For each scene"
-Engine->>SceneGen : "writeScene(scene, context)"
+Engine->>Agents : "getDecision(character, context)"
+Agents->>LLM : "complete(prompt, config)"
+LLM-->>Agents : "CharacterDecision"
+Agents-->>Engine : "CharacterDecision[]"
+Engine->>SceneGen : "writeScene(scene, decisions)"
 SceneGen->>LLM : "complete(prompt, config)"
 LLM-->>SceneGen : "sceneContent"
-Engine->>SceneVal : "validateScene(scene, output)"
-SceneVal->>LLM : "complete(prompt, config)"
-LLM-->>SceneVal : "validationResult"
-SceneVal-->>Engine : "SceneValidationResult"
+Engine->>WorldUpd : "updateFromScene(content)"
+WorldUpd->>LLM : "complete(prompt, config)"
+LLM-->>WorldUpd : "WorldStateUpdate"
+WorldUpd-->>Engine : "Applied updates"
 end
 Engine->>Assembler : "assembleChapter(scenes)"
 Assembler->>LLM : "complete(prompt, config)"
@@ -207,21 +256,24 @@ Engine-->>CLI : "GenerateChapterResult"
 ```
 
 **Diagram sources**
-- [generateChapter.ts:33-57](file://packages/engine/src/pipeline/generateChapter.ts#L33-L57)
-- [generateChapter.ts:63-205](file://packages/engine/src/pipeline/generateChapter.ts#L63-L205)
-- [generateChapter.ts:210-285](file://packages/engine/src/pipeline/generateChapter.ts#L210-L285)
+- [generateChapter.ts:70-335](file://packages/engine/src/pipeline/generateChapter.ts#L70-L335)
+- [storyDirector.ts:100-112](file://packages/engine/src/agents/storyDirector.ts#L100-L112)
+- [characterAgent.ts:187-210](file://packages/engine/src/world/characterAgent.ts#L187-L210)
+- [worldStateUpdater.ts:231-247](file://packages/engine/src/agents/worldStateUpdater.ts#L231-L247)
 
 ## Detailed Component Analysis
 
-### Dual-Mode GenerateChapter Workflow
-The generateChapter function now supports two distinct generation approaches:
+### Enhanced Dual-Mode GenerateChapter Workflow
+The generateChapter function now supports sophisticated world simulation with integrated character decision-making:
 
-#### Scene-Level Generation (Primary Mode)
-- **Input unpacking and defaults**: Extracts context and applies default scene-level options with useSceneLevel=true.
-- **Scene planning**: Creates detailed scene plans with target scene count and chapter goals.
-- **Individual scene generation**: Generates each scene with proper context, validation, and outcome extraction.
-- **Assembly and validation**: Combines scenes into coherent chapter content and validates against canonical facts.
-- **Outcome synthesis**: Extracts key events and character changes from scene outcomes.
+#### Scene-Level Generation with World Simulation (Primary Mode)
+- **Input unpacking and defaults**: Extracts context and applies default scene-level options with useSceneLevel=true and world state engine initialization.
+- **Story Director integration**: Consults Story Director for chapter direction, objectives, and tension guidance before scene planning.
+- **Character decision orchestration**: Coordinates character decision-making for each scene with personality, goals, and relationship context.
+- **World state integration**: Updates World State Engine after each scene with character movements, discoveries, relationship changes, and new events.
+- **Event resolution**: Processes character decisions into world events and resolves conflicts systematically.
+- **Enhanced scene generation**: Generates scenes with character decision integration and world state awareness.
+- **Assembly and validation**: Combines scenes with world state transitions and validates against canonical facts and world consistency.
 
 #### Legacy Chapter-Level Generation (Fallback Mode)
 - **Input unpacking and defaults**: Extracts context and applies default chapter-level options.
@@ -234,10 +286,14 @@ The generateChapter function now supports two distinct generation approaches:
 ```mermaid
 flowchart TD
 Start(["Start generateChapter"]) --> CheckMode{"useSceneLevel enabled?"}
-CheckMode --> |Yes| ScenePlan["planScenes(context)"]
-ScenePlan --> SceneLoop["For each scene in plan"]
-SceneLoop --> WriteScene["writeScene(scene)"]
-WriteScene --> ValidateScene["validateScene(scene)"]
+CheckMode --> |Yes| InitWorld["Initialize World State Engine"]
+InitWorld --> Director["StoryDirector.direct()"]
+Director --> PlanScenes["planScenes(context, directorOutput)"]
+PlanScenes --> SceneLoop["For each scene in plan"]
+SceneLoop --> GetDecisions["CharacterAgentSystem.getDecision()"]
+GetDecisions --> WriteScene["writeScene(scene, decisions)"]
+WriteScene --> UpdateWorld["WorldStateUpdater.updateFromScene()"]
+UpdateWorld --> ValidateScene["validateScene(scene)"]
 ValidateScene --> ExtractOutcome["extractSceneOutcome(scene)"]
 ExtractOutcome --> StoreMemory["Store scene memory"]
 StoreMemory --> SceneLoop
@@ -251,163 +307,226 @@ Build --> End(["Return GenerateChapterResult"])
 ```
 
 **Diagram sources**
-- [generateChapter.ts:33-57](file://packages/engine/src/pipeline/generateChapter.ts#L33-L57)
-- [generateChapter.ts:63-205](file://packages/engine/src/pipeline/generateChapter.ts#L63-L205)
-- [generateChapter.ts:210-285](file://packages/engine/src/pipeline/generateChapter.ts#L210-L285)
+- [generateChapter.ts:70-335](file://packages/engine/src/pipeline/generateChapter.ts#L70-L335)
+- [characterAgent.ts:187-210](file://packages/engine/src/world/characterAgent.ts#L187-L210)
+- [worldStateUpdater.ts:231-247](file://packages/engine/src/agents/worldStateUpdater.ts#L231-L247)
 
 **Section sources**
-- [generateChapter.ts:33-290](file://packages/engine/src/pipeline/generateChapter.ts#L33-L290)
+- [generateChapter.ts:40-420](file://packages/engine/src/pipeline/generateChapter.ts#L40-L420)
 
-### Scene-Level Generation Components
+### Enhanced World State Engine
+The World State Engine provides comprehensive world simulation capabilities:
 
-#### Scene Planner
-Responsibilities:
-- Analyze story context and chapter goals to create detailed scene plans.
-- Determine scene locations, characters, purposes, and tension levels.
-- Set target scene count and chapter-specific objectives.
+#### Core World State Tracking
+- **Characters**: Track alive status, location, known information, emotional state, and goals with automatic location management.
+- **Locations**: Manage connected locations, characters present, objects present, and connections for spatial reasoning.
+- **Objects**: Track ownership, discovery status, and properties with automatic location updates.
+- **Relationships**: Maintain trust levels, hostility levels, and relationship types between characters.
+- **Timeline**: Record events with participants, locations, and timestamps for narrative consistency.
 
-Key behaviors:
-- Integrates with story state and previous chapter summaries.
-- Creates structured Scene objects with proper typing.
-- Supports dynamic scene count adjustment based on complexity.
+#### World State Operations
+- **Character Management**: Add characters, move between locations, kill characters, add knowledge, and update emotional states.
+- **Location Management**: Add locations, connect locations, and manage spatial relationships.
+- **Object Management**: Add objects, move objects, and track discoveries with automatic knowledge updates.
+- **Relationship Management**: Set and update relationships with trust/hostility calculations.
+- **Event Tracking**: Add events to timeline with participant extraction and location inference.
 
-#### Scene Writer
-Responsibilities:
-- Generate individual scenes with proper context and constraints.
-- Handle scene transitions and narrative continuity.
-- Maintain appropriate word count and scene-specific goals.
-
-Key behaviors:
-- Uses scene purpose, location, and character lists for context.
-- Incorporates previous scene summaries for continuity.
-- Respects scene-specific constraints and canonical facts.
-
-#### Scene Validator
-Responsibilities:
-- Validate each scene against canonical facts and story consistency.
-- Extract validation results with detailed violation reporting.
-- Maintain scene integrity while allowing creative flexibility.
-
-Key behaviors:
-- Parses validation responses with structured result objects.
-- Handles validation failures gracefully with partial acceptance.
-- Provides detailed violation descriptions for debugging.
-
-#### Scene Assembler
-Responsibilities:
-- Combine individual scenes into coherent chapter content.
-- Handle scene transitions and narrative flow.
-- Maintain proper formatting and structural coherence.
-
-Key behaviors:
-- Integrates scene outputs with appropriate transitions.
-- Ensures narrative continuity across scene boundaries.
-- Maintains chapter-level formatting standards.
-
-#### Scene Outcome Extractor
-Responsibilities:
-- Extract key events, character changes, and plot developments.
-- Merge outcomes from multiple scenes into chapter-level insights.
-- Provide structured outcome data for story state updates.
-
-Key behaviors:
-- Identifies significant plot points and character arcs.
-- Extracts quantitative changes in story elements.
-- Maintains temporal ordering of extracted outcomes.
+#### World State Formatting
+- **Prompt Formatting**: Convert world state to narrative-friendly format for LLM consumption.
+- **Consistency Validation**: Provide helper methods for character knowledge validation, location checks, and relationship queries.
 
 **Section sources**
-- [generateChapter.ts:84-160](file://packages/engine/src/pipeline/generateChapter.ts#L84-L160)
-- [generateChapter.ts:162-184](file://packages/engine/src/pipeline/generateChapter.ts#L162-L184)
+- [worldStateEngine.ts:64-352](file://packages/engine/src/world/worldStateEngine.ts#L64-L352)
+
+### Character Decision System
+The Character Agent System manages intelligent character behavior with both LLM-powered and fallback decision-making:
+
+#### Character Agent Structure
+- **Character State**: Name, goals, current goal, location, knowledge, relationships, personality traits, emotional state, inventory, and agenda.
+- **Agenda Management**: Priority-based action planning with deadlines and completion tracking.
+- **Knowledge and Relationships**: Dynamic updates to character knowledge and relationship states.
+
+#### Decision-Making Capabilities
+- **LLM-Powered Decisions**: Sophisticated decision-making considering personality, goals, agenda, knowledge, relationships, and current situation.
+- **Fallback Decisions**: Simple decision-making for testing and error scenarios based on agenda items and basic relationship dynamics.
+- **Multi-Agent Coordination**: Simultaneous decision-making for multiple characters with context sharing.
+
+#### Decision Context
+- **Character Context**: Current character state, other characters present, recent world events, current chapter, and story context.
+- **Decision Output**: Action selection, target character/object, reasoning, and potential consequences.
+
+**Section sources**
+- [characterAgent.ts:4-304](file://packages/engine/src/world/characterAgent.ts#L4-L304)
+
+### Story Director Integration
+The Story Director provides chapter-level narrative guidance:
+
+#### Director Output
+- **Overall Goal**: One-sentence description of chapter achievement.
+- **Objectives**: Priority-ordered objectives with types (plot, character, world, tension, resolution).
+- **Focus Characters**: Characters that should be central to the chapter.
+- **Suggested Scenes**: Scene ideas that achieve objectives.
+- **Tone**: Emotional tone for the chapter.
+- **Notes**: Additional guidance for writers.
+
+#### Director Context
+- **Story Bible**: Title, genre, theme, premise, characters, and plot threads.
+- **Story State**: Current chapter, total chapters, current tension, active plot threads, and chapter summaries.
+- **Structured State**: Organized story state with plot threads, character states, unresolved questions, and recent events.
+- **Tension Guidance**: Target tension levels and pacing recommendations.
+- **Previous Summaries**: Last 3 chapter summaries for continuity.
+
+#### Fallback Mechanism
+- **Automatic Objective Generation**: Fallback objectives based on current story state for testing and error scenarios.
+
+**Section sources**
+- [storyDirector.ts:15-276](file://packages/engine/src/agents/storyDirector.ts#L15-L276)
+
+### World State Updater
+The World State Updater extracts and applies world state changes from generated content:
+
+#### Update Extraction
+- **Character Moves**: Movement between locations with origin/destination tracking.
+- **Character Deaths**: Character death notifications with automatic location cleanup.
+- **Object Moves**: Object movement and ownership changes.
+- **Discoveries**: Object discoveries, location discoveries, and factual knowledge acquisition.
+- **Relationship Changes**: Trust and hostility modifications between characters.
+- **Emotional Changes**: Character emotional state modifications.
+- **New Events**: Significant events that occurred during scenes.
+
+#### Update Application
+- **Safe Application**: Robust error handling for failed updates with warnings and graceful degradation.
+- **Relationship Calculations**: Proper trust/hostility calculations with bounds checking.
+- **Event Creation**: Automatic event creation with participant extraction and location inference.
+
+#### Integration Points
+- **Scene-Level Updates**: Applied after each scene generation for immediate world consistency.
+- **Chapter-Level Validation**: Used for final chapter validation against world state consistency.
+
+**Section sources**
+- [worldStateUpdater.ts:80-251](file://packages/engine/src/agents/worldStateUpdater.ts#L80-L251)
+
+### Event Resolution System
+The Event Resolver processes character decisions into systematic world events:
+
+#### Event Categorization
+- **Interaction Events**: Character-to-character interactions and conversations.
+- **Conflict Events**: Physical or verbal confrontations between characters.
+- **Discovery Events**: Object, location, or factual discoveries.
+- **Movement Events**: Character location changes.
+- **Environmental Events**: Weather, time, or setting changes affecting the scene.
+
+#### Conflict Resolution
+- **Capability Scoring**: Based on emotional state and personality traits.
+- **Outcome Determination**: Clear winners, compromises, or mixed results.
+- **Consequence Tracking**: Damage, advantages, and long-term effects.
+
+#### Resolution Processing
+- **Event Processing**: Converts raw character decisions into structured world events.
+- **Resolution Application**: Applies event outcomes to world state and character development.
+- **Narrative Integration**: Generates narrative descriptions of event resolutions.
+
+**Section sources**
+- [eventResolver.ts:30-272](file://packages/engine/src/world/eventResolver.ts#L30-L272)
+
+### Enhanced Scene-Level Generation Components
+
+#### Enhanced Scene Planner
+- **Director Integration**: Incorporates Story Director objectives and tension guidance into scene planning.
+- **Dynamic Scene Count**: Adjusts scene count based on chapter goals and complexity requirements.
+- **Tension Management**: Plans scenes with appropriate tension levels for narrative progression.
+
+#### Scene Writer with Character Decisions
+- **Decision Integration**: Incorporates character decisions into scene generation prompts.
+- **Context Enhancement**: Uses character knowledge, relationships, and emotional states for context.
+- **World State Awareness**: Considers current world state for realistic scene generation.
+
+#### Scene Validator with World Consistency
+- **Canon Validation**: Validates against established story facts and canonical constraints.
+- **World State Validation**: Checks for logical consistency with current world state.
+- **Character Consistency**: Ensures character actions align with their established knowledge and relationships.
+
+#### Scene Outcome Extraction with World Implications
+- **Event Tracking**: Identifies significant plot events and their world state implications.
+- **Character Development**: Tracks character changes, relationship developments, and knowledge acquisitions.
+- **World State Impact**: Documents changes to locations, objects, and relationships resulting from scenes.
+
+**Section sources**
+- [generateChapter.ts:125-290](file://packages/engine/src/pipeline/generateChapter.ts#L125-L290)
 
 ### Legacy Chapter-Level Components
 The legacy components maintain backward compatibility and serve as fallback options:
 
-#### Writer Agent
-Responsibilities:
-- Assemble structured prompts from StoryBible, StoryState, and optional CanonStore.
-- Infer chapter goals based on story progress.
-- Generate initial content and provide continuation capability.
-
-Key behaviors:
-- Enhanced with memory retrieval integration for context enrichment.
-- Supports word count estimation and target achievement.
-- Provides robust continuation logic for incomplete chapters.
+#### Enhanced Writer Agent
+- **Memory Integration**: Enhanced with memory retrieval for context enrichment.
+- **Word Count Management**: Improved target achievement and continuation logic.
+- **Continuation Strategy**: Robust loop control with configurable attempts and validation.
 
 #### Completeness Checker
-Responsibilities:
-- Determine natural stopping points in chapter content.
-- Return binary assessment suitable for loop control.
-- Maintain consistency across different writing styles.
-
-Key behaviors:
-- Minimal instruction set optimized for reliable classification.
-- Normalization handling for varied LLM output formats.
-- Context-aware completeness evaluation.
+- **Reliable Classification**: Optimized for consistent binary assessment.
+- **Format Normalization**: Handles varied LLM output formats effectively.
+- **Context-Aware Evaluation**: Considers narrative flow and structural coherence.
 
 #### Summarizer
-Responsibilities:
-- Produce concise chapter summaries within token budgets.
-- Extract key events using heuristic sentence boundary detection.
-- Maintain fixed chapter number associations for state updates.
-
-Key behaviors:
-- Event-triggering verb detection for meaningful sentence selection.
-- Character change extraction for story progression tracking.
-- Structured summary format for downstream processing.
+- **Token Budget Management**: Efficient summary generation within constraints.
+- **Event Extraction**: Heuristic sentence boundary detection for meaningful summaries.
+- **Character Change Tracking**: Extracts character development for story progression.
 
 #### Memory Extractor
-Responsibilities:
-- Extract meaningful story elements from chapter content.
-- Store memories in vector database with categorization.
-- Support future retrieval and story consistency.
-
-Key behaviors:
-- Semantic memory extraction with relevance scoring.
-- Category assignment for memory organization.
-- Vector embedding generation for similarity search.
+- **Semantic Extraction**: Advanced memory extraction with relevance scoring.
+- **Categorization System**: Organized memory storage for future retrieval.
+- **Vector Embedding**: Enhanced similarity search capabilities.
 
 **Section sources**
-- [generateChapter.ts:210-285](file://packages/engine/src/pipeline/generateChapter.ts#L210-L285)
+- [generateChapter.ts:340-415](file://packages/engine/src/pipeline/generateChapter.ts#L340-L415)
 
 ### Enhanced Types and Data Structures
-The pipeline now includes comprehensive scene-level type definitions:
+The pipeline now includes comprehensive world simulation type definitions:
 
-#### Scene-Level Types
-- **Scene**: Individual scene representation with location, characters, purpose, and tension.
-- **ScenePlan**: Complete chapter scene plan with scenes array and chapter goals.
-- **SceneOutput**: Generated scene content with summary and word count metrics.
-- **SceneValidationResult**: Structured validation results with violation tracking.
-- **SceneOutcome**: Extracted outcomes including events, character changes, and new information.
+#### World Simulation Types
+- **WorldState**: Complete world state with characters, locations, objects, relationships, and timeline.
+- **WorldCharacter**: Character state with alive status, location, knowledge, and emotional state.
+- **WorldLocation**: Location state with connected locations and present characters.
+- **WorldObject**: Object state with ownership and discovery tracking.
+- **WorldRelationship**: Relationship state with trust and hostility levels.
+- **WorldEvent**: Timeline event with participants and location tracking.
+
+#### Character Decision Types
+- **CharacterDecision**: Decision structure with action, target, reasoning, and consequences.
+- **CharacterAgentContext**: Complete context for character decision-making.
+- **AgendaItem**: Priority-based action planning with deadlines.
+
+#### Story Director Types
+- **DirectorOutput**: Chapter direction with objectives and suggestions.
+- **ChapterObjective**: Structured objectives with priority and type categorization.
+- **TensionGuidance**: Target tension levels and pacing recommendations.
 
 #### Enhanced Result Structures
-- **GenerateChapterResult**: Extended with memory extraction count and scene-level metadata.
-- **GenerateChapterOptions**: Enhanced with scene-level controls including targetSceneCount and useSceneLevel flags.
-
-#### Backward Compatibility Types
-- **GenerationContext**: Maintains chapter-level context structure.
-- **Chapter**: Standard chapter entity with computed metadata.
-- **ChapterSummary**: Summary with key events and character changes.
-- **WriterOutput**: Legacy writer output structure.
+- **GenerateChapterResult**: Extended with world state updates and character decision tracking.
+- **WorldStateUpdate**: Structured world state change extraction with validation.
 
 **Section sources**
-- [index.ts:91-125](file://packages/engine/src/types/index.ts#L91-L125)
-- [generateChapter.ts:16-31](file://packages/engine/src/pipeline/generateChapter.ts#L16-L31)
+- [index.ts:117-152](file://packages/engine/src/types/index.ts#L117-L152)
+- [worldStateEngine.ts:9-62](file://packages/engine/src/world/worldStateEngine.ts#L9-L62)
+- [characterAgent.ts:25-39](file://packages/engine/src/world/characterAgent.ts#L25-L39)
+- [storyDirector.ts:6-23](file://packages/engine/src/agents/storyDirector.ts#L6-L23)
+- [worldStateUpdater.ts:12-28](file://packages/engine/src/agents/worldStateUpdater.ts#L12-L28)
 
-### Memory and Vector Store Integration
-Enhanced memory management supports both scene-level and chapter-level operations:
+### Enhanced Memory and Vector Store Integration
+Enhanced memory management supports both scene-level and chapter-level operations with world state integration:
 
 - **Vector Store**: Provides semantic memory storage with similarity search capabilities.
 - **Memory Retriever**: Enables contextual memory retrieval for scene planning and generation.
-- **Scene Memory Storage**: Stores individual scene summaries and outcomes for future reference.
-- **Memory Extraction**: Extracts meaningful story elements from content for persistent storage.
+- **Scene Memory Storage**: Stores individual scene summaries and outcomes with world state context.
+- **World State Memory**: Integrates world state changes into memory system for consistency tracking.
+- **Memory Extraction**: Extracts meaningful story elements with world state implications for persistent storage.
 
 **Section sources**
-- [generateChapter.ts:77-82](file://packages/engine/src/pipeline/generateChapter.ts#L77-L82)
-- [generateChapter.ts:147-156](file://packages/engine/src/pipeline/generateChapter.ts#L147-L156)
-- [generateChapter.ts:263-280](file://packages/engine/src/pipeline/generateChapter.ts#L263-L280)
+- [generateChapter.ts:267-276](file://packages/engine/src/pipeline/generateChapter.ts#L267-L276)
+- [worldStateUpdater.ts:231-247](file://packages/engine/src/agents/worldStateUpdater.ts#L231-L247)
 
 ## Dependency Analysis
-The pipeline now exhibits enhanced separation of concerns with dual-mode architecture:
+The enhanced pipeline exhibits sophisticated integration of world simulation components with dual-mode architecture:
 
 ```mermaid
 graph LR
@@ -415,20 +534,24 @@ CLI["CLI generate.ts"] --> API["engine/index.ts exports"]
 API --> Gen["generateChapter.ts"]
 Gen --> SceneMode["Scene-level Mode"]
 Gen --> LegacyMode["Legacy Mode"]
+SceneMode --> Director["storyDirector.ts"]
 SceneMode --> SP["scenePlanner.ts"]
+SceneMode --> Agents["characterAgent.ts"]
 SceneMode --> SW["sceneWriter.ts"]
-SceneMode --> SV["sceneValidator.ts"]
-SceneMode --> SA["sceneAssembler.ts"]
-SceneMode --> SOE["sceneOutcomeExtractor.ts"]
+SceneMode --> WorldUpd["worldStateUpdater.ts"]
+SceneMode --> WSE["worldStateEngine.ts"]
+SceneMode --> EV["eventResolver.ts"]
 LegacyMode --> W["writer.ts"]
 LegacyMode --> CC["completeness.ts"]
 LegacyMode --> S["summarizer.ts"]
 LegacyMode --> ME["memoryExtractor.ts"]
-SP --> LLM["client.ts"]
+Director --> LLM["client.ts"]
+Agents --> LLM
 SW --> LLM
-SV --> LLM
-SA --> LLM
-SOE --> LLM
+WorldUpd --> LLM
+WSE --> LLM
+EV --> LLM
+SP --> LLM
 W --> LLM
 CC --> LLM
 S --> LLM
@@ -442,31 +565,52 @@ Gen --> State["story/state.ts"]
 ```
 
 **Diagram sources**
-- [generateChapter.ts:1-290](file://packages/engine/src/pipeline/generateChapter.ts#L1-L290)
-- [index.ts:1-125](file://packages/engine/src/types/index.ts#L1-L125)
+- [generateChapter.ts:1-420](file://packages/engine/src/pipeline/generateChapter.ts#L1-L420)
+- [index.ts:1-140](file://packages/engine/src/index.ts#L1-L140)
 
 **Section sources**
-- [generateChapter.ts:1-290](file://packages/engine/src/pipeline/generateChapter.ts#L1-L290)
+- [generateChapter.ts:1-420](file://packages/engine/src/pipeline/generateChapter.ts#L1-L420)
 
 ## Performance Considerations
-Enhanced performance considerations for dual-mode operation:
+Enhanced performance considerations for sophisticated world simulation:
 
-- **Token budgets**: Both scene-level and chapter-level agents set explicit maxTokens to control cost and latency. Scene-level generation may require higher token budgets due to multiple validation steps.
-- **Scene count optimization**: The targetSceneCount parameter allows tuning for complexity and desired narrative granularity.
+- **Token budgets**: Scene-level generation with world state updates may require higher token budgets due to multiple validation steps and world state formatting.
+- **World state complexity**: World State Engine operations scale with number of characters, locations, and objects, requiring efficient data structures.
+- **Character decision parallelization**: Character decision-making can be parallelized while maintaining world state consistency.
+- **Event resolution optimization**: Event resolution can be batched and processed efficiently for multiple characters.
 - **Memory retrieval efficiency**: Vector store integration enables efficient contextual memory retrieval but requires proper indexing and initialization.
-- **Parallel processing**: Scene-level generation can potentially parallelize independent scene generation while maintaining sequential assembly.
-- **Continuation attempts**: Legacy mode maintains configurable continuation attempts, while scene-level mode uses iterative validation and correction.
-- **Provider configuration**: Environment variables support multiple providers with scene-level prompt engineering optimizations.
-- **Logging and monitoring**: Enhanced logging tracks both scene-level and chapter-level progress with detailed timing information.
+- **World state caching**: World State Engine can cache frequently accessed data to reduce computational overhead.
+- **Tension calculation**: Story Director tension analysis provides efficient guidance without excessive computational cost.
+- **Logging and monitoring**: Enhanced logging tracks world state updates, character decisions, and event resolutions with detailed timing information.
 
 ## Troubleshooting Guide
-Enhanced troubleshooting for dual-mode operation:
+Enhanced troubleshooting for sophisticated world simulation:
 
-### Scene-Level Generation Issues
-- **Scene planning failures**: Verify story state consistency and ensure adequate context for scene planning. Check vector store availability for memory-enhanced planning.
-- **Scene generation problems**: Review scene-specific prompts and ensure canonical facts are properly formatted. Check memory retrieval for contextual enhancement.
-- **Assembly failures**: Validate scene outputs for structural coherence and narrative flow. Ensure proper scene transition handling.
-- **Outcome extraction issues**: Verify scene outcome extraction prompts and handle cases where scenes don't contain expected elements.
+### World State Engine Issues
+- **Initialization failures**: Verify story ID consistency and ensure proper World State Engine initialization before scene generation.
+- **State corruption**: Check for proper serialization/deserialization and handle world state loading errors gracefully.
+- **Inconsistent state**: Monitor world state updates for logical consistency and handle edge cases in character movements and object ownership.
+- **Performance bottlenecks**: Profile world state operations and optimize for large numbers of characters and complex relationships.
+
+### Character Decision System Issues
+- **Decision failures**: Verify character context completeness and ensure adequate personality and relationship data for decision-making.
+- **LLM integration problems**: Check LLM provider configuration and handle decision fallback scenarios gracefully.
+- **Multi-agent coordination**: Ensure proper context sharing between characters and handle decision conflicts appropriately.
+
+### Story Director Issues
+- **Objective generation failures**: Verify story state consistency and ensure adequate context for director guidance.
+- **Tension calculation problems**: Check tension analysis inputs and handle edge cases in target tension computation.
+- **Fallback mechanism**: Ensure fallback objectives are generated correctly when LLM calls fail.
+
+### World State Updater Issues
+- **Update extraction failures**: Verify scene content quality and handle malformed JSON responses from LLM extraction.
+- **Application errors**: Check world state update application with proper error handling and rollback mechanisms.
+- **Consistency validation**: Monitor world state consistency and handle violations appropriately.
+
+### Event Resolution Issues
+- **Event categorization problems**: Verify event type classification and handle ambiguous action descriptions.
+- **Conflict resolution failures**: Check conflict resolution logic and handle edge cases in character capability scoring.
+- **Resolution processing errors**: Ensure proper event resolution application and handle partial resolution scenarios.
 
 ### Legacy Chapter-Level Issues
 - **JSON parsing failures**: Legacy validators fall back to safe defaults when JSON parsing fails. Verify prompt formatting and provider response stability.
@@ -480,67 +624,78 @@ Enhanced troubleshooting for dual-mode operation:
 - **CLI errors**: The CLI handles both generation modes seamlessly. Check mode-specific configuration options and logging output.
 
 **Section sources**
-- [generateChapter.ts:44-46](file://packages/engine/src/pipeline/generateChapter.ts#L44-L46)
-- [generateChapter.ts:77-82](file://packages/engine/src/pipeline/generateChapter.ts#L77-L82)
-- [generateChapter.ts:108-112](file://packages/engine/src/pipeline/generateChapter.ts#L108-L112)
-- [generateChapter.ts:218-222](file://packages/engine/src/pipeline/generateChapter.ts#L218-L222)
+- [generateChapter.ts:92-102](file://packages/engine/src/pipeline/generateChapter.ts#L92-L102)
+- [characterAgent.ts:288-297](file://packages/engine/src/world/characterAgent.ts#L288-L297)
+- [worldStateUpdater.ts:113-128](file://packages/engine/src/agents/worldStateUpdater.ts#L113-L128)
+- [eventResolver.ts:237-249](file://packages/engine/src/world/eventResolver.ts#L237-L249)
 
 ## Conclusion
-The generation pipeline now provides a robust dual-mode architecture supporting both scene-level and chapter-level generation approaches. Scene-level generation serves as the primary method with comprehensive planning, individual scene generation, validation, and outcome extraction capabilities. Legacy chapter-level generation maintains backward compatibility while the enhanced type system and memory management provide improved story consistency and contextual awareness. The modular design enables easy extension, testing, and debugging across both generation modes, while the CLI and tests demonstrate practical usage patterns for both approaches.
+The enhanced generation pipeline now provides a sophisticated world simulation framework supporting both scene-level and chapter-level generation approaches. The integration of World State Engine, Character Agent System, Story Director, and Event Resolver creates a comprehensive narrative world management system that ensures logical consistency and rich character interactions. Scene-level generation serves as the primary method with intelligent character decision-making, world state updates, and systematic event resolution capabilities. Legacy chapter-level generation maintains backward compatibility while the enhanced type system, memory management, and world simulation provide improved story consistency and contextual awareness. The modular design enables easy extension, testing, and debugging across both generation modes, while the CLI and tests demonstrate practical usage patterns for both approaches with sophisticated world simulation capabilities.
 
 ## Appendices
 
 ### Enhanced GenerateChapterOptions and Result Structures
 - **GenerateChapterOptions** (Enhanced)
-  - Fields: canon, vectorStore, validateCanon, maxContinuationAttempts, retrieveMemories, useSceneLevel, targetSceneCount
+  - Fields: canon, vectorStore, validateCanon, maxContinuationAttempts, retrieveMemories, useSceneLevel, targetSceneCount, worldStateEngine
   - Defaults: validateCanon true, maxContinuationAttempts 3, useSceneLevel true, targetSceneCount 4
+  - New: worldStateEngine for external World State Engine integration
 - **GenerateChapterResult** (Enhanced)
   - Fields: chapter, summary, violations, memoriesExtracted
-  - Additional: memoriesExtracted count for scene-level memory storage
-- **Scene Types** (New)
-  - Scene: id, location, characters, purpose, tension, conflict, type
-  - ScenePlan: scenes array, chapterGoal, targetTension
-  - SceneOutput: content, summary, wordCount
-  - SceneValidationResult: isValid, violations array
-  - SceneOutcome: events, characterChanges, locationChanges, newInformation
+  - Additional: world state updates and character decision tracking
+- **World Simulation Types** (New)
+  - WorldState: Complete world state with characters, locations, objects, relationships, timeline
+  - CharacterDecision: Decision structure with action, target, reasoning, consequences
+  - WorldStateUpdate: Structured world state change extraction
+  - EventResolution: Event outcome with consequences and new events
 
 **Section sources**
-- [generateChapter.ts:23-31](file://packages/engine/src/pipeline/generateChapter.ts#L23-L31)
-- [generateChapter.ts:16-21](file://packages/engine/src/pipeline/generateChapter.ts#L16-L21)
-- [index.ts:91-125](file://packages/engine/src/types/index.ts#L91-L125)
+- [generateChapter.ts:29-38](file://packages/engine/src/pipeline/generateChapter.ts#L29-L38)
+- [generateChapter.ts:22-27](file://packages/engine/src/pipeline/generateChapter.ts#L22-L27)
+- [worldStateEngine.ts:52-62](file://packages/engine/src/world/worldStateEngine.ts#L52-L62)
+- [characterAgent.ts:25-31](file://packages/engine/src/world/characterAgent.ts#L25-L31)
+- [worldStateUpdater.ts:12-20](file://packages/engine/src/agents/worldStateUpdater.ts#L12-L20)
 
 ### Parameter Configuration Examples
-- **Scene-level configuration**: Enable scene-level generation with targetSceneCount=6 for complex chapters requiring more detailed breakdown.
+- **Scene-level configuration**: Enable scene-level generation with targetSceneCount=6 for complex chapters requiring detailed breakdown and world simulation.
+- **World state integration**: Configure worldStateEngine for external World State Engine management and persistent world state tracking.
+- **Character decision configuration**: Enable character decision passing with personality and relationship integration for rich narrative interactions.
 - **Legacy configuration**: Disable scene-level mode with useSceneLevel=false for compatibility with existing workflows.
-- **Memory integration**: Configure vectorStore for contextual memory retrieval and scene memory storage.
-- **CLI usage**: The CLI supports both modes through configuration flags and automatically selects appropriate generation approach.
+- **Memory integration**: Configure vectorStore for contextual memory retrieval and scene memory storage with world state context.
+- **CLI usage**: The CLI supports both modes through configuration flags and automatically selects appropriate generation approach with world simulation capabilities.
 
 **Section sources**
-- [generateChapter.ts:44-46](file://packages/engine/src/pipeline/generateChapter.ts#L44-L46)
-- [generateChapter.ts:77-82](file://packages/engine/src/pipeline/generateChapter.ts#L77-L82)
+- [generateChapter.ts:92-102](file://packages/engine/src/pipeline/generateChapter.ts#L92-L102)
+- [generateChapter.ts:29-38](file://packages/engine/src/pipeline/generateChapter.ts#L29-L38)
 - [generate.ts](file://apps/cli/src/commands/generate.ts)
 
 ### Extensibility and Custom Processing Steps
-- **Add new scene-level agents**: Implement new scene-focused agents with writeScene, validateScene, and extractSceneOutcome methods.
-- **Modify scene planning**: Update scene planner logic to handle new scene types or complexity requirements.
-- **Extend validation**: Add new validation dimensions for scene-specific constraints beyond canonical facts.
-- **Custom outcome extraction**: Develop domain-specific outcome extraction for specialized story elements.
-- **Hybrid approaches**: Combine scene-level and chapter-level techniques for optimal narrative structure.
-- **Memory enhancement**: Extend memory extraction to capture richer contextual information for scene planning.
+- **Add new world state agents**: Implement new world state tracking agents with updateFromScene and extractUpdates methods.
+- **Modify character decision logic**: Update character agent system to handle new decision-making patterns and personality traits.
+- **Extend world state validation**: Add new validation dimensions for world-specific constraints beyond canonical facts.
+- **Custom event resolution**: Develop domain-specific event resolution for specialized story elements and conflict types.
+- **Hybrid generation approaches**: Combine scene-level and chapter-level techniques with world simulation for optimal narrative structure.
+- **Memory enhancement**: Extend memory extraction to capture richer contextual information with world state implications.
+- **World state persistence**: Implement custom world state serialization and deserialization for external storage systems.
 
 **Section sources**
-- [generateChapter.ts:63-205](file://packages/engine/src/pipeline/generateChapter.ts#L63-L205)
-- [index.ts:91-125](file://packages/engine/src/types/index.ts#L91-L125)
+- [generateChapter.ts:70-335](file://packages/engine/src/pipeline/generateChapter.ts#L70-L335)
+- [worldStateEngine.ts:64-352](file://packages/engine/src/world/worldStateEngine.ts#L64-L352)
+- [characterAgent.ts:91-304](file://packages/engine/src/world/characterAgent.ts#L91-L304)
+- [worldStateUpdater.ts:80-251](file://packages/engine/src/agents/worldStateUpdater.ts#L80-L251)
 
 ### Debugging Strategies for Generation Failures
 - **Mode diagnostics**: Verify useSceneLevel flag and targetSceneCount settings for appropriate mode selection.
-- **Scene-level debugging**: Monitor individual scene generation, validation, and outcome extraction processes separately.
+- **World state diagnostics**: Monitor world state updates and handle consistency violations with detailed logging.
+- **Character decision debugging**: Isolate character decision failures and verify context completeness.
+- **Story director diagnostics**: Check director output quality and handle fallback scenarios gracefully.
+- **Event resolution debugging**: Trace event categorization and resolution processes for systematic troubleshooting.
 - **Memory diagnostics**: Check vector store initialization and memory retrieval for contextual enhancement.
-- **Performance profiling**: Track token usage and generation time for both scene-level and chapter-level approaches.
+- **Performance profiling**: Track token usage, world state operations, and generation time for both scene-level and chapter-level approaches.
 - **Backward compatibility**: Test legacy mode for compatibility with existing workflows and data structures.
-- **Error isolation**: Use separate logging channels for scene-level and chapter-level operations to identify failure points.
+- **Error isolation**: Use separate logging channels for scene-level, world state, and chapter-level operations to identify failure points.
 
 **Section sources**
-- [generateChapter.ts:48-53](file://packages/engine/src/pipeline/generateChapter.ts#L48-L53)
-- [generateChapter.ts:217-222](file://packages/engine/src/pipeline/generateChapter.ts#L217-L222)
-- [generateChapter.ts:101-102](file://packages/engine/src/pipeline/generateChapter.ts#L101-L102)
+- [generateChapter.ts:92-102](file://packages/engine/src/pipeline/generateChapter.ts#L92-L102)
+- [characterAgent.ts:288-297](file://packages/engine/src/world/characterAgent.ts#L288-L297)
+- [worldStateUpdater.ts:113-128](file://packages/engine/src/agents/worldStateUpdater.ts#L113-L128)
+- [eventResolver.ts:237-249](file://packages/engine/src/world/eventResolver.ts#L237-L249)

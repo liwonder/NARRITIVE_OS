@@ -14,8 +14,19 @@
 - [canonStore.ts](file://packages/engine/src/memory/canonStore.ts)
 - [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts)
 - [index.ts](file://packages/engine/src/types/index.ts)
+- [worldState.ts](file://packages/engine/src/world/worldState.ts)
+- [worldStateEngine.ts](file://packages/engine/src/world/worldStateEngine.ts)
+- [index.ts](file://packages/engine/src/index.ts)
 - [package.json](file://package.json)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Added new world-state.json file format alongside existing story data persistence
+- Updated ConfigStore interface to support optional world state parameter
+- Enhanced story loading workflow to handle world state persistence
+- Added WorldStateEngine integration for comprehensive story world management
+- Updated filesystem organization to include world state files
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -30,10 +41,10 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document describes the Local Storage and Persistence system used by the Narrative Operating System (NOS). It explains the filesystem organization for story data, including directory structure, file naming conventions, and serialization formats. It documents the ConfigStore interface for reading and writing story configurations, including story metadata, state snapshots, and generated content. It also covers backup and recovery mechanisms, data migration strategies between versions, conflict resolution for concurrent access, examples of story loading workflows, state restoration after application restart, manual backup procedures, storage limits, cleanup policies, performance optimization for large story datasets, and cross-platform compatibility and filesystem permissions handling.
+This document describes the Local Storage and Persistence system used by the Narrative Operating System (NOS). It explains the filesystem organization for story data, including directory structure, file naming conventions, and serialization formats. It documents the ConfigStore interface for reading and writing story configurations, including story metadata, state snapshots, generated content, and the new world state persistence. It also covers backup and recovery mechanisms, data migration strategies between versions, conflict resolution for concurrent access, examples of story loading workflows, state restoration after application restart, manual backup procedures, storage limits, cleanup policies, performance optimization for large story datasets, and cross-platform compatibility and filesystem permissions handling.
 
 ## Project Structure
-The persistence layer centers around a local filesystem layout under the user’s home directory. The CLI application orchestrates story lifecycle operations and delegates persistence to a dedicated store module.
+The persistence layer centers around a local filesystem layout under the user's home directory. The CLI application orchestrates story lifecycle operations and delegates persistence to a dedicated store module. The system now includes comprehensive world state management alongside traditional story data persistence.
 
 - Root data directory: ~/.narrative-os
 - Stories directory: ~/.narrative-os/stories
@@ -43,6 +54,10 @@ The persistence layer centers around a local filesystem layout under the user’
   - state.json: serialized StoryState
   - chapters.json: serialized array of Chapter
   - canon.json: serialized CanonStore (optional; auto-extracted if missing)
+  - structured-state.json: serialized StoryStructuredState (optional)
+  - world-state.json: serialized WorldState (new)
+  - vector-store.json: serialized VectorStore data (optional)
+  - constraint-graph.json: serialized constraint graph (optional)
 
 ```mermaid
 graph TB
@@ -54,6 +69,10 @@ Bible["bible.json"]
 State["state.json"]
 Chapters["chapters.json"]
 Canon["canon.json"]
+Structured["structured-state.json"]
+World["world-state.json"]
+Vector["vector-store.json"]
+Graph["constraint-graph.json"]
 Home --> DataDir
 DataDir --> Stories
 Stories --> Story
@@ -61,22 +80,33 @@ Story --> Bible
 Story --> State
 Story --> Chapters
 Story --> Canon
+Story --> Structured
+Story --> World
+Story --> Vector
+Story --> Graph
 ```
 
 **Diagram sources**
-- [store.ts](file://apps/cli/src/config/store.ts#L7-L26)
+- [store.ts:7-26](file://apps/cli/src/config/store.ts#L7-L26)
+- [store.ts:188-208](file://apps/cli/src/config/store.ts#L188-L208)
 
 **Section sources**
-- [store.ts](file://apps/cli/src/config/store.ts#L7-L26)
+- [store.ts:7-26](file://apps/cli/src/config/store.ts#L7-L26)
+- [store.ts:188-208](file://apps/cli/src/config/store.ts#L188-L208)
 
 ## Core Components
 - ConfigStore interface (implemented in the CLI store module):
-  - saveStory(bible, state, chapters, canon?): writes four JSON files per story.
-  - loadStory(storyId): reads and parses the four JSON files; extracts canon if missing.
+  - saveStory(bible, state, chapters, canon?, structuredState?, worldState?): writes six JSON files per story including the new world-state.json.
+  - loadStory(storyId): reads and parses the six JSON files; extracts canon if missing; loads optional world state.
   - listStories(): enumerates stories by scanning the stories directory and validating presence of required files.
 - Engine types and state:
-  - StoryBible, StoryState, Chapter, CanonStore define the persisted data model.
+  - StoryBible, StoryState, Chapter, CanonStore define the persisted story data model.
+  - StoryStructuredState manages narrative structure and character development tracking.
+  - WorldState (WorldStateEngineState) defines the comprehensive world state model for Phase 14.
   - State transitions are handled by state.ts functions.
+- World State Management:
+  - WorldStateEngine provides authoritative world database tracking characters, locations, objects, relationships, and timeline.
+  - WorldStateManager offers simplified world state management with Map-based collections.
 - CLI commands:
   - init: creates a new story and persists initial state.
   - generate: loads story, generates next chapter, updates state, and saves.
@@ -85,19 +115,21 @@ Story --> Canon
   - config: manages LLM provider configuration stored separately in config.json.
 
 **Section sources**
-- [store.ts](file://apps/cli/src/config/store.ts#L15-L49)
-- [index.ts](file://apps/cli/src/index.ts#L1-L54)
-- [init.ts](file://apps/cli/src/commands/init.ts#L1-L50)
-- [generate.ts](file://apps/cli/src/commands/generate.ts#L1-L55)
-- [continue.ts](file://apps/cli/src/commands/continue.ts#L1-L52)
-- [status.ts](file://apps/cli/src/commands/status.ts#L1-L55)
-- [bible.ts](file://packages/engine/src/story/bible.ts#L1-L73)
-- [state.ts](file://packages/engine/src/story/state.ts#L1-L30)
-- [canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L1-L134)
-- [index.ts](file://packages/engine/src/types/index.ts#L1-L90)
+- [store.ts:15-49](file://apps/cli/src/config/store.ts#L15-L49)
+- [index.ts:1-54](file://apps/cli/src/index.ts#L1-L54)
+- [init.ts:1-50](file://apps/cli/src/commands/init.ts#L1-L50)
+- [generate.ts:1-55](file://apps/cli/src/commands/generate.ts#L1-L55)
+- [continue.ts:1-52](file://apps/cli/src/commands/continue.ts#L1-L52)
+- [status.ts:1-55](file://apps/cli/src/commands/status.ts#L1-L55)
+- [bible.ts:1-73](file://packages/engine/src/story/bible.ts#L1-L73)
+- [state.ts:1-30](file://packages/engine/src/story/state.ts#L1-L30)
+- [canonStore.ts:1-134](file://packages/engine/src/memory/canonStore.ts#L1-L134)
+- [worldState.ts:14-320](file://packages/engine/src/world/worldState.ts#L14-L320)
+- [worldStateEngine.ts:52-351](file://packages/engine/src/world/worldStateEngine.ts#L52-L351)
+- [index.ts:1-90](file://packages/engine/src/types/index.ts#L1-L90)
 
 ## Architecture Overview
-The CLI commands depend on the ConfigStore to manage persistence. The engine provides the data models and state transitions used by the CLI.
+The CLI commands depend on the ConfigStore to manage persistence. The engine provides the data models and state transitions used by the CLI, including the new world state management capabilities.
 
 ```mermaid
 graph TB
@@ -112,6 +144,8 @@ EngineBible["story/bible.ts"]
 EngineState["story/state.ts"]
 EngineCanon["memory/canonStore.ts"]
 EngineGen["pipeline/generateChapter.ts"]
+WorldEngine["world/worldStateEngine.ts"]
+WorldManager["world/worldState.ts"]
 CLI_Index --> InitCmd
 CLI_Index --> GenCmd
 CLI_Index --> ContCmd
@@ -129,25 +163,28 @@ GenCmd --> EngineGen
 ContCmd --> EngineGen
 EngineGen --> EngineCanon
 EngineGen --> EngineState
+WorldEngine --> WorldManager
 ```
 
 **Diagram sources**
-- [index.ts](file://apps/cli/src/index.ts#L1-L54)
-- [init.ts](file://apps/cli/src/commands/init.ts#L1-L50)
-- [generate.ts](file://apps/cli/src/commands/generate.ts#L1-L55)
-- [continue.ts](file://apps/cli/src/commands/continue.ts#L1-L52)
-- [status.ts](file://apps/cli/src/commands/status.ts#L1-L55)
-- [store.ts](file://apps/cli/src/config/store.ts#L1-L78)
-- [index.ts](file://packages/engine/src/types/index.ts#L1-L90)
-- [bible.ts](file://packages/engine/src/story/bible.ts#L1-L73)
-- [state.ts](file://packages/engine/src/story/state.ts#L1-L30)
-- [canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L1-L134)
-- [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
+- [index.ts:1-54](file://apps/cli/src/index.ts#L1-L54)
+- [init.ts:1-50](file://apps/cli/src/commands/init.ts#L1-L50)
+- [generate.ts:1-55](file://apps/cli/src/commands/generate.ts#L1-L55)
+- [continue.ts:1-52](file://apps/cli/src/commands/continue.ts#L1-L52)
+- [status.ts:1-55](file://apps/cli/src/commands/status.ts#L1-L55)
+- [store.ts:1-78](file://apps/cli/src/config/store.ts#L1-L78)
+- [index.ts:1-90](file://packages/engine/src/types/index.ts#L1-L90)
+- [bible.ts:1-73](file://packages/engine/src/story/bible.ts#L1-L73)
+- [state.ts:1-30](file://packages/engine/src/story/state.ts#L1-L30)
+- [canonStore.ts:1-134](file://packages/engine/src/memory/canonStore.ts#L1-L134)
+- [generateChapter.ts:1-76](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
+- [worldStateEngine.ts:64-351](file://packages/engine/src/world/worldStateEngine.ts#L64-L351)
+- [worldState.ts:24-320](file://packages/engine/src/world/worldState.ts#L24-L320)
 
 ## Detailed Component Analysis
 
-### ConfigStore Interface and Filesystem Organization
-- Purpose: Provide a simple, deterministic filesystem layout for story data.
+### ConfigStore Interface and Enhanced Filesystem Organization
+- Purpose: Provide a simple, deterministic filesystem layout for story data including the new world state persistence.
 - Directory structure:
   - DATA_DIR: ~/.narrative-os
   - STORIES_DIR: ~/.narrative-os/stories
@@ -157,9 +194,14 @@ EngineGen --> EngineState
   - state.json: StoryState
   - chapters.json: Chapter[]
   - canon.json: CanonStore (optional; auto-extracted if absent)
+  - structured-state.json: StoryStructuredState (optional)
+  - world-state.json: WorldState (NEW)
+  - vector-store.json: VectorStore data (optional)
+  - constraint-graph.json: Constraint graph (optional)
 - Atomicity and safety:
   - Writes occur after ensuring directories exist.
   - No explicit transaction mechanism; writes are synchronous and overwrite existing files.
+  - World state persistence supports both raw JSON strings and structured state objects.
 
 ```mermaid
 flowchart TD
@@ -172,20 +214,29 @@ WriteChapters --> CanonCheck{"canon provided?"}
 CanonCheck --> |Yes| WriteCanon["write canon.json"]
 CanonCheck --> |No| Extract["extractCanonFromBible()"]
 Extract --> WriteCanon
-WriteCanon --> End(["done"])
+WriteCanon --> StructuredCheck{"structuredState provided?"}
+StructuredCheck --> |Yes| WriteStructured["write structured-state.json"]
+StructuredCheck --> |No| SkipStructured["skip"]
+WriteStructured --> WorldCheck{"worldState provided?"}
+SkipStructured --> WorldCheck
+WorldCheck --> |Yes| WriteWorld["write world-state.json"]
+WorldCheck --> |No| SkipWorld["skip"]
+WriteWorld --> End(["done"])
 ```
 
 **Diagram sources**
-- [store.ts](file://apps/cli/src/config/store.ts#L15-L26)
+- [store.ts:15-43](file://apps/cli/src/config/store.ts#L15-L43)
 
 **Section sources**
-- [store.ts](file://apps/cli/src/config/store.ts#L15-L26)
+- [store.ts:15-43](file://apps/cli/src/config/store.ts#L15-L43)
 
-### Story Loading Workflow
+### Enhanced Story Loading Workflow
 - loadStory(storyId):
   - Validates story directory exists.
   - Reads and parses bible.json, state.json, chapters.json.
   - If canon.json exists, parses it; otherwise, extracts CanonStore from StoryBible.
+  - Loads optional structured-state.json if present.
+  - Loads optional world-state.json if present.
   - Returns structured data or null on failure.
 
 ```mermaid
@@ -205,17 +256,48 @@ Store->>FS : read canon.json
 else missing
 Store->>Store : extractCanonFromBible(bible)
 end
-Store-->>CLI : {bible, state, chapters, canon}
+Store->>FS : exists(structured-state.json)?
+alt exists
+Store->>FS : read structured-state.json
+else missing
+Store->>Store : null
+end
+Store->>FS : exists(world-state.json)?
+alt exists
+Store->>FS : read world-state.json
+else missing
+Store->>Store : null
+end
+Store-->>CLI : {bible, state, chapters, canon, structuredState, worldState}
 else not exists
 Store-->>CLI : null
 end
 ```
 
 **Diagram sources**
-- [store.ts](file://apps/cli/src/config/store.ts#L28-L49)
+- [store.ts:45-80](file://apps/cli/src/config/store.ts#L45-L80)
 
 **Section sources**
-- [store.ts](file://apps/cli/src/config/store.ts#L28-L49)
+- [store.ts:45-80](file://apps/cli/src/config/store.ts#L45-L80)
+
+### World State Management Integration
+- WorldStateEngine (Phase 14):
+  - Authoritative database of reality in the story.
+  - Tracks characters, locations, objects, relationships, and timeline.
+  - Enforces logical consistency (no teleporting, no impossible knowledge).
+  - Provides methods for character movement, object management, relationship tracking, and event logging.
+- WorldStateManager:
+  - Simplified world state manager using Map-based collections.
+  - Handles location connections, character movements, and event processing.
+  - Maintains world history and global state variables.
+- Integration with persistence:
+  - World state data is serialized to JSON for storage.
+  - Supports both raw JSON strings and structured state objects.
+  - Automatically handles deserialization when loading stories.
+
+**Section sources**
+- [worldStateEngine.ts:1-351](file://packages/engine/src/world/worldStateEngine.ts#L1-L351)
+- [worldState.ts:1-320](file://packages/engine/src/world/worldState.ts#L1-L320)
 
 ### State Restoration After Application Restart
 - listStories():
@@ -239,10 +321,10 @@ ForEach --> |done| Return["return stories[]"]
 ```
 
 **Diagram sources**
-- [store.ts](file://apps/cli/src/config/store.ts#L51-L75)
+- [store.ts:82-106](file://apps/cli/src/config/store.ts#L82-L106)
 
 **Section sources**
-- [store.ts](file://apps/cli/src/config/store.ts#L51-L75)
+- [store.ts:82-106](file://apps/cli/src/config/store.ts#L82-L106)
 
 ### Data Serialization Formats
 - All persisted data is serialized as JSON:
@@ -250,13 +332,19 @@ ForEach --> |done| Return["return stories[]"]
   - StoryState: includes story progress, tension, and summaries.
   - Chapter[]: array of generated chapters with content, titles, counts, and timestamps.
   - CanonStore: extracted from StoryBible or persisted separately.
+  - StoryStructuredState: narrative structure and character development tracking.
+  - WorldState: comprehensive world database including characters, locations, objects, relationships, and timeline (NEW).
+  - VectorStore: memory embeddings and search indexes.
+  - ConstraintGraph: narrative constraint relationships.
 
 **Section sources**
-- [index.ts](file://packages/engine/src/types/index.ts#L1-L90)
-- [bible.ts](file://packages/engine/src/story/bible.ts#L1-L73)
-- [state.ts](file://packages/engine/src/story/state.ts#L1-L30)
-- [canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L1-L134)
-- [store.ts](file://apps/cli/src/config/store.ts#L20-L25)
+- [index.ts:1-90](file://packages/engine/src/types/index.ts#L1-L90)
+- [bible.ts:1-73](file://packages/engine/src/story/bible.ts#L1-L73)
+- [state.ts:1-30](file://packages/engine/src/story/state.ts#L1-L30)
+- [canonStore.ts:1-134](file://packages/engine/src/memory/canonStore.ts#L1-L134)
+- [worldStateEngine.ts:52-62](file://packages/engine/src/world/worldStateEngine.ts#L52-L62)
+- [worldState.ts:14-22](file://packages/engine/src/world/worldState.ts#L14-L22)
+- [store.ts:27-42](file://apps/cli/src/config/store.ts#L27-L42)
 
 ### Backup and Recovery Mechanisms
 - Automatic backup:
@@ -264,13 +352,15 @@ ForEach --> |done| Return["return stories[]"]
 - Manual backup procedure:
   - Copy the entire ~/.narrative-os directory to a safe location.
   - To back up a single story, copy its directory under ~/.narrative-os/stories/{storyId}.
+  - Include all six JSON files (bible.json, state.json, chapters.json, canon.json, structured-state.json, world-state.json) for complete story preservation.
 - Recovery:
   - Restore the copied directory tree into ~/.narrative-os.
   - Verify story integrity by running status for each story ID.
+  - World state data will be automatically loaded if world-state.json exists.
 
 **Section sources**
-- [store.ts](file://apps/cli/src/config/store.ts#L7-L26)
-- [status.ts](file://apps/cli/src/commands/status.ts#L1-L55)
+- [store.ts:7-26](file://apps/cli/src/config/store.ts#L7-L26)
+- [status.ts:1-55](file://apps/cli/src/commands/status.ts#L1-L55)
 
 ### Data Migration Strategies Between Versions
 - Current state:
@@ -280,11 +370,11 @@ ForEach --> |done| Return["return stories[]"]
   - Implement a migration function that:
     - Reads old-format files.
     - Translates field names or structures as needed.
+    - Creates new world-state.json files from existing story data.
     - Writes new-format files.
     - Removes or archives old files.
   - Provide a dry-run mode and rollback capability.
-
-[No sources needed since this section provides general guidance]
+  - Handle backward compatibility for stories created before world state persistence was added.
 
 ### Conflict Resolution for Concurrent Access
 - Current behavior:
@@ -296,89 +386,98 @@ ForEach --> |done| Return["return stories[]"]
   - Add advisory file locks (e.g., lock files) during write operations.
   - Implement optimistic concurrency with ETags or last-modified timestamps.
   - Use atomic file replacement (write to temp file, rename) to avoid partial reads.
+  - Consider implementing file-based locking for critical world state files.
 
 **Section sources**
-- [store.ts](file://apps/cli/src/config/store.ts#L15-L26)
+- [store.ts:15-26](file://apps/cli/src/config/store.ts#L15-L26)
 
 ### Examples of Story Workflows
 
-#### Initialize a New Story
+#### Initialize a New Story with World State
 - Steps:
   - Create StoryBible via engine APIs.
   - Add characters and optional plot threads.
   - Create initial StoryState.
-  - Persist with saveStory.
+  - Initialize WorldStateEngine for world management.
+  - Persist with saveStory including world state.
 - Outcome:
-  - A new directory under ~/.narrative-os/stories/{storyId} with bible.json, state.json, chapters.json, and canon.json.
+  - A new directory under ~/.narrative-os/stories/{storyId} with all six JSON files including world-state.json.
 
 **Section sources**
-- [init.ts](file://apps/cli/src/commands/init.ts#L1-L50)
-- [bible.ts](file://packages/engine/src/story/bible.ts#L1-L73)
-- [state.ts](file://packages/engine/src/story/state.ts#L1-L30)
-- [store.ts](file://apps/cli/src/config/store.ts#L15-L26)
+- [init.ts:1-50](file://apps/cli/src/commands/init.ts#L1-L50)
+- [bible.ts:1-73](file://packages/engine/src/story/bible.ts#L1-L73)
+- [state.ts:1-30](file://packages/engine/src/story/state.ts#L1-L30)
+- [store.ts:15-43](file://apps/cli/src/config/store.ts#L15-L43)
 
-#### Generate the Next Chapter
+#### Generate the Next Chapter with World State Updates
 - Steps:
-  - Load story with loadStory.
+  - Load story with loadStory including world state.
   - Build GenerationContext with current state and chapter number.
   - Call generateChapter from the engine pipeline.
+  - Update world state through WorldStateEngine or WorldStateManager.
   - Append new chapter to chapters and update state.
-  - Save with saveStory.
+  - Save with saveStory including updated world state.
 - Outcome:
-  - Updated chapters.json and state.json reflect the new chapter and progress.
+  - Updated chapters.json, state.json, and world-state.json reflect the new chapter and world developments.
 
 **Section sources**
-- [generate.ts](file://apps/cli/src/commands/generate.ts#L1-L55)
-- [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
-- [state.ts](file://packages/engine/src/story/state.ts#L14-L24)
-- [store.ts](file://apps/cli/src/config/store.ts#L15-L26)
+- [generate.ts:1-55](file://apps/cli/src/commands/generate.ts#L1-L55)
+- [generateChapter.ts:1-76](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
+- [state.ts:14-24](file://packages/engine/src/story/state.ts#L14-L24)
+- [store.ts:15-43](file://apps/cli/src/config/store.ts#L15-L43)
+- [worldStateEngine.ts:64-351](file://packages/engine/src/world/worldStateEngine.ts#L64-L351)
 
-#### Continue Until Completion
+#### Continue Until Completion with World State Tracking
 - Steps:
   - Loop while currentChapter < totalChapters.
-  - For each iteration, generate, append chapter, update state, and save.
+  - For each iteration, generate, update world state, append chapter, update state, and save.
 - Outcome:
-  - Full story dataset persisted incrementally.
+  - Full story dataset with comprehensive world state persisted incrementally.
 
 **Section sources**
-- [continue.ts](file://apps/cli/src/commands/continue.ts#L1-L52)
-- [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
-- [state.ts](file://packages/engine/src/story/state.ts#L14-L24)
-- [store.ts](file://apps/cli/src/config/store.ts#L15-L26)
+- [continue.ts:1-52](file://apps/cli/src/commands/continue.ts#L1-L52)
+- [generateChapter.ts:1-76](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
+- [state.ts:14-24](file://packages/engine/src/story/state.ts#L14-L24)
+- [store.ts:15-43](file://apps/cli/src/config/store.ts#L15-L43)
 
-#### List Stories and Show Status
+#### List Stories and Show Status with World State Information
 - Steps:
   - listStories to enumerate stories.
-  - loadStory to fetch details for a specific story.
+  - loadStory to fetch details for a specific story including world state.
 - Outcome:
-  - Displays progress, titles, and recent summaries.
+  - Displays progress, titles, recent summaries, and world state information.
 
 **Section sources**
-- [status.ts](file://apps/cli/src/commands/status.ts#L1-L55)
-- [store.ts](file://apps/cli/src/config/store.ts#L51-L75)
+- [status.ts:1-55](file://apps/cli/src/commands/status.ts#L1-L55)
+- [store.ts:82-106](file://apps/cli/src/config/store.ts#L82-L106)
 
 ### Cross-Platform Compatibility and Permissions
 - Platform-specific paths:
-  - Uses os.homedir() to resolve the user’s home directory.
+  - Uses os.homedir() to resolve the user's home directory.
 - Permissions:
   - Default filesystem permissions apply to created directories and files.
   - Ensure the user account has read/write permissions to the home directory.
 - Portable configuration:
   - LLM provider configuration is stored separately in ~/.narrative-os/config.json and applied via environment variables.
+- World state considerations:
+  - World state data is platform-independent JSON.
+  - Large world state files may require additional disk space considerations.
 
 **Section sources**
-- [store.ts](file://apps/cli/src/config/store.ts#L1-L8)
-- [config.ts](file://apps/cli/src/commands/config.ts#L1-L84)
-- [package.json](file://package.json#L1-L17)
+- [store.ts:1-8](file://apps/cli/src/config/store.ts#L1-L8)
+- [config.ts:1-84](file://apps/cli/src/commands/config.ts#L1-L84)
+- [package.json:1-17](file://package.json#L1-L17)
 
 ## Dependency Analysis
 - CLI depends on:
-  - ConfigStore for persistence.
+  - ConfigStore for persistence including world state.
   - Engine types for data models.
   - Engine pipeline for chapter generation.
+  - WorldStateEngine for comprehensive world management.
 - Engine depends on:
   - Types for interfaces.
   - Memory stores for canon extraction and prompt formatting.
+  - World state management for Phase 14 functionality.
 
 ```mermaid
 graph LR
@@ -395,42 +494,50 @@ CLI_Cont --> Engine_Gen
 Engine_Gen --> Engine_Canon["memory/canonStore.ts"]
 Engine_Gen --> Engine_State["story/state.ts"]
 CLI_Init --> Engine_Bible["story/bible.ts"]
+World_Engine["world/worldStateEngine.ts"] --> World_Manager["world/worldState.ts"]
+Store --> World_Persistence["saveWorldState/loadWorldState"]
 ```
 
 **Diagram sources**
-- [init.ts](file://apps/cli/src/commands/init.ts#L1-L50)
-- [generate.ts](file://apps/cli/src/commands/generate.ts#L1-L55)
-- [continue.ts](file://apps/cli/src/commands/continue.ts#L1-L52)
-- [status.ts](file://apps/cli/src/commands/status.ts#L1-L55)
-- [store.ts](file://apps/cli/src/config/store.ts#L1-L78)
-- [index.ts](file://packages/engine/src/types/index.ts#L1-L90)
-- [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
-- [canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L1-L134)
-- [state.ts](file://packages/engine/src/story/state.ts#L1-L30)
-- [bible.ts](file://packages/engine/src/story/bible.ts#L1-L73)
+- [init.ts:1-50](file://apps/cli/src/commands/init.ts#L1-L50)
+- [generate.ts:1-55](file://apps/cli/src/commands/generate.ts#L1-L55)
+- [continue.ts:1-52](file://apps/cli/src/commands/continue.ts#L1-L52)
+- [status.ts:1-55](file://apps/cli/src/commands/status.ts#L1-L55)
+- [store.ts:1-78](file://apps/cli/src/config/store.ts#L1-L78)
+- [index.ts:1-90](file://packages/engine/src/types/index.ts#L1-L90)
+- [generateChapter.ts:1-76](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
+- [canonStore.ts:1-134](file://packages/engine/src/memory/canonStore.ts#L1-L134)
+- [state.ts:1-30](file://packages/engine/src/story/state.ts#L1-L30)
+- [bible.ts:1-73](file://packages/engine/src/story/bible.ts#L1-L73)
+- [worldStateEngine.ts:64-351](file://packages/engine/src/world/worldStateEngine.ts#L64-L351)
+- [worldState.ts:24-320](file://packages/engine/src/world/worldState.ts#L24-L320)
 
 **Section sources**
-- [index.ts](file://apps/cli/src/index.ts#L1-L54)
-- [store.ts](file://apps/cli/src/config/store.ts#L1-L78)
-- [index.ts](file://packages/engine/src/types/index.ts#L1-L90)
+- [index.ts:1-54](file://apps/cli/src/index.ts#L1-L54)
+- [store.ts:1-78](file://apps/cli/src/config/store.ts#L1-L78)
+- [index.ts:1-90](file://packages/engine/src/types/index.ts#L1-L90)
 
 ## Performance Considerations
 - File sizes:
-  - Each story includes a JSON file per component; large chapter arrays increase file sizes.
+  - Each story includes a JSON file per component; large chapter arrays and world state data increase file sizes.
+  - World state files can grow significantly with complex narratives and extensive character interactions.
 - I/O patterns:
   - Frequent small writes during generation; consider batching saves for very large datasets.
+  - World state updates may require more frequent persistence due to complexity.
 - Memory usage:
-  - Entire chapter arrays are loaded into memory; for very large stories, consider streaming or paginated reads.
+  - Entire chapter arrays and world state collections are loaded into memory; for very large stories, consider streaming or paginated reads.
+  - World state management requires Map-based collections which consume more memory than simple objects.
 - Disk space:
   - No built-in cleanup policy; implement retention policies (e.g., keep only the last N chapters or summaries).
+  - Consider implementing world state compaction for very large narratives.
 - Parallelism:
   - No concurrency control; avoid running multiple CLI instances against the same story concurrently.
+  - World state operations should be serialized to prevent conflicts.
 - Recommendations:
   - Use atomic write/rename for critical files.
-  - Implement periodic compaction of chapter arrays if needed.
+  - Implement periodic compaction of chapter arrays and world state data if needed.
   - Add compression for extremely large stories (e.g., gzip) if acceptable.
-
-[No sources needed since this section provides general guidance]
+  - Consider lazy loading of world state data for stories with minimal world interaction.
 
 ## Troubleshooting Guide
 - Story not found:
@@ -439,19 +546,24 @@ CLI_Init --> Engine_Bible["story/bible.ts"]
 - Partial or corrupted files:
   - Re-generate chapters or restore from backup.
   - Validate JSON syntax using a JSON linter.
+  - Check world-state.json for corruption if world state is missing.
 - Permission errors:
   - Confirm the user has read/write access to ~/.narrative-os.
 - Configuration issues:
   - Check ~/.narrative-os/config.json for provider and model settings.
   - Apply configuration via the CLI config command.
+- World state issues:
+  - Missing world-state.json indicates the story was created before world state persistence was added.
+  - World state corruption can be resolved by regenerating from existing story data.
+  - Large world state files may cause memory issues; consider cleanup or compression strategies.
 
 **Section sources**
-- [store.ts](file://apps/cli/src/config/store.ts#L28-L49)
-- [status.ts](file://apps/cli/src/commands/status.ts#L1-L55)
-- [config.ts](file://apps/cli/src/commands/config.ts#L1-L84)
+- [store.ts:45-80](file://apps/cli/src/config/store.ts#L45-L80)
+- [status.ts:1-55](file://apps/cli/src/commands/status.ts#L1-L55)
+- [config.ts:1-84](file://apps/cli/src/commands/config.ts#L1-L84)
 
 ## Conclusion
-The Local Storage and Persistence system uses a straightforward, JSON-based filesystem layout under ~/.narrative-os. The ConfigStore interface centralizes persistence operations, while the CLI orchestrates story lifecycle tasks. While the current implementation lacks automatic backup, migration, and concurrency control, it provides a solid foundation that can be extended with atomic writes, versioned directories, and conflict resolution to support larger-scale usage.
+The Local Storage and Persistence system uses a comprehensive, JSON-based filesystem layout under ~/.narrative-os, now enhanced with world state management for Phase 14. The ConfigStore interface centralizes persistence operations including the new world-state.json file format, while the CLI orchestrates story lifecycle tasks. The addition of WorldStateEngine and WorldStateManager provides authoritative world database functionality with logical consistency enforcement. While the current implementation lacks automatic backup, migration, and concurrency control, it provides a solid foundation that can be extended with atomic writes, versioned directories, and conflict resolution to support larger-scale usage with comprehensive world state tracking.
 
 ## Appendices
 
@@ -523,12 +635,103 @@ class CanonFact {
 +string value
 +number chapterEstablished
 }
+class WorldStateEngine {
++string storyId
++number chapter
++number scene
++Record~string, WorldCharacter~ characters
++Record~string, WorldLocation~ locations
++Record~string, WorldObject~ objects
++Record~string, WorldRelationship~ relationships
++WorldEvent[] timeline
++Date lastUpdated
+}
+class WorldState {
++string storyId
++number currentChapter
++Map~string, Location~ locations
++Map~string, CharacterAgent~ characters
++WorldEvent[] events
++string[] history
++Record~string, any~ globalState
+}
+class WorldCharacter {
++string name
++boolean alive
++string location
++string[] knownInformation
++string emotionalState
++string[] goals
+}
+class WorldLocation {
++string name
++string description
++string[] charactersPresent
++string[] objectsPresent
++string[] connectedTo
+}
+class WorldObject {
++string name
++string location
++string owner
++string[] discoveredBy
++Record~string, string~ properties
+}
+class WorldRelationship {
++string characterA
++string characterB
++number trust
++number hostility
++string relationshipType
+}
+class WorldEvent {
++string id
++string description
++number chapter
++number scene
++Date timestamp
++string[] participants
++string location
+}
 StoryBible --> CharacterProfile : "contains"
 StoryBible --> PlotThread : "contains"
 StoryState --> ChapterSummary : "collects"
 CanonStore --> CanonFact : "contains"
+WorldStateEngine --> WorldCharacter : "tracks"
+WorldStateEngine --> WorldLocation : "tracks"
+WorldStateEngine --> WorldObject : "tracks"
+WorldStateEngine --> WorldRelationship : "tracks"
+WorldStateEngine --> WorldEvent : "tracks"
+WorldState --> Location : "contains"
+WorldState --> CharacterAgent : "contains"
 ```
 
 **Diagram sources**
-- [index.ts](file://packages/engine/src/types/index.ts#L1-L90)
-- [canonStore.ts](file://packages/engine/src/memory/canonStore.ts#L1-L134)
+- [index.ts:1-90](file://packages/engine/src/types/index.ts#L1-L90)
+- [canonStore.ts:1-134](file://packages/engine/src/memory/canonStore.ts#L1-L134)
+- [worldStateEngine.ts:9-62](file://packages/engine/src/world/worldStateEngine.ts#L9-L62)
+- [worldState.ts:4-320](file://packages/engine/src/world/worldState.ts#L4-L320)
+
+### Appendix B: World State Persistence Functions
+```mermaid
+flowchart TD
+SaveWorld["saveWorldState(storyId, data)"] --> Ensure["ensureDirs()"]
+Ensure --> CheckDir{"storyDir exists?"}
+CheckDir --> |No| CreateDir["mkdir storyDir"]
+CheckDir --> |Yes| WriteFile["write world-state.json"]
+CreateDir --> WriteFile
+WriteFile --> Success["done"]
+LoadWorld["loadWorldState(storyId)"] --> CheckExists{"world-state.json exists?"}
+CheckExists --> |No| ReturnNull["return null"]
+CheckExists --> |Yes| ReadFile["read world-state.json"]
+ReadFile --> ParseData["parse JSON data"]
+ParseData --> ReturnData["return data or null"]
+```
+
+**Diagram sources**
+- [store.ts:188-208](file://apps/cli/src/config/store.ts#L188-L208)
+
+**Section sources**
+- [store.ts:188-208](file://apps/cli/src/config/store.ts#L188-L208)
+- [worldStateEngine.ts:286-288](file://packages/engine/src/world/worldStateEngine.ts#L286-L288)
+- [worldState.ts:289-315](file://packages/engine/src/world/worldState.ts#L289-L315)

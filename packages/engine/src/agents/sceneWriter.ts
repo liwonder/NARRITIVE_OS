@@ -101,7 +101,27 @@ Return ONLY the JSON object.`;
     });
     
     // Clean up response and parse JSON
-    const cleaned = response.trim().replace(/^```json\s*/, '').replace(/```\s*$/, '');
+    let cleaned = response.trim()
+      .replace(/^```json\s*/, '')
+      .replace(/```\s*$/, '')
+      .trim();
+    
+    // Remove control characters that break JSON parsing
+    // eslint-disable-next-line no-control-regex
+    cleaned = cleaned.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+    
+    // Fix common JSON issues from LLM output
+    cleaned = cleaned
+      .replace(/\n/g, '\\n')  // Escape newlines in strings
+      .replace(/\r/g, '')     // Remove carriage returns
+      .replace(/\t/g, '\\t'); // Escape tabs
+    
+    // Try to extract JSON if wrapped in other text
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      cleaned = jsonMatch[0];
+    }
+    
     const output: SceneOutput = JSON.parse(cleaned);
     
     // Validate output
@@ -124,28 +144,54 @@ Return ONLY the JSON object.`;
 }
 
 function createFallbackScene(scene: Scene, bible: StoryBible, chapterNumber: number): SceneOutput {
-  const mainCharacter = scene.characters[0] || 'The protagonist';
+  const mainCharacter = scene.characters[0] || (bible.language === 'zh' ? '主角' : 'The protagonist');
   const location = scene.location;
+  const isChinese = bible.language === 'zh';
   
   let content = '';
   
-  switch (scene.type) {
-    case 'dialogue':
-      content = `${mainCharacter} stood in the ${location}, the weight of the situation pressing down. "We need to talk," ${mainCharacter} said, voice steady despite the tension. The conversation that followed would change everything, words hanging in the air like unspent lightning. Each sentence carried the burden of what had come before and the uncertainty of what lay ahead.`;
-      break;
-    case 'action':
-      content = `The ${location} erupted into chaos. ${mainCharacter} moved quickly, instincts taking over as events unfolded. There was no time to think, only to act. The scene blurred into a series of decisive moments - each one carrying the story forward, each one irreversible.`;
-      break;
-    case 'reveal':
-      content = `In the ${location}, the truth finally emerged. ${mainCharacter} stood frozen as understanding dawned. The pieces clicked into place - the mystery that had haunted them, the secret kept hidden for so long. Nothing would be the same after this moment.`;
-      break;
-    default:
-      content = `${mainCharacter} entered the ${location}, senses alert. The scene unfolded naturally - characters moving through space, time passing, the story advancing one moment at a time. ${scene.purpose}. The narrative flowed like water, carrying everyone toward an uncertain future.`;
+  if (isChinese) {
+    // Chinese fallback content
+    switch (scene.type) {
+      case 'dialogue':
+        content = `${mainCharacter}站在${location}，沉重的气氛压在心头。"我们需要谈谈，"${mainCharacter}说道，声音在紧张中保持着稳定。接下来的对话将改变一切，话语像未释放的闪电般悬在空中。每一句话都承载着过去的负担和未来的不确定性。`;
+        break;
+      case 'action':
+        content = `${location}突然陷入混乱。${mainCharacter}迅速行动，本能地应对着事态的发展。没有时间思考，只能行动。场景化作一系列决定性的瞬间——每一个都推动着故事向前，每一个都不可逆转。`;
+        break;
+      case 'reveal':
+        content = `在${location}，真相终于浮出水面。${mainCharacter}呆立当场，恍然大悟。碎片一一归位——困扰已久的谜团，隐藏已久的秘密。这一刻之后，一切都将不同。`;
+        break;
+      default:
+        content = `${mainCharacter}进入${location}，警觉地感知着周围。场景自然展开——人物在空间中移动，时间流逝，故事一步步推进。${scene.purpose}。叙事如流水般流淌，将所有人带向未知的未来。`;
+    }
+  } else {
+    // English fallback content
+    switch (scene.type) {
+      case 'dialogue':
+        content = `${mainCharacter} stood in the ${location}, the weight of the situation pressing down. "We need to talk," ${mainCharacter} said, voice steady despite the tension. The conversation that followed would change everything, words hanging in the air like unspent lightning. Each sentence carried the burden of what had come before and the uncertainty of what lay ahead.`;
+        break;
+      case 'action':
+        content = `The ${location} erupted into chaos. ${mainCharacter} moved quickly, instincts taking over as events unfolded. There was no time to think, only to act. The scene blurred into a series of decisive moments - each one carrying the story forward, each one irreversible.`;
+        break;
+      case 'reveal':
+        content = `In the ${location}, the truth finally emerged. ${mainCharacter} stood frozen as understanding dawned. The pieces clicked into place - the mystery that had haunted them, the secret kept hidden for so long. Nothing would be the same after this moment.`;
+        break;
+      default:
+        content = `${mainCharacter} entered the ${location}, senses alert. The scene unfolded naturally - characters moving through space, time passing, the story advancing one moment at a time. ${scene.purpose}. The narrative flowed like water, carrying everyone toward an uncertain future.`;
+    }
   }
+  
+  // Calculate word count (Chinese characters count differently)
+  const wordCount = isChinese 
+    ? content.length // For Chinese, use character count
+    : content.split(/\s+/).length;
   
   return {
     content,
-    summary: `${mainCharacter} in ${location}: ${scene.purpose}`,
-    wordCount: content.split(/\s+/).length
+    summary: isChinese 
+      ? `${mainCharacter}在${location}：${scene.purpose}`
+      : `${mainCharacter} in ${location}: ${scene.purpose}`,
+    wordCount
   };
 }

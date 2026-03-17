@@ -14,6 +14,7 @@ import { createStructuredState } from '../story/structuredState.js';
 import { CharacterAgentSystem, type CharacterDecision } from '../world/characterAgent.js';
 import { WorldStateEngine, createWorldStateEngine } from '../world/worldStateEngine.js';
 import { worldStateUpdater } from '../agents/worldStateUpdater.js';
+import { ScopeBuilder, createScopeBuilder } from '../scope/scopeBuilder.js';
 import type { GenerationContext, Chapter, ChapterSummary, SceneOutput, SceneOutcome } from '../types/index.js';
 import type { CanonStore } from '../memory/canonStore.js';
 import type { VectorStore } from '../memory/vectorStore.js';
@@ -213,24 +214,34 @@ async function generateChapterSceneLevel(
   const sceneOutcomes: SceneOutcome[] = [];
   let previousSceneSummary: string | undefined;
 
+  // Phase 18: Create scope builder for this chapter
+  const scopeBuilder = createScopeBuilder(worldStateEngine, vectorStore);
+
   for (const scene of scenePlan.scenes) {
     console.log(`  Generating scene ${scene.id}/${scenePlan.scenes.length}...`);
+
+    // Phase 18: Build scope window for this scene
+    console.log('    Building scope window...');
+    const scopeWindow = await scopeBuilder.buildScope({
+      centerCharacters: scene.characters,
+      centerLocation: scene.location,
+      maxHops: 2,
+      maxMemories: 8,
+      includeConstraints: true
+    });
+    console.log(`    Scope: ${scopeWindow.characters.length} chars, ${scopeWindow.locations.length} locs, ${scopeWindow.relevantMemories.length} memories`);
 
     // Get canon facts for validation
     const canonFacts = canon ? canon.facts.map((f: { subject: string; attribute: string; value: string }) => `${f.subject} ${f.attribute}: ${f.value}`) : [];
 
-    // Get relevant memories
-    let relevantMemories: string[] = [];
-    if (memoryRetriever && vectorStore) {
-      const results = await vectorStore.searchSimilar(scene.purpose, 5);
-      relevantMemories = results.map((r: { memory: { content: string } }) => r.memory.content);
-    }
+    // Phase 18: Use scoped memories instead of full search
+    const relevantMemories = scopeWindow.relevantMemories;
     
     // Get character decisions for this scene
     const decisions = characterDecisions.get(scene.id) || [];
     const characterDecisionStrings = decisions.map(d => `${d.character}: ${d.action}`);
 
-    // Generate the scene with character guidance
+    // Generate the scene with character guidance and scope context
     let sceneOutput = await writeScene({
       scene,
       bible,
@@ -291,7 +302,7 @@ async function generateChapterSceneLevel(
 
   // Step 3: Assemble scenes into chapter
   console.log('  Assembling chapter...');
-  const assembled = assembleChapter(sceneOutputs, scenePlan, chapterNumber);
+  const assembled = assembleChapter(sceneOutputs, scenePlan, chapterNumber, bible.language);
 
   // Step 4: Validate full chapter
   let violations: string[] = [];

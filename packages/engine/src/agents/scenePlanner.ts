@@ -14,13 +14,37 @@ interface ScenePlannerInput {
  * Each scene has a specific purpose, location, characters, and tension level
  */
 export async function planScenes(input: ScenePlannerInput): Promise<ScenePlan> {
-  const { bible, state, chapterNumber, previousChapterSummary, targetSceneCount = 4 } = input;
+  const { bible, state, chapterNumber, previousChapterSummary, targetSceneCount } = input;
   
   const llm = getLLM();
   
   const languageName = bible.language === 'zh' ? 'Chinese' : bible.language === 'ja' ? 'Japanese' : bible.language === 'ko' ? 'Korean' : bible.language === 'ar' ? 'Arabic' : bible.language === 'ru' ? 'Russian' : bible.language === 'es' ? 'Spanish' : bible.language === 'fr' ? 'French' : bible.language === 'de' ? 'German' : 'English';
   
-  const prompt = `You are a professional story planner. Break down Chapter ${chapterNumber} into ${targetSceneCount} scenes.
+  // Calculate story progress to determine appropriate scene count
+  const progress = chapterNumber / state.totalChapters;
+  let suggestedSceneCount: number;
+  
+  if (targetSceneCount) {
+    // Use provided target if specified
+    suggestedSceneCount = targetSceneCount;
+  } else if (progress < 0.1) {
+    // Setup phase: fewer scenes for world-building
+    suggestedSceneCount = 3;
+  } else if (progress < 0.3) {
+    // Early rising action: moderate complexity
+    suggestedSceneCount = 4;
+  } else if (progress < 0.7) {
+    // Middle: more scenes for complex developments
+    suggestedSceneCount = 5;
+  } else if (progress < 0.9) {
+    // Pre-climax: intense, focused scenes
+    suggestedSceneCount = 4;
+  } else {
+    // Final chapters: streamlined resolution
+    suggestedSceneCount = 3;
+  }
+  
+  const prompt = `You are a professional story planner. Break down Chapter ${chapterNumber} into ${suggestedSceneCount} scenes.
 
 Story Title: ${bible.title}
 Genre: ${bible.genre}
@@ -76,11 +100,23 @@ Return a JSON object with this structure:
   "targetTension": 7
 }
 
-Make scenes flow naturally:
-- Scene 1: Hook/Setup
-- Scene 2: Development/Rising action
-- Scene 3: Climax/Confrontation
-- Scene 4: Resolution/Transition
+Make scenes flow naturally based on story progress (${(progress * 100).toFixed(0)}% through story):
+
+${progress < 0.1 ? `- Scene 1: World introduction and character setup
+- Scene 2: Inciting incident or complication
+- Scene 3: Resolution and transition` : progress < 0.3 ? `- Scene 1: Hook/Setup - establish chapter goal
+- Scene 2: Development - complications arise
+- Scene 3: Rising action - tension builds
+- Scene 4: Resolution/Transition` : progress < 0.7 ? `- Scene 1: Setup - establish situation
+- Scene 2: Complication - obstacles appear
+- Scene 3: Development - deeper conflict
+- Scene 4: Climax - major confrontation
+- Scene 5: Resolution - aftermath and transition` : progress < 0.9 ? `- Scene 1: Setup - approaching final confrontation
+- Scene 2: Rising tension - stakes escalate
+- Scene 3: Climax - major turning point
+- Scene 4: Resolution - consequences unfold` : `- Scene 1: Final confrontation setup
+- Scene 2: Climax - ultimate resolution
+- Scene 3: Epilogue - closure and new beginning`}
 
 Return ONLY the JSON object, no markdown formatting.`;
 
@@ -110,7 +146,7 @@ Return ONLY the JSON object, no markdown formatting.`;
     console.error('Scene planning failed:', error);
     
     // Fallback: create basic scene plan
-    return createFallbackScenePlan(bible, chapterNumber, targetSceneCount);
+    return createFallbackScenePlan(bible, chapterNumber, suggestedSceneCount);
   }
 }
 

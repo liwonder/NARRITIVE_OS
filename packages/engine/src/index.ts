@@ -82,6 +82,17 @@ export {
   type WorldStateUpdaterInput,
 } from './agents/worldStateUpdater.js';
 
+// Phase 18 - Narrative Scope Windows
+export {
+  ScopeBuilder,
+  createScopeBuilder,
+  type ScopeWindow,
+  type ScopeBuilderOptions,
+  type GraphSubgraph,
+  type GraphNode,
+  type GraphEdge,
+} from './scope/scopeBuilder.js';
+
 // Constraints
 export {
   ConstraintGraph,

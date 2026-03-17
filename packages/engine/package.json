@@ -1,6 +1,6 @@
 {
   "name": "@narrative-os/engine",
-  "version": "0.1.15",
+  "version": "0.1.20",
   "description": "Core narrative engine for AI-powered story generation",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
