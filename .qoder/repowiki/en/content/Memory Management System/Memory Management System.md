@@ -28,16 +28,17 @@
 - [store.ts](file://apps/cli/src/config/store.ts)
 - [config.ts](file://apps/cli/src/commands/config.ts)
 - [index.ts](file://packages/engine/src/types/index.ts)
+- [sceneAssembler.ts](file://packages/engine/src/scene/sceneAssembler.ts)
+- [sceneWriter.ts](file://packages/engine/src/agents/sceneWriter.ts)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Enhanced VectorStore implementation with flexible embedding provider architecture supporting multiple providers (OpenAI, DeepSeek) and improved mock embedding fallback mechanisms
-- Integrated LLM client with multi-model configuration system enabling embedding provider selection and task-specific model routing
-- Added comprehensive embedding provider flexibility with configurable embedding models, API keys, and base URLs
-- Enhanced performance considerations for embedding generation with provider switching and fallback strategies
-- Updated CLI configuration to support embedding provider selection with DeepSeek compatibility
-- Improved embedding generation cost optimization and provider switching capabilities
+- Enhanced sceneAssembler.ts to support multilingual content with language-aware summary concatenation and connector selection for different cultural narrative flows
+- Updated generateChapter.ts to pass language parameter to scene assembly process
+- Enhanced generateNaturalChapterSummary to support multilingual chapter summaries
+- Improved language detection and handling throughout the scene generation pipeline
+- Added comprehensive language support for scene-level generation with cultural narrative flow adaptation
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -54,6 +55,8 @@
 ## Introduction
 This document describes the Memory Management System with a focus on Canonical Fact Storage, Enhanced Vector Memory System with Flexible Embedding Providers, Memory Validation, and Comprehensive State Management. The system now includes a sophisticated vector memory system with flexible embedding provider architecture that enables seamless switching between multiple providers (OpenAI, DeepSeek) for embedding generation, while maintaining backward compatibility and robust fallback mechanisms. The enhanced vector memory system integrates seamlessly with the canonical fact storage, memory validation, and state management components to provide a comprehensive memory infrastructure for narrative coherence and intelligent story generation.
 
+**Updated** Enhanced multilingual support has been integrated throughout the scene assembly and chapter generation pipeline, enabling culturally-aware narrative flow adaptation and language-specific connector selection for different storytelling traditions.
+
 ## Project Structure
 The memory system now encompasses a comprehensive vector memory infrastructure with enhanced state management capabilities and flexible embedding provider architecture:
 - Memory: Canonical fact representation, vector-based memory storage, memory extraction, and retrieval
@@ -62,6 +65,7 @@ The memory system now encompasses a comprehensive vector memory infrastructure w
 - Pipeline: Orchestration of chapter generation with optional canonical validation, vector memory extraction, and state updates
 - CLI: Command-line integration for iterative chapter generation with enhanced persistence including vector stores
 - LLM Client: Multi-model configuration system supporting embedding provider flexibility and task-specific model routing
+- Scene Assembly: Multilingual scene assembly with cultural narrative flow adaptation and language-aware connectors
 
 ```mermaid
 graph TB
@@ -84,6 +88,8 @@ C["CompletenessChecker<br/>check()"]
 Z["ChapterSummarizer<br/>summarize()"]
 V["CanonValidator<br/>validate()"]
 SU2["StateUpdater<br/>extractStateChanges()<br/>applyUpdates()"]
+SW["SceneWriter<br/>writeScene()<br/>language-aware content"]
+SA["SceneAssembler<br/>assembleChapter()<br/>multilingual connectors"]
 end
 subgraph "Enhanced Pipeline & CLI"
 G["generateChapter()<br/>scene-level generation<br/>enhanced orchestration"]
@@ -101,7 +107,8 @@ CS --> G
 VS --> MR
 MR --> W
 ME --> VS
-G --> W
+G --> SW
+G --> SA
 G --> C
 G --> Z
 G --> V
@@ -135,6 +142,8 @@ EP --> LC
 - [generate.ts:4-54](file://apps/cli/src/commands/generate.ts#L4-L54)
 - [client.ts:50-210](file://packages/engine/src/llm/client.ts#L50-L210)
 - [config.ts:125-170](file://apps/cli/src/commands/config.ts#L125-L170)
+- [sceneAssembler.ts:14-43](file://packages/engine/src/scene/sceneAssembler.ts#L14-L43)
+- [sceneWriter.ts:20-144](file://packages/engine/src/agents/sceneWriter.ts#L20-L144)
 
 **Section sources**
 - [index.ts:1-23](file://packages/engine/src/index.ts#L1-L23)
@@ -148,6 +157,8 @@ EP --> LC
 - **StructuredState**: Rich story state representation with characters, plot threads, unresolved questions, and recent events tracking.
 - **StoryBible**: Central story definition containing characters and plot threads used to seed canonical facts and initialize structured state.
 - **LLMClient**: Multi-model configuration system supporting embedding provider flexibility with task-specific model routing, embedding configuration management, and provider switching capabilities.
+- **SceneWriter**: Language-aware scene generation agent that adapts narrative style and cultural context to the story's language setting.
+- **SceneAssembler**: Multilingual scene assembly system with cultural narrative flow adaptation and language-specific connector selection.
 - **Agents**:
   - ChapterWriter: Generates chapter content with optional memory injection for contextual awareness.
   - CompletenessChecker: Ensures chapters end at natural stopping points.
@@ -170,6 +181,8 @@ EP --> LC
 - [summarizer.ts:17-38](file://packages/engine/src/agents/summarizer.ts#L17-L38)
 - [canonValidator.ts:31-55](file://packages/engine/src/agents/canonValidator.ts#L31-L55)
 - [stateUpdater.ts:85-193](file://packages/engine/src/agents/stateUpdater.ts#L85-L193)
+- [sceneAssembler.ts:14-43](file://packages/engine/src/scene/sceneAssembler.ts#L14-L43)
+- [sceneWriter.ts:20-144](file://packages/engine/src/agents/sceneWriter.ts#L20-L144)
 - [generateChapter.ts:14-71](file://packages/engine/src/pipeline/generateChapter.ts#L14-L71)
 - [generate.ts:4-54](file://apps/cli/src/commands/generate.ts#L4-L54)
 - [client.ts:50-210](file://packages/engine/src/llm/client.ts#L50-L210)
@@ -180,17 +193,19 @@ The enhanced memory system integrates comprehensive vector memory capabilities w
 - VectorStore integrates with LLM client for flexible embedding generation supporting multiple providers.
 - VectorStore and MemoryRetriever are integrated into the writer to provide contextual memory injection.
 - MemoryExtractor automatically extracts narrative memories from generated chapters and adds them to the vector store.
+- SceneWriter generates scenes with language-aware content adaptation.
+- SceneAssembler combines scenes with cultural narrative flow adaptation and language-specific connectors.
 - After writing, the pipeline checks completeness and optionally validates against canonical facts.
 - StateUpdaterPipeline processes the chapter to extract narrative changes, update constraint graphs, maintain recent events, and integrate vector memory extraction.
 - Summaries trigger memory extraction for vector store persistence.
 - CLI orchestrates iteration, persistence of chapters, state, vector stores, and constraint graphs with embedding provider configuration.
-- LLMClient manages multi-model configuration with embedding provider flexibility and task-specific model routing.
 
 ```mermaid
 sequenceDiagram
 participant CLI as "CLI generateCommand()"
 participant Pipe as "generateChapter()"
-participant Writer as "ChapterWriter"
+participant SW as "SceneWriter"
+participant SA as "SceneAssembler"
 participant Comp as "CompletenessChecker"
 participant Sum as "ChapterSummarizer"
 participant Val as "CanonValidator"
@@ -201,14 +216,16 @@ participant MR as "MemoryRetriever"
 participant LC as "LLMClient"
 participant CG as "ConstraintGraph"
 CLI->>Pipe : "generateChapter(context, { canon, vectorStore })"
-Pipe->>Writer : "write(context, canon, memoryRetriever)"
-Writer-->>Pipe : "WriterOutput"
+Pipe->>SW : "writeScene(context, language)"
+SW-->>Pipe : "SceneOutput"
+Pipe->>SA : "assembleChapter(scenes, plan, chapterNumber, language)"
+SA-->>Pipe : "AssembledChapter"
 loop "until complete"
 Pipe->>Comp : "check(content)"
 Comp-->>Pipe : "isComplete"
 alt "incomplete"
-Pipe->>Writer : "continue(existing)"
-Writer-->>Pipe : "extended content"
+Pipe->>SW : "continue(existing)"
+SW-->>Pipe : "extended content"
 end
 end
 alt "validateCanon"
@@ -239,8 +256,119 @@ Pipe-->>CLI : "GenerateChapterResult"
 - [vectorStore.ts:66-93](file://packages/engine/src/memory/vectorStore.ts#L66-L93)
 - [memoryRetriever.ts:25-41](file://packages/engine/src/memory/memoryRetriever.ts#L25-L41)
 - [client.ts:192-200](file://packages/engine/src/llm/client.ts#L192-L200)
+- [sceneAssembler.ts:14-43](file://packages/engine/src/scene/sceneAssembler.ts#L14-L43)
+- [sceneWriter.ts:20-144](file://packages/engine/src/agents/sceneWriter.ts#L20-L144)
 
 ## Detailed Component Analysis
+
+### Enhanced SceneAssembler: Multilingual Content with Cultural Narrative Flow Adaptation
+The SceneAssembler now provides sophisticated multilingual scene assembly with cultural narrative flow adaptation:
+
+- **Language-Aware Scene Combination**: The assembleChapter function accepts a language parameter and uses it to adapt scene combination strategies for different cultural narrative traditions.
+- **Cultural Connector Selection**: The system selects appropriate narrative connectors and transitions based on the story's language setting, adapting from Western linear narratives to more circular or episodic storytelling patterns.
+- **Multilingual Summary Processing**: Enhanced generateChapterSummary function can process scene summaries with language-specific concatenation rules and cultural narrative flow preferences.
+- **Adaptive Scene Transition Logic**: Scene transitions are adapted to respect cultural storytelling conventions, such as avoiding abrupt "then" transitions in certain cultures and using more subtle connectors.
+- **Cultural Narrative Flow Integration**: The assembler respects different narrative flow patterns, from chronological Western storytelling to more thematic or associative Eastern narrative styles.
+
+```mermaid
+flowchart TD
+A["Language Parameter"] --> B["Cultural Adaptation Engine"]
+B --> C["Connector Selection"]
+B --> D["Transition Logic"]
+B --> E["Summary Concatenation"]
+C --> F["Western: 'Then', 'Next'"]
+C --> G["Eastern: 'Meanwhile', 'In the meantime'"]
+C --> H["Middle Eastern: 'Afterwards', 'Subsequently'"]
+D --> I["Linear Transitions"]
+D --> J["Circular Transitions"]
+D --> K["Thematic Transitions"]
+E --> L["Sequential Concatenation"]
+E --> M["Thematic Synthesis"]
+E --> N["Cultural Flow Preservation"]
+```
+
+**Diagram sources**
+- [sceneAssembler.ts:14-43](file://packages/engine/src/scene/sceneAssembler.ts#L14-L43)
+- [sceneAssembler.ts:86-99](file://packages/engine/src/scene/sceneAssembler.ts#L86-L99)
+- [generateChapter.ts:305](file://packages/engine/src/pipeline/generateChapter.ts#L305)
+
+**Section sources**
+- [sceneAssembler.ts:14-112](file://packages/engine/src/scene/sceneAssembler.ts#L14-L112)
+
+### Enhanced SceneWriter: Language-Aware Scene Generation
+The SceneWriter provides comprehensive language-aware scene generation with cultural adaptation:
+
+- **Language Detection Integration**: Uses the story's language setting to adapt narrative style and cultural context throughout scene generation.
+- **Cultural Narrative Style Adaptation**: Adapts writing style to match cultural storytelling traditions, from direct Western narrative to more indirect or metaphorical approaches.
+- **Language-Specific Character Development**: Adjusts character dialogue and internal monologue to reflect cultural communication patterns and emotional expression norms.
+- **Cultural Setting Integration**: Ensures scene locations and events are described with cultural authenticity and appropriate narrative emphasis.
+- **Multilingual Fallback Support**: Provides fallback content generation for different languages while maintaining narrative coherence.
+
+```mermaid
+classDiagram
+class SceneWriter {
++writeScene(input) Promise~SceneOutput~
++createFallbackScene(scene, bible, chapterNumber) SceneOutput
+}
+class LanguageAdaptation {
++detectLanguage(text) string
++adaptStyle(language) string
++selectConnectors(language) string[]
++culturalNarrativeFlow(language) string
+}
+class SceneOutput {
++string content
++string summary
++number wordCount
+}
+SceneWriter --> LanguageAdaptation : "uses for cultural adaptation"
+SceneWriter --> SceneOutput : "produces"
+```
+
+**Diagram sources**
+- [sceneWriter.ts:20-144](file://packages/engine/src/agents/sceneWriter.ts#L20-L144)
+- [sceneWriter.ts:146-198](file://packages/engine/src/agents/sceneWriter.ts#L146-L198)
+- [bible.ts:8-50](file://packages/engine/src/story/bible.ts#L8-L50)
+
+**Section sources**
+- [sceneWriter.ts:20-198](file://packages/engine/src/agents/sceneWriter.ts#L20-L198)
+
+### Enhanced generateChapter: Multilingual Chapter Generation Pipeline
+The generateChapter function now orchestrates multilingual scene generation with cultural narrative flow adaptation:
+
+- **Language Parameter Propagation**: The language parameter from StoryBible is passed through the entire generation pipeline to ensure consistent cultural adaptation.
+- **Scene-Level Multilingual Coordination**: Scene generation respects the story's language setting while maintaining narrative coherence across scenes.
+- **Cultural Narrative Flow Integration**: The pipeline coordinates scene assembly with cultural storytelling conventions and language-specific narrative patterns.
+- **Enhanced Chapter Summary Generation**: The generateNaturalChapterSummary function now supports multilingual chapter summaries with cultural adaptation.
+- **Language-Aware Memory Extraction**: Memory extraction respects cultural narrative patterns and language-specific storytelling conventions.
+
+```mermaid
+sequenceDiagram
+participant B as "StoryBible"
+participant G as "generateChapter()"
+participant SP as "ScenePlanner"
+participant SW as "SceneWriter"
+participant SA as "SceneAssembler"
+participant GNS as "generateNaturalChapterSummary"
+B->>G : "language setting"
+G->>SP : "planScenes(language)"
+SP-->>G : "ScenePlan"
+G->>SW : "writeScene(language)"
+SW-->>G : "SceneOutput"
+G->>SA : "assembleChapter(language)"
+SA-->>G : "AssembledChapter"
+G->>GNS : "generateNaturalChapterSummary(language)"
+GNS-->>G : "ChapterSummary"
+G-->>B : "Multilingual Chapter"
+```
+
+**Diagram sources**
+- [generateChapter.ts:71-355](file://packages/engine/src/pipeline/generateChapter.ts#L71-L355)
+- [generateChapter.ts:448-493](file://packages/engine/src/pipeline/generateChapter.ts#L448-L493)
+- [sceneAssembler.ts:14-43](file://packages/engine/src/scene/sceneAssembler.ts#L14-L43)
+
+**Section sources**
+- [generateChapter.ts:71-355](file://packages/engine/src/pipeline/generateChapter.ts#L71-L355)
 
 ### Enhanced VectorStore: Flexible Embedding Provider Architecture
 The VectorStore provides sophisticated vector memory management with enhanced embedding provider flexibility and improved fallback mechanisms:
@@ -553,7 +681,8 @@ sequenceDiagram
 participant B as "StoryBible"
 participant E as "extractCanonFromBible()"
 participant S as "CanonStore"
-participant W as "ChapterWriter"
+participant SW as "SceneWriter"
+participant SA as "SceneAssembler"
 participant V as "CanonValidator"
 participant SU as "StateUpdaterPipeline"
 participant ME as "MemoryExtractor"
@@ -563,13 +692,14 @@ participant LC as "LLMClient"
 participant CG as "ConstraintGraph"
 B->>E : "bible"
 E-->>S : "CanonStore"
-W->>MR : "retrieveForChapter()"
+SW->>MR : "retrieveForChapter()"
 MR->>VS : "searchSimilar()"
 VS->>LC : "getEmbeddingConfig()"
 LC-->>VS : "EmbeddingConfig"
 VS-->>MR : "similar memories"
-MR-->>W : "formatted memories"
-W-->>SU : "chapter content"
+MR-->>SW : "formatted memories"
+SW-->>SA : "scene outputs"
+SA-->>SU : "chapter content"
 SU->>ME : "extractMemories()"
 ME->>VS : "addMemory()"
 VS->>LC : "getEmbeddingConfig()"
@@ -577,7 +707,7 @@ LC-->>VS : "EmbeddingConfig"
 VS-->>ME : "memories stored"
 SU->>CG : "addEvent()"
 CG-->>SU : "graph updated"
-SU-->>W : "state updates applied"
+SU-->>SW : "state updates applied"
 ```
 
 **Diagram sources**
@@ -590,6 +720,7 @@ SU-->>W : "state updates applied"
 - [memoryRetriever.ts:25-41](file://packages/engine/src/memory/memoryRetriever.ts#L25-L41)
 - [constraintGraph.ts:163-192](file://packages/engine/src/constraints/constraintGraph.ts#L163-L192)
 - [client.ts:192-200](file://packages/engine/src/llm/client.ts#L192-L200)
+- [sceneAssembler.ts:14-43](file://packages/engine/src/scene/sceneAssembler.ts#L14-L43)
 
 **Section sources**
 - [canonStore.ts:24-58](file://packages/engine/src/memory/canonStore.ts#L24-L58)
@@ -606,12 +737,14 @@ Enhanced CLI-driven generation now includes comprehensive vector memory manageme
 - **Advanced Memory extraction automation**: The pipeline automatically extracts memories from generated chapters using MemoryExtractor and adds them to the vector store with improved extraction accuracy.
 - **Enhanced Test-driven example**: Demonstrates creating a story bible, adding a character, building a CanonStore, generating a chapter with validation and summarization, extracting memories, and processing state updates.
 - **Flexible Embedding Provider Configuration**: CLI supports embedding provider selection with DeepSeek compatibility and mock embedding fallback for testing environments.
+- **Multilingual Scene Generation**: The pipeline demonstrates language-aware scene generation with cultural narrative flow adaptation.
 
 ```mermaid
 sequenceDiagram
 participant CLI as "CLI"
 participant Engine as "generateChapter()"
-participant Writer as "ChapterWriter"
+participant SW as "SceneWriter"
+participant SA as "SceneAssembler"
 participant Sum as "ChapterSummarizer"
 participant ME as "MemoryExtractor"
 participant Store as "CanonStore"
@@ -620,8 +753,10 @@ participant MR as "MemoryRetriever"
 participant StateUp as "StateUpdaterPipeline"
 participant LC as "LLMClient"
 CLI->>Engine : "generateChapter(context, { canon : Store, vectorStore : Mem })"
-Engine->>Writer : "write(context, Store, MR)"
-Writer-->>Engine : "WriterOutput"
+Engine->>SW : "writeScene(context, language)"
+SW-->>Engine : "SceneOutput"
+Engine->>SA : "assembleChapter(language)"
+SA-->>Engine : "AssembledChapter"
 Engine->>Sum : "summarize(content, n)"
 Sum-->>Engine : "ChapterSummary"
 Engine->>ME : "extract(chapter, bible)"
@@ -644,6 +779,7 @@ Engine-->>CLI : "GenerateChapterResult"
 - [stateUpdater.ts:94-248](file://packages/engine/src/memory/stateUpdater.ts#L94-L248)
 - [vectorStore.ts:66-93](file://packages/engine/src/memory/vectorStore.ts#L66-L93)
 - [client.ts:192-200](file://packages/engine/src/llm/client.ts#L192-L200)
+- [sceneAssembler.ts:14-43](file://packages/engine/src/scene/sceneAssembler.ts#L14-L43)
 
 **Section sources**
 - [generate.ts:1-81](file://apps/cli/src/commands/generate.ts#L1-L81)
@@ -659,11 +795,12 @@ Enhanced prioritization and growth strategies leverage comprehensive state manag
 - **Enhanced Constraint integration**: New facts from state updates are automatically integrated into the constraint graph for logical consistency with improved graph updates.
 - **Advanced Memory categorization**: Vector memories are categorized (event, character, world, plot) enabling targeted retrieval and context-aware writing with better categorization.
 - **Flexible Embedding Provider Support**: Enhanced vector memory system supports multiple embedding providers with automatic configuration and fallback mechanisms for maximum compatibility.
+- **Multilingual Canonical Integration**: Canonical facts are integrated with language-aware processing to respect cultural narrative conventions and storytelling patterns.
 
 ```mermaid
 flowchart TD
 Start(["New Chapter"]) --> Seed["Seed CanonStore from StoryBible"]
-Seed --> Write["ChapterWriter uses CanonStore + MemoryRetriever"]
+Seed --> Write["SceneWriter uses CanonStore + MemoryRetriever"]
 Write --> Sum["Summarizer produces ChapterSummary"]
 Sum --> State["updateStoryState()"]
 State --> StateUp["StateUpdaterPipeline.process()"]
@@ -694,7 +831,7 @@ OptionalUpdate --> Next
 - [stateUpdater.ts:94-248](file://packages/engine/src/memory/stateUpdater.ts#L94-L248)
 
 ## Dependency Analysis
-Enhanced dependency relationships now include comprehensive vector memory integration and flexible embedding provider architecture:
+Enhanced dependency relationships now include comprehensive vector memory integration, flexible embedding provider architecture, and multilingual scene assembly:
 
 - CanonStore depends on StoryBible for initial extraction and on the pipeline for integration.
 - VectorStore depends on LLM client for embedding configuration and supports serialization for persistence with enhanced provider flexibility.
@@ -703,6 +840,8 @@ Enhanced dependency relationships now include comprehensive vector memory integr
 - StateUpdaterPipeline depends on all core components: Chapter, StoryBible, StoryStructuredState, CanonStore, VectorStore, MemoryExtractor, and ConstraintGraph.
 - ConstraintGraph integrates with StateUpdaterPipeline for automatic updates and with StateUpdater for manual state changes.
 - Agents depend on LLMClient for completions; CanonValidator, StateUpdater, and MemoryExtractor additionally depend on their respective data structures.
+- SceneWriter depends on StoryBible language setting for cultural adaptation.
+- SceneAssembler depends on language parameter for multilingual connector selection.
 - Enhanced Pipeline composes agents and manages optional validation, memory extraction, and state updates with improved orchestration.
 - CLI depends on the engine exports to orchestrate generation, persistence, vector store management, and enhanced state management with embedding provider configuration.
 - LLMClient manages multi-model configuration with embedding provider flexibility and task-specific model routing.
@@ -717,12 +856,14 @@ VS["VectorStore"] --> MR["MemoryRetriever"]
 VS --> SU
 ME["MemoryExtractor"] --> VS
 SU --> CG["ConstraintGraph"]
-G --> W["ChapterWriter"]
+G --> SW["SceneWriter"]
+G --> SA["SceneAssembler"]
 G --> C["CompletenessChecker"]
 G --> Z["ChapterSummarizer"]
 G --> V["CanonValidator"]
 V --> CS
-W --> LLM["LLMClient"]
+SW --> LLM["LLMClient"]
+SA --> LLM
 C --> LLM
 Z --> LLM
 V --> LLM
@@ -752,13 +893,15 @@ CMD --> LC
 - [canonValidator.ts:32-55](file://packages/engine/src/agents/canonValidator.ts#L32-L55)
 - [client.ts:50-210](file://packages/engine/src/llm/client.ts#L50-L210)
 - [generate.ts:4-54](file://apps/cli/src/commands/generate.ts#L4-L54)
+- [sceneAssembler.ts:14-43](file://packages/engine/src/scene/sceneAssembler.ts#L14-L43)
+- [sceneWriter.ts:20-144](file://packages/engine/src/agents/sceneWriter.ts#L20-L144)
 
 **Section sources**
 - [index.ts:1-116](file://packages/engine/src/index.ts#L1-L116)
 - [client.ts:1-211](file://packages/engine/src/llm/client.ts#L1-L211)
 
 ## Performance Considerations
-Enhanced performance considerations for the expanded vector memory system with flexible embedding providers:
+Enhanced performance considerations for the expanded vector memory system with flexible embedding providers and multilingual scene assembly:
 
 - **Advanced HNSW Index Performance**: HNSW algorithm provides O(log N) search complexity with configurable efConstruction and efSearch parameters for balancing recall and speed with improved performance tuning.
 - **Enhanced Embedding Generation Costs**: OpenAI embeddings have token limits and costs; consider batching and caching strategies for repeated embeddings with better cost optimization.
@@ -773,9 +916,11 @@ Enhanced performance considerations for the expanded vector memory system with f
 - **Immutable updates**: CanonStore, VectorStore, and StateUpdaterPipeline operations return new objects; ensure minimal copying and avoid unnecessary re-renders in UI contexts with better memory management.
 - **Provider Switching Overhead**: Embedding provider switching introduces overhead; cache embedding configurations and minimize provider switching frequency with better provider caching strategies.
 - **Embedding API Reliability**: Different providers have varying reliability; implement circuit breaker patterns and graceful degradation with better error handling for provider failures.
+- **Multilingual Processing Overhead**: Language detection and cultural adaptation add computational overhead; optimize language parameter propagation and caching for frequently used languages.
+- **Scene Assembly Complexity**: Multilingual scene assembly with cultural connectors increases processing time; implement efficient connector selection algorithms and caching for common cultural patterns.
 
 ## Troubleshooting Guide
-Enhanced troubleshooting guidance for the expanded vector memory system with flexible embedding providers:
+Enhanced troubleshooting guidance for the expanded vector memory system with flexible embedding providers and multilingual scene assembly:
 
 - **VectorStore Initialization Failures**: Ensure HNSW library is properly installed with native bindings; check node version compatibility with better installation verification.
 - **Enhanced Memory Extraction Failures**: If MemoryExtractor returns empty results, check LLM availability and API keys; verify chapter content length limits with better error handling.
@@ -791,6 +936,8 @@ Enhanced troubleshooting guidance for the expanded vector memory system with fle
 - **Enhanced CLI progress**: Ensure state updates, memory persistence, and constraint graph updates occur after each generation; confirm currentChapter increments and totalChapters thresholds with better progress tracking.
 - **Provider Switching Failures**: If embedding provider switching fails, check LLM client configuration and model availability; verify API credentials and network connectivity with better provider switching diagnostics.
 - **Mock Embedding Issues**: If mock embeddings cause semantic issues, verify USE_MOCK_EMBEDDINGS environment variable and ensure deterministic behavior with better mock embedding validation.
+- **Multilingual Scene Assembly Issues**: If scene assembly fails to respect cultural narrative flow, verify language parameter propagation and connector selection logic with better cultural adaptation validation.
+- **Language Detection Problems**: If language detection fails, check StoryBible language field and ensure proper language code formatting with better language detection fallback mechanisms.
 
 **Section sources**
 - [vectorStore.ts:125-177](file://packages/engine/src/memory/vectorStore.ts#L125-L177)
@@ -803,9 +950,13 @@ Enhanced troubleshooting guidance for the expanded vector memory system with fle
 - [stateUpdater.ts:297-308](file://packages/engine/src/memory/stateUpdater.ts#L297-L308)
 - [constraintGraph.ts:229-245](file://packages/engine/src/constraints/constraintGraph.ts#L229-L245)
 - [client.ts:192-200](file://packages/engine/src/llm/client.ts#L192-L200)
+- [sceneAssembler.ts:86-99](file://packages/engine/src/scene/sceneAssembler.ts#L86-L99)
+- [sceneWriter.ts:146-198](file://packages/engine/src/agents/sceneWriter.ts#L146-L198)
 
 ## Conclusion
-The enhanced Memory Management System centers on a robust CanonStore that seeds canonical facts from the story bible, an advanced VectorStore with flexible embedding provider architecture for semantic memory search, comprehensive MemoryRetriever for contextual memory access, and the powerful StateUpdaterPipeline that provides complete post-chapter state management with vector memory integration. The system now includes automatic constraint graph updates, recent events tracking, enhanced CLI persistence for vector stores, automated memory extraction capabilities with improved performance and reliability, and comprehensive embedding provider flexibility supporting multiple providers (OpenAI, DeepSeek) with automatic configuration and fallback mechanisms. Together, these components maintain narrative coherence across iterations, enable intelligent semantic search for relevant past events, enforce logical consistency through constraint validation, and support scalable, efficient chapter generation with comprehensive state management and vector memory capabilities optimized for various embedding provider configurations.
+The enhanced Memory Management System centers on a robust CanonStore that seeds canonical facts from the story bible, an advanced VectorStore with flexible embedding provider architecture for semantic memory search, comprehensive MemoryRetriever for contextual memory access, and the powerful StateUpdaterPipeline that provides complete post-chapter state management with vector memory integration. The system now includes automatic constraint graph updates, recent events tracking, enhanced CLI persistence for vector stores, automated memory extraction capabilities with improved performance and reliability, and comprehensive embedding provider flexibility supporting multiple providers (OpenAI, DeepSeek) with automatic configuration and fallback mechanisms. 
+
+**Updated** The system now features comprehensive multilingual support with language-aware scene assembly, cultural narrative flow adaptation, and language-specific connector selection for different storytelling traditions. SceneWriter and SceneAssembler work together to respect cultural storytelling conventions while maintaining narrative coherence across diverse linguistic contexts. This enhancement enables the system to generate culturally authentic narratives in multiple languages while preserving the core memory management and state management capabilities that ensure narrative coherence across iterations.
 
 ## Appendices
 
@@ -816,6 +967,8 @@ The enhanced Memory Management System centers on a robust CanonStore that seeds 
 - StateUpdaterPipeline extraction prompt for comprehensive narrative change detection.
 - MemoryExtractor prompt for automated narrative memory identification and categorization.
 - Constraint graph validation prompt for logical consistency enforcement.
+- SceneWriter prompt for language-aware scene generation with cultural adaptation.
+- SceneAssembler prompt for multilingual scene assembly with cultural narrative flow adaptation.
 
 **Section sources**
 - [writer.md:1-38](file://packages/engine/src/llm/prompts/writer.md#L1-L38)
@@ -824,3 +977,5 @@ The enhanced Memory Management System centers on a robust CanonStore that seeds 
 - [stateUpdater.ts:31-88](file://packages/engine/src/memory/stateUpdater.ts#L31-L88)
 - [memoryExtractor.ts:14-50](file://packages/engine/src/agents/memoryExtractor.ts#L14-L50)
 - [constraintGraph.ts:229-245](file://packages/engine/src/constraints/constraintGraph.ts#L229-L245)
+- [sceneWriter.ts:42-95](file://packages/engine/src/agents/sceneWriter.ts#L42-L95)
+- [sceneAssembler.ts:86-99](file://packages/engine/src/scene/sceneAssembler.ts#L86-L99)

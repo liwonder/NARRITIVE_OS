@@ -117,12 +117,12 @@ export type TaskType =
 // Scene-level generation types (Phase 12)
 export interface Scene {
   id: number;
-  location: string;
-  characters: string[];
-  purpose: string;
-  tension: number;
-  conflict?: string;
-  type?: 'dialogue' | 'action' | 'reveal' | 'investigation' | 'transition';
+  location?: string;        // Optional: writer decides organically
+  characters?: string[];    // Optional: writer decides organically
+  purpose: string;          // High-level narrative function
+  tension: number;          // Target tension (0-10)
+  conflict?: string;        // Optional conflict description
+  type?: 'opening' | 'rising' | 'climax' | 'falling' | 'ending' | 'dialogue' | 'action' | 'reveal' | 'investigation' | 'transition';
 }
 
 export interface ScenePlan {

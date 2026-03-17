@@ -179,8 +179,13 @@ export class WorldStateEngine {
   }
 
   moveObject(name: string, newLocation: string): void {
-    const obj = this.state.objects[name];
-    if (!obj) throw new Error(`Object ${name} not found`);
+    let obj = this.state.objects[name];
+    
+    // Auto-create object if it doesn't exist
+    if (!obj) {
+      this.addObject(name, newLocation, { type: 'auto-created' });
+      return;
+    }
     
     // Remove from old location
     const oldLoc = this.state.locations[obj.location];
@@ -199,9 +204,13 @@ export class WorldStateEngine {
     this.touch();
   }
 
-  discoverObject(objectName: string, characterName: string): void {
-    const obj = this.state.objects[objectName];
-    if (!obj) throw new Error(`Object ${objectName} not found`);
+  discoverObject(objectName: string, characterName: string, location?: string): void {
+    let obj = this.state.objects[objectName];
+    
+    // Auto-create object if it doesn't exist
+    if (!obj) {
+      obj = this.addObject(objectName, location || 'unknown', { type: 'auto-created' });
+    }
     
     if (!obj.discoveredBy.includes(characterName)) {
       obj.discoveredBy.push(characterName);

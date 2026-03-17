@@ -10,6 +10,22 @@ export interface ChapterObjective {
   type: 'plot' | 'character' | 'world' | 'tension' | 'resolution';
   relatedPlotThreadId?: string;
   relatedCharacter?: string;
+  targetScene?: number;
+}
+
+export interface SuggestedScene {
+  sceneNumber: number;
+  purpose: string;
+  keyEvents: string[];
+  characterFocus: string;
+  suggestedLength: string;
+}
+
+export interface ChapterStructure {
+  opening: string;
+  risingAction: string;
+  climax: string;
+  resolution: string;
 }
 
 export interface DirectorOutput {
@@ -17,7 +33,8 @@ export interface DirectorOutput {
   overallGoal: string;
   objectives: ChapterObjective[];
   focusCharacters: string[];
-  suggestedScenes: string[];
+  suggestedScenes: SuggestedScene[];
+  chapterStructure: ChapterStructure;
   tone: string;
   notes: string;
 }
@@ -74,6 +91,8 @@ Based on all the above information, decide what Chapter {{nextChapter}} should a
 4. **Unresolved Questions**: Which mysteries should be addressed?
 5. **Story Arc**: Where are we in the overall narrative (setup/rising action/climax/resolution)?
 
+This is a LONG-FORM chapter (target: 5000+ words, 5-7 scenes). Plan accordingly.
+
 Output a JSON object with:
 
 {
@@ -82,20 +101,35 @@ Output a JSON object with:
   "objectives": [
     {
       "id": "unique-id",
-      "description": "What needs to happen",
+      "description": "What needs to happen - be specific for long-form",
       "priority": "critical|high|medium|low",
       "type": "plot|character|world|tension|resolution",
       "relatedPlotThreadId": "thread-id or omit",
-      "relatedCharacter": "character name or omit"
+      "relatedCharacter": "character name or omit",
+      "targetScene": "which scene (1-7) should address this"
     }
   ],
   "focusCharacters": ["Character names that should be central"],
-  "suggestedScenes": ["Scene ideas that could achieve objectives"],
+  "suggestedScenes": [
+    {
+      "sceneNumber": 1,
+      "purpose": "What this scene accomplishes",
+      "keyEvents": ["specific events to include"],
+      "characterFocus": "who drives this scene",
+      "suggestedLength": "word count guidance (800-1200)"
+    }
+  ],
+  "chapterStructure": {
+    "opening": "How to hook the reader",
+    "risingAction": "How to build tension through middle scenes",
+    "climax": "Where the chapter peaks",
+    "resolution": "How to end while maintaining interest"
+  },
   "tone": "emotional tone for this chapter",
-  "notes": "Additional guidance for the writer"
+  "notes": "Additional guidance for the writer - emphasize depth and detail for long-form"
 }
 
-Be specific and actionable. The writer will use your direction to craft the chapter.`;
+Be specific and actionable. For long-form chapters, provide MORE objectives (6-10) and detailed scene guidance. Each scene should have substantial content.`;
 
 export class StoryDirector {
   async direct(context: DirectorContext): Promise<DirectorOutput> {
@@ -265,7 +299,17 @@ Pacing: ${tensionGuidance.pacingNotes}`;
       overallGoal: `Advance the story toward chapter ${nextChapter} with focus on active plot threads`,
       objectives,
       focusCharacters: characters.slice(0, 2).map(c => c.name),
-      suggestedScenes: ['Opening scene establishing current situation', 'Development of main plot thread', 'Character interaction moment'],
+      suggestedScenes: [
+        { sceneNumber: 1, purpose: 'Opening scene establishing current situation', keyEvents: ['Setup'], characterFocus: characters[0]?.name || 'Protagonist', suggestedLength: '800-1000 words' },
+        { sceneNumber: 2, purpose: 'Development of main plot thread', keyEvents: ['Progress'], characterFocus: characters[0]?.name || 'Protagonist', suggestedLength: '800-1000 words' },
+        { sceneNumber: 3, purpose: 'Character interaction moment', keyEvents: ['Interaction'], characterFocus: characters[1]?.name || characters[0]?.name || 'Protagonist', suggestedLength: '800-1000 words' },
+      ],
+      chapterStructure: {
+        opening: 'Establish current situation and hook reader',
+        risingAction: 'Develop plot threads and character dynamics',
+        climax: 'Peak tension or major revelation',
+        resolution: 'Set up next chapter while resolving immediate conflicts',
+      },
       tone: 'dramatic',
       notes: 'Auto-generated objectives based on current story state',
     };

@@ -19,8 +19,8 @@ export async function validateScene(input: SceneValidatorInput): Promise<SceneVa
   const prompt = `You are a quality control editor. Validate this scene against the requirements.
 
 ## Scene Requirements
-Location: ${scene.location}
-Characters Required: ${scene.characters.join(', ')}
+Location: ${scene.location || 'Not specified'}
+Characters Required: ${scene.characters?.join(', ') || 'Not specified'}
 Scene Purpose: ${scene.purpose}
 Target Tension: ${scene.tension}/10
 
@@ -76,16 +76,18 @@ function performBasicValidation(
     violations.push('Scene is too short');
   }
   
-  // Check if characters are mentioned
+  // Check if characters are mentioned (only if specified)
   const contentLower = sceneOutput.content.toLowerCase();
-  for (const charName of scene.characters) {
-    if (!contentLower.includes(charName.toLowerCase())) {
-      violations.push(`Character "${charName}" not found in scene`);
+  if (scene.characters) {
+    for (const charName of scene.characters) {
+      if (!contentLower.includes(charName.toLowerCase())) {
+        violations.push(`Character "${charName}" not found in scene`);
+      }
     }
   }
   
-  // Check if location is mentioned
-  if (!contentLower.includes(scene.location.toLowerCase())) {
+  // Check if location is mentioned (only if specified)
+  if (scene.location && !contentLower.includes(scene.location.toLowerCase())) {
     violations.push(`Location "${scene.location}" not found in scene`);
   }
   

@@ -29,6 +29,8 @@
 - [packages/engine/src/world/worldState.ts](file://packages/engine/src/world/worldState.ts)
 - [packages/engine/src/world/characterAgent.ts](file://packages/engine/src/world/characterAgent.ts)
 - [packages/engine/src/world/eventResolver.ts](file://packages/engine/src/world/eventResolver.ts)
+- [packages/engine/src/world/worldStateEngine.ts](file://packages/engine/src/world/worldStateEngine.ts)
+- [packages/engine/src/scope/scopeBuilder.ts](file://packages/engine/src/scope/scopeBuilder.ts)
 - [packages/engine/src/constraints/constraintGraph.ts](file://packages/engine/src/constraints/constraintGraph.ts)
 - [packages/engine/src/constraints/validator.ts](file://packages/engine/src/constraints/validator.ts)
 - [apps/cli/src/index.ts](file://apps/cli/src/index.ts)
@@ -52,6 +54,9 @@
 - Enhanced tension control system with dynamic guidance generation and narrative pacing management
 - Added advanced multi-model LLM client with embedding capabilities and expanded provider support
 - Improved chapter generation flow with scene-by-scene orchestration and character-driven narrative
+- **Added new ScopeBuilder functionality for narrative scope windows and context management**
+- **Integrated ScopeBuilder with World State Engine for efficient scene context extraction**
+- **Exposed ScopeBuilder through engine exports for external consumption and integration**
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -66,13 +71,13 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document describes the architecture of the Narrative Operating System engine package, focusing on the AI-powered story generation system. The engine follows an advanced agent-based architecture with a clear separation of concerns: agents encapsulate specialized tasks (writing, completeness checking, summarization, and canon validation), a **multi-model LLM integration layer** with purpose-based routing abstracts provider details, a canonical memory system maintains story facts, a vector memory system provides semantic search capabilities, and a comprehensive generation pipeline orchestrates the workflow. The system now incorporates a **Story Director agent system** for high-level narrative coordination, **integrated Character Agents** for autonomous decision-making, an **enhanced tension control system** for dynamic narrative pacing, and a **comprehensive scene-level generation pipeline** with dedicated agents for planning, writing, validation, and assembly.
+This document describes the architecture of the Narrative Operating System engine package, focusing on the AI-powered story generation system. The engine follows an advanced agent-based architecture with a clear separation of concerns: agents encapsulate specialized tasks (writing, completeness checking, summarization, and canon validation), a **multi-model LLM integration layer** with purpose-based routing abstracts provider details, a canonical memory system maintains story facts, a vector memory system provides semantic search capabilities, and a comprehensive generation pipeline orchestrates the workflow. The system now incorporates a **Story Director agent system** for high-level narrative coordination, **integrated Character Agents** for autonomous decision-making, an **enhanced tension control system** for dynamic narrative pacing, and a **comprehensive scene-level generation pipeline** with dedicated agents for planning, writing, validation, and assembly. **The system now includes a new ScopeBuilder component that provides efficient narrative scope windows and context management, integrated with the World State Engine for optimal scene generation performance.**
 
-**Updated** Enhanced to reflect the new Story Director agent system that coordinates chapter objectives and narrative direction, integrated Character Agents that autonomously decide character actions, enhanced tension control system with dynamic guidance generation, and improved chapter generation pipeline flow with scene-by-scene orchestration.
+**Updated** Enhanced to reflect the new Story Director agent system that coordinates chapter objectives and narrative direction, integrated Character Agents that autonomously decide character actions, enhanced tension control system with dynamic guidance generation, improved chapter generation pipeline flow with scene-by-scene orchestration, and the new ScopeBuilder functionality for efficient narrative context management.
 
 ## Project Structure
 The repository is organized as a monorepo using pnpm workspaces and Turborepo orchestration:
-- packages/engine: Core engine library exporting types, **enhanced LLM client with multi-model support and embedding capabilities**, agents, memory, pipeline, story utilities, world simulation, and constraint systems.
+- packages/engine: Core engine library exporting types, **enhanced LLM client with multi-model support and embedding capabilities**, agents, memory, pipeline, story utilities, world simulation, **scope management**, and constraint systems.
 - apps/cli: CLI application that consumes the engine to initialize stories, generate chapters, validate consistency, inspect state, and manage persisted state with **interactive multi-model configuration including embedding providers**.
 - Root configuration files define workspace layout and Turborepo task caching.
 
@@ -88,6 +93,7 @@ E_Pipeline["pipeline/generateChapter.ts<br/>Scene-Level Flow"]
 E_Story["story/*"]
 E_Agents["agents/*<br/>Task-aware<br/>Enhanced Agents"]
 E_World["world/*<br/>Character Agents"]
+E_Scope["scope/*<br/>ScopeBuilder<br/>Context Management"]
 E_Constraints["constraints/*"]
 E_Scene["scene/*<br/>Assembly & Outcome"]
 end
@@ -117,12 +123,13 @@ E_Index --> E_Pipeline
 E_Index --> E_Story
 E_Index --> E_Agents
 E_Index --> E_World
+E_Index --> E_Scope
 E_Index --> E_Constraints
 E_Index --> E_Scene
 ```
 
 **Diagram sources**
-- [packages/engine/src/index.ts:1-123](file://packages/engine/src/index.ts#L1-L123)
+- [packages/engine/src/index.ts:1-151](file://packages/engine/src/index.ts#L1-L151)
 - [apps/cli/src/index.ts:121-150](file://apps/cli/src/index.ts#L121-L150)
 - [apps/cli/src/commands/generate.ts:1-55](file://apps/cli/src/commands/generate.ts#L1-L55)
 - [apps/cli/src/commands/validate.ts:1-107](file://apps/cli/src/commands/validate.ts#L1-L107)
@@ -136,7 +143,7 @@ E_Index --> E_Scene
 - [turbo.json:1-19](file://turbo.json#L1-L19)
 
 ## Core Components
-- Export surface: The engine's public API is exported via a single barrel file, exposing types, **enhanced LLM client with multi-model support and embedding capabilities**, agents, pipeline, story utilities, memory APIs, world simulation components, and constraint systems.
+- Export surface: The engine's public API is exported via a single barrel file, exposing types, **enhanced LLM client with multi-model support and embedding capabilities**, agents, pipeline, story utilities, memory APIs, world simulation components, **scope management**, and constraint systems.
 - Types: Define the canonical data models for StoryBible, StoryState, Chapter, ChapterSummary, GenerationContext, and **enhanced LLM configuration interfaces** including ModelConfig with expanded provider support and TaskType with embedding operations.
 - **Multi-Model LLM Client**: Provides a provider-agnostic abstraction with **purpose-based routing**, **task-specific model mapping**, **embedding model discovery**, and **backward compatibility** with single-model configurations.
 - **Story Director Agent**: High-level orchestrator that analyzes story state, generates chapter objectives, manages tension targets, and coordinates narrative direction.
@@ -144,6 +151,7 @@ E_Index --> E_Scene
 - **Enhanced Agents**: Specialized modules implementing writing, completeness checks, summarization, canon validation, memory extraction, and state updates with **task-aware model selection** including embedding operations.
 - **Scene-Level Agents**: New dedicated agents for scene planning, writing, validation, and assembly with specialized prompts and workflows for granular narrative control.
 - **Tension Controller**: Advanced system for managing narrative tension dynamics including target tension calculation, tension analysis, and guidance generation.
+- **ScopeBuilder**: **New component that extracts narrative scope windows and relevant context for efficient scene generation**, integrated with World State Engine for optimal performance.
 - World Simulation Layer: Character agents with goals, knowledge, and autonomy, event resolvers for conflict and interaction resolution, and world state management.
 - Constraint Graph: Narrative consistency system enforcing logical rules for canon, location, knowledge, timeline, and logical constraints.
 - Vector Memory System: HNSW-based semantic search with automatic embedding generation, supporting contextual queries and category filtering, powered by dedicated embedding models.
@@ -156,7 +164,7 @@ E_Index --> E_Scene
 - CLI integration: Loads persisted stories, constructs GenerationContext, invokes the pipeline, updates state, and persists results with **interactive multi-model configuration including embedding providers**.
 
 **Section sources**
-- [packages/engine/src/index.ts:1-123](file://packages/engine/src/index.ts#L1-L123)
+- [packages/engine/src/index.ts:1-151](file://packages/engine/src/index.ts#L1-L151)
 - [packages/engine/src/types/index.ts:1-152](file://packages/engine/src/types/index.ts#L1-L152)
 - [packages/engine/src/llm/client.ts:1-249](file://packages/engine/src/llm/client.ts#L1-L249)
 - [packages/engine/src/memory/canonStore.ts:1-134](file://packages/engine/src/memory/canonStore.ts#L1-L134)
@@ -183,6 +191,8 @@ E_Index --> E_Scene
 - [packages/engine/src/world/worldState.ts:1-321](file://packages/engine/src/world/worldState.ts#L1-L321)
 - [packages/engine/src/world/characterAgent.ts:1-304](file://packages/engine/src/world/characterAgent.ts#L1-L304)
 - [packages/engine/src/world/eventResolver.ts:1-272](file://packages/engine/src/world/eventResolver.ts#L1-L272)
+- [packages/engine/src/world/worldStateEngine.ts:1-352](file://packages/engine/src/world/worldStateEngine.ts#L1-L352)
+- [packages/engine/src/scope/scopeBuilder.ts:1-480](file://packages/engine/src/scope/scopeBuilder.ts#L1-L480)
 - [packages/engine/src/constraints/constraintGraph.ts:1-471](file://packages/engine/src/constraints/constraintGraph.ts#L1-L471)
 - [packages/engine/src/constraints/validator.ts:1-286](file://packages/engine/src/constraints/validator.ts#L1-L286)
 - [apps/cli/src/commands/generate.ts:1-81](file://apps/cli/src/commands/generate.ts#L1-L81)
@@ -203,6 +213,7 @@ The system employs:
 - **Character Agent System**: Autonomous characters that decide their own actions in each scene based on personality, goals, relationships, and current situation.
 - **Enhanced Scene-level Generation**: Comprehensive scene-level workflow with dedicated agents for planning, writing, validating, and assembling individual scenes within chapters.
 - **Advanced Tension Control System**: Dynamic narrative pacing control through tension calculation, target setting, and dynamic guidance generation.
+- **ScopeBuilder System**: **New component that extracts narrative scope windows and relevant context for efficient scene generation**, integrated with World State Engine for optimal performance.
 - World Simulation Layer: Characters with goals, knowledge, and autonomy generate emergent plot through decision-making and event resolution.
 - Constraint Graph: Narrative consistency system enforcing logical rules for canon, location, knowledge, timeline, and logical constraints.
 - Vector Memory System: HNSW-based semantic search with automatic embedding generation for contextual memory retrieval, powered by dedicated embedding models.
@@ -211,7 +222,7 @@ The system employs:
 - Structured State Management: Comprehensive character and plot thread state tracking with tension calculation and recent event management.
 - Chapter Planner Agent: Converts high-level objectives into detailed scene-by-scene outlines with tension progression.
 - Canonical memory management: A typed store maintains facts that inform writing and validation, with formatting helpers for LLM prompts.
-- Modular design: Clear boundaries between story creation, state management, memory, agents, world simulation, constraint enforcement, and pipeline enable independent testing and extension.
+- Modular design: Clear boundaries between story creation, state management, memory, agents, world simulation, **scope management**, constraint enforcement, and pipeline enable independent testing and extension.
 
 ```mermaid
 graph TB
@@ -260,6 +271,11 @@ WorldState --> EventResolver
 CharacterAgent --> LLM
 EventResolver --> WorldState
 end
+subgraph "Scope Management"
+ScopeBuilder["ScopeBuilder<br/>Context Extraction"]
+WorldStateEngine["WorldStateEngine"]
+ScopeBuilder --> WorldStateEngine
+end
 subgraph "Constraint System"
 ConstraintGraph["ConstraintGraph"]
 Validator["Validator"]
@@ -279,6 +295,7 @@ Gen --> SceneWriter
 Gen --> SceneValidator
 Gen --> MemoryRetriever
 Gen --> MemoryExtractor
+Gen --> ScopeBuilder
 CLI --> Store["Filesystem persistence"]
 Store --> Gen
 Store --> Validate
@@ -603,6 +620,7 @@ TensionController --> TensionGuidance : "produces"
 - **Outcome Extraction**: Extracts scene outcomes to update world state and character development.
 - **Memory Integration**: Scene-level memory extraction and vector store integration for contextual retrieval.
 - **Legacy Compatibility**: Maintains backward compatibility with traditional chapter-level generation when scene-level is disabled.
+- **ScopeBuilder Integration**: **Phase 18: Creates and uses ScopeBuilder to extract narrative scope windows for efficient scene generation**.
 
 ```mermaid
 sequenceDiagram
@@ -611,6 +629,7 @@ participant Pipe as "generateChapter"
 participant Director as "StoryDirector"
 participant Planner as "ScenePlanner"
 participant Agents as "CharacterAgentSystem"
+participant ScopeBuilder as "ScopeBuilder"
 participant Writer as "SceneWriter"
 participant Validator as "SceneValidator"
 participant Assembler as "SceneAssembler"
@@ -622,11 +641,14 @@ LLM-->>Director : "DirectorOutput"
 Pipe->>Planner : "planScenes(context)"
 Planner->>LLM : "complete(JSON prompt, task : 'planning')"
 LLM-->>Planner : "ScenePlan"
+Pipe->>ScopeBuilder : "createScopeBuilder(worldStateEngine, vectorStore)"
+loop "for each scene"
+Pipe->>ScopeBuilder : "buildScope(options)"
+ScopeBuilder-->>Pipe : "ScopeWindow"
 Pipe->>Agents : "simulateTurn(agents)"
 Agents->>LLM : "complete(JSON prompt, task : 'planning')"
 LLM-->>Agents : "CharacterDecisions"
-loop "for each scene"
-Pipe->>Writer : "writeScene(scene, decisions)"
+Pipe->>Writer : "writeScene(scene, decisions, relevantMemories)"
 Writer->>LLM : "complete(JSON prompt, task : 'generation')"
 LLM-->>Writer : "SceneOutput"
 Pipe->>Validator : "validateScene(scene, output)"
@@ -776,6 +798,84 @@ StoryDirector --> LLMClient : "uses task : 'planning'"
 - [packages/engine/src/agents/tensionController.ts:1-252](file://packages/engine/src/agents/tensionController.ts#L1-L252)
 - [packages/engine/src/agents/storyDirector.ts:1-276](file://packages/engine/src/agents/storyDirector.ts#L1-L276)
 
+### Enhanced ScopeBuilder System
+- **Narrative Scope Windows**: **New component that extracts relevant context for efficient scene generation by building scope windows around center characters and locations**.
+- **Graph Subgraph Extraction**: Builds subgraphs within N hops of center characters, including connections to locations, objects, and other characters.
+- **Context Filtering**: Filters memories and constraints based on scope entities for optimal LLM prompt construction.
+- **Entity Collection**: Collects characters, locations, and objects within the extracted scope for narrative context.
+- **Memory Integration**: Uses VectorStore for semantic memory filtering based on scope entities.
+- **Constraint Integration**: **Optionally filters constraints based on scope entities for narrative consistency checking**.
+- **Prompt Formatting**: Formats scope windows into human-readable prompts for LLM integration.
+- **World State Engine Integration**: **Seamlessly integrates with WorldStateEngine for efficient state-based context extraction**.
+- **External Consumption**: **Exposed through engine exports for external consumption and integration with custom workflows**.
+
+```mermaid
+classDiagram
+class ScopeBuilder {
+-worldState WorldStateEngine
+-vectorStore VectorStore
+-constraintGraph ConstraintGraph
++buildScope(options) ScopeWindow
+-extractSubgraph(chars, loc, hops) GraphSubgraph
+-filterMemories(chars, loc, max) string[]
+-filterConstraints(chars, subgraph) string[]
+-collectCharactersInSubgraph(subgraph) string[]
+-collectLocationsInSubgraph(subgraph) string[]
+-collectObjectsInSubgraph(subgraph) string[]
+-formatForPrompt(scope) string
+}
+class ScopeWindow {
+-characters string[]
+-locations string[]
+-objects string[]
+-graphSubgraph GraphSubgraph
+-relevantMemories string[]
+-constraints string[]
+-hopDistance number
+}
+class GraphSubgraph {
+-nodes GraphNode[]
+-edges GraphEdge[]
+}
+class GraphNode {
+-id string
+-type "character|location|object|fact|event"
+-label string
+-properties Record
+}
+class GraphEdge {
+-from string
+-to string
+-type string
+-properties Record
+}
+class WorldStateEngine {
+-getState() WorldState
+}
+class VectorStore {
+-searchSimilar(query, limit) MemorySearchResult[]
+}
+class ConstraintGraph {
+-getNode(id) ConstraintNode
+-getEdgesFrom(id) ConstraintEdge[]
+}
+ScopeBuilder --> WorldStateEngine : "uses"
+ScopeBuilder --> VectorStore : "uses"
+ScopeBuilder --> ConstraintGraph : "uses"
+ScopeBuilder --> ScopeWindow : "produces"
+ScopeWindow --> GraphSubgraph : "contains"
+GraphSubgraph --> GraphNode : "contains"
+GraphSubgraph --> GraphEdge : "contains"
+```
+
+**Diagram sources**
+- [packages/engine/src/scope/scopeBuilder.ts:49-480](file://packages/engine/src/scope/scopeBuilder.ts#L49-L480)
+- [packages/engine/src/world/worldStateEngine.ts:64-352](file://packages/engine/src/world/worldStateEngine.ts#L64-L352)
+
+**Section sources**
+- [packages/engine/src/scope/scopeBuilder.ts:1-480](file://packages/engine/src/scope/scopeBuilder.ts#L1-L480)
+- [packages/engine/src/world/worldStateEngine.ts:1-352](file://packages/engine/src/world/worldStateEngine.ts#L1-L352)
+
 ### Enhanced CLI Integration
 - **Command routing**: The CLI initializes commands for config, init, generate, status, continue, validate, state inspection, and memory querying.
 - **Interactive Multi-Model Configuration**: The config command provides an interactive setup for multi-model configurations with reasoning and chat models, and **embedding model configuration** including providers like Alibaba Cloud, ByteDance Ark, and OpenAI.
@@ -784,6 +884,7 @@ StoryDirector --> LLMClient : "uses task : 'planning'"
 - **Memory Integration**: Scene-level memory extraction and vector store integration for contextual retrieval.
 - **Error handling**: Catches generation failures and exits with a non-zero code.
 - **Environment Configuration**: Applies multi-model configuration by setting LLM_MODELS_CONFIG environment variable with **embedding model support**.
+- **ScopeBuilder Integration**: **Phase 18: Utilizes ScopeBuilder for efficient scene context extraction during generation**.
 
 ```mermaid
 sequenceDiagram
@@ -803,6 +904,8 @@ FS-->>CLI : "{bible, state, chapters, canon, structuredState}"
 CLI->>Engine : "generateChapter(context, {useSceneLevel : true})"
 Engine->>Engine : "StoryDirector.direct()"
 Engine->>Engine : "ScenePlanner.planScenes()"
+Engine->>Engine : "createScopeBuilder(worldStateEngine, vectorStore)"
+Engine->>Engine : "ScopeBuilder.buildScope(options)"
 Engine->>Engine : "CharacterAgentSystem.simulateTurn()"
 Engine->>Engine : "SceneWriter.writeScene()"
 Engine->>Engine : "SceneValidator.validateScene()"
@@ -829,11 +932,12 @@ CLI-->>User : "Detailed generation report"
 - [apps/cli/src/commands/config.ts:1-318](file://apps/cli/src/commands/config.ts#L1-L318)
 
 ## Dependency Analysis
-- Cohesion: Each module focuses on a single responsibility—agents encapsulate prompting and inference with task-aware model selection, the pipeline orchestrates workflows, memory manages canonical facts and vector memories, world simulation handles character autonomy, constraints operate independently but integrate with validation systems, and state management tracks story progression.
-- Coupling: Agents depend on the LLM client abstraction with task-aware model selection; the pipeline depends on agents and memory; world simulation components interact through well-defined interfaces; constraints operate independently but integrate with validation systems; vector memory system integrates with state management and constraint graph.
-- Extensibility: New providers can be added to the LLM client factory; new agents can be integrated into the pipeline with appropriate task specification; additional categories can be added to the CanonStore; world simulation can accommodate new character types and event types; vector memory system supports new embedding models and search algorithms.
+- Cohesion: Each module focuses on a single responsibility—agents encapsulate prompting and inference with task-aware model selection, the pipeline orchestrates workflows, memory manages canonical facts and vector memories, world simulation handles character autonomy, constraints operate independently but integrate with validation systems, **scope management extracts efficient narrative context**, and state management tracks story progression.
+- Coupling: Agents depend on the LLM client abstraction with task-aware model selection; the pipeline depends on agents and memory; world simulation components interact through well-defined interfaces; constraints operate independently but integrate with validation systems; vector memory system integrates with state management and constraint graph; **ScopeBuilder integrates with WorldStateEngine, VectorStore, and ConstraintGraph**.
+- Extensibility: New providers can be added to the LLM client factory; new agents can be integrated into the pipeline with appropriate task specification; additional categories can be added to the CanonStore; world simulation can accommodate new character types and event types; vector memory system supports new embedding models and search algorithms; **ScopeBuilder can be extended with new scope extraction strategies**.
 - **Multi-Model Extensibility**: The system supports additional models with different purposes through the ModelConfig interface and TASK_MODEL_MAPPING, including **embedding model support**.
 - **Enhanced Scene-Level Extensibility**: New scene types and validation criteria can be easily integrated into the scene generation workflow.
+- **ScopeBuilder Extensibility**: **New scope extraction strategies and context filtering mechanisms can be easily integrated into the ScopeBuilder system**.
 
 ```mermaid
 graph LR
@@ -843,6 +947,7 @@ Types --> Pipeline["pipeline/generateChapter.ts<br/>Scene-Level Flow"]
 Types --> Story["story/*"]
 Types --> Agents["agents/*<br/>Task-Aware<br/>Enhanced Agents"]
 Types --> World["world/*<br/>Character Agents"]
+Types --> Scope["scope/*<br/>ScopeBuilder<br/>Context Management"]
 Types --> Constraints["constraints/*"]
 Types --> Scene["scene/*<br/>Assembly & Outcome"]
 LLM --> Agents
@@ -854,6 +959,7 @@ Agents --> Pipeline
 World --> Pipeline
 Constraints --> Pipeline
 Scene --> Pipeline
+Scope --> Pipeline
 CLI_Index["apps/cli/src/index.ts"] --> CLI_Gen["apps/cli/src/commands/generate.ts"]
 CLI_Index --> CLI_Validate["apps/cli/src/commands/validate.ts"]
 CLI_Index --> CLI_State["apps/cli/src/commands/state.ts"]
@@ -870,6 +976,7 @@ Engine_Index --> Memory
 Engine_Index --> Story
 Engine_Index --> LLM
 Engine_Index --> World
+Engine_Index --> Scope
 Engine_Index --> Constraints
 Engine_Index --> Scene
 ```
@@ -900,6 +1007,8 @@ Engine_Index --> Scene
 - [packages/engine/src/world/worldState.ts:1-321](file://packages/engine/src/world/worldState.ts#L1-L321)
 - [packages/engine/src/world/characterAgent.ts:1-304](file://packages/engine/src/world/characterAgent.ts#L1-L304)
 - [packages/engine/src/world/eventResolver.ts:1-272](file://packages/engine/src/world/eventResolver.ts#L1-L272)
+- [packages/engine/src/world/worldStateEngine.ts:1-352](file://packages/engine/src/world/worldStateEngine.ts#L1-L352)
+- [packages/engine/src/scope/scopeBuilder.ts:1-480](file://packages/engine/src/scope/scopeBuilder.ts#L1-L480)
 - [packages/engine/src/constraints/constraintGraph.ts:1-471](file://packages/engine/src/constraints/constraintGraph.ts#L1-L471)
 - [packages/engine/src/constraints/validator.ts:1-286](file://packages/engine/src/constraints/validator.ts#L1-L286)
 - [apps/cli/src/index.ts:1-54](file://apps/cli/src/index.ts#L1-L54)
@@ -908,10 +1017,10 @@ Engine_Index --> Scene
 - [apps/cli/src/commands/state.ts:1-83](file://apps/cli/src/commands/state.ts#L1-L83)
 - [apps/cli/src/commands/memories.ts:1-66](file://apps/cli/src/commands/memories.ts#L1-L66)
 - [apps/cli/src/commands/config.ts:1-318](file://apps/cli/src/commands/config.ts#L1-L318)
-- [packages/engine/src/index.ts:1-123](file://packages/engine/src/index.ts#L1-L123)
+- [packages/engine/src/index.ts:1-151](file://packages/engine/src/index.ts#L1-L151)
 
 **Section sources**
-- [packages/engine/src/index.ts:1-123](file://packages/engine/src/index.ts#L1-L123)
+- [packages/engine/src/index.ts:1-151](file://packages/engine/src/index.ts#L1-L151)
 
 ## Performance Considerations
 - **Optimized Model Selection**: Tasks are routed to appropriate models based on purpose, improving performance and cost efficiency.
@@ -931,6 +1040,8 @@ Engine_Index --> Scene
 - **Tension Control Complexity**: Dynamic tension calculation requires additional processing but enhances narrative engagement.
 - **Character Agent Processing**: Scene-level character decision-making adds computational overhead but creates more authentic narratives.
 - **Story Director Processing**: High-level narrative coordination adds processing time but ensures coherent story structure.
+- **ScopeBuilder Optimization**: **Efficient scope window extraction reduces token usage and improves generation performance by limiting context to relevant entities**.
+- **Vector Store Integration**: **Semantic memory filtering based on scope reduces search space and improves retrieval accuracy**.
 
 ## Troubleshooting Guide
 - **LLM provider errors**: Verify environment variables for provider selection and keys. Confirm model availability and quotas.
@@ -955,6 +1066,9 @@ Engine_Index --> Scene
 - **Story Director failures**: StoryDirector offers fallback objective generation; verify story state and tension analysis inputs.
 - **Character agent failures**: CharacterAgentSystem provides fallback decision-making; verify character data and context inputs.
 - **Scene-level generation failures**: Enhanced pipeline may fail at any stage; check individual agent outputs and validation results.
+- **ScopeBuilder failures**: **ScopeBuilder may fail if WorldStateEngine is not properly initialized; verify WorldStateEngine state and entity data**.
+- **Memory filtering errors**: **VectorStore search may fail if embeddings are not properly generated; check embedding model configuration and API connectivity**.
+- **Constraint filtering issues**: **ConstraintGraph filtering may return empty results if constraints are not properly configured; verify constraint graph structure and node relationships**.
 
 **Section sources**
 - [packages/engine/src/llm/client.ts:128-134](file://packages/engine/src/llm/client.ts#L128-L134)
@@ -966,18 +1080,19 @@ Engine_Index --> Scene
 - [packages/engine/src/world/characterAgent.ts:288-296](file://packages/engine/src/world/characterAgent.ts#L288-L296)
 - [packages/engine/src/constraints/constraintGraph.ts:229-244](file://packages/engine/src/constraints/constraintGraph.ts#L229-L244)
 - [packages/engine/src/agents/storyDirector.ts:218-272](file://packages/engine/src/agents/storyDirector.ts#L218-L272)
+- [packages/engine/src/scope/scopeBuilder.ts:367-374](file://packages/engine/src/scope/scopeBuilder.ts#L367-L374)
 
 ## Conclusion
-The Narrative Operating System engine package implements a comprehensive, extensible architecture for AI-powered story generation with **advanced multi-model support and embedding capabilities**. The system now features a sophisticated hybrid approach combining autonomous world simulation with narrative direction, supported by intelligent planning, strict consistency enforcement, and advanced memory management with **dedicated embedding models**. The **enhanced LLM client with multi-model architecture** provides purpose-based routing, task-specific model mapping, **embedding model discovery**, and backward compatibility, enabling optimal performance across different use cases including **semantic search operations**. The addition of vector memory system with semantic search, structured state management with comprehensive character and plot tracking, enhanced constraint validation with dual-mode approaches, and autonomous state updater pipeline enables emergent storytelling with logical coherence, narrative consistency, and rich contextual awareness powered by **optimized embedding models**. The **comprehensive scene-level generation system** with dedicated agents for planning, writing, validation, and assembly provides fine-grained control over narrative structure and pacing. The **advanced character simulation system** with autonomous decision-making and agenda management creates rich, believable worlds with emergent plot development. The **dynamic tension control system** ensures optimal narrative engagement throughout the story arc. The **enhanced Story Director system** provides high-level narrative coordination and objective generation. By separating concerns into agents with task-aware model selection, a provider-agnostic LLM client with multi-model support and **embedding capabilities**, canonical and vector memory systems, structured state management, world simulation, constraint enforcement, and a pipeline orchestrator, the system supports iterative chapter generation with validation, memory extraction, and state updates. The CLI demonstrates practical usage through generation, validation, state inspection, memory querying commands, and **interactive multi-model configuration including embedding providers**, along with persistence and incremental progress tracking. The modular design and environment-driven configuration facilitate easy experimentation with providers and tuning of generation parameters, while the **purpose-based routing system** ensures optimal model selection for different tasks including **embedding operations**.
+The Narrative Operating System engine package implements a comprehensive, extensible architecture for AI-powered story generation with **advanced multi-model support and embedding capabilities**. The system now features a sophisticated hybrid approach combining autonomous world simulation with narrative direction, supported by intelligent planning, strict consistency enforcement, and advanced memory management with **dedicated embedding models**. The **enhanced LLM client with multi-model architecture** provides purpose-based routing, task-specific model mapping, **embedding model discovery**, and backward compatibility, enabling optimal performance across different use cases including **semantic search operations**. The addition of vector memory system with semantic search, structured state management with comprehensive character and plot tracking, enhanced constraint validation with dual-mode approaches, and autonomous state updater pipeline enables emergent storytelling with logical coherence, narrative consistency, and rich contextual awareness powered by **optimized embedding models**. The **comprehensive scene-level generation system** with dedicated agents for planning, writing, validation, and assembly provides fine-grained control over narrative structure and pacing. The **advanced character simulation system** with autonomous decision-making and agenda management creates rich, believable worlds with emergent plot development. The **dynamic tension control system** ensures optimal narrative engagement throughout the story arc. The **enhanced Story Director system** provides high-level narrative coordination and objective generation. **The new ScopeBuilder system provides efficient narrative scope windows and context management, extracting relevant entities and memories for optimal scene generation performance.** By separating concerns into agents with task-aware model selection, a provider-agnostic LLM client with multi-model support and **embedding capabilities**, canonical and vector memory systems, structured state management, world simulation, **scope management**, constraint enforcement, and a pipeline orchestrator, the system supports iterative chapter generation with validation, memory extraction, and state updates. The CLI demonstrates practical usage through generation, validation, state inspection, memory querying commands, and **interactive multi-model configuration including embedding providers**, along with persistence and incremental progress tracking. The modular design and environment-driven configuration facilitate easy experimentation with providers and tuning of generation parameters, while the **purpose-based routing system** ensures optimal model selection for different tasks including **embedding operations**. **The ScopeBuilder integration with World State Engine and Vector Store provides efficient context extraction for optimal performance in scene-level generation workflows.**
 
-**Updated** Enhanced conclusion to reflect the comprehensive multi-model architecture, embedding model capabilities, expanded provider support including Alibaba Cloud and ByteDance Ark, the new scene-level generation system with dedicated agents for enhanced narrative control, the Story Director system for high-level coordination, and the integrated Character Agent system for autonomous character decision-making.
+**Updated** Enhanced conclusion to reflect the comprehensive multi-model architecture, embedding model capabilities, expanded provider support including Alibaba Cloud and ByteDance Ark, the new scene-level generation system with dedicated agents for enhanced narrative control, the Story Director system for high-level coordination, the integrated Character Agent system for autonomous character decision-making, and the new ScopeBuilder functionality for efficient narrative context management.
 
 ## Appendices
 - **Technology stack**: TypeScript, OpenAI SDK integration, HNSW-based vector search with hnswlib-node, monorepo orchestration with Turborepo and pnpm workspaces.
 - **Cross-cutting concerns**:
   - **Configuration management**: Environment variables drive provider selection, multi-model configuration, embedding model setup, and defaults.
   - **Error handling**: Centralized LLM client error reporting and fallbacks in validators, with model discovery and routing error handling.
-  - **Extensibility**: Factory pattern for providers, modular agents with task-aware model selection, flexible world simulation, constraint graph system, and vector memory architecture.
+  - **Extensibility**: Factory pattern for providers, modular agents with task-aware model selection, flexible world simulation, constraint graph system, **scope management**, and vector memory architecture.
   - **Narrative consistency**: Automated validation through constraint graph and LLM-based checking.
   - **Memory management**: Semantic search with automatic embedding generation and contextual retrieval, powered by dedicated embedding models.
   - **State tracking**: Comprehensive structured state management with tension calculation and recent event tracking.
@@ -988,6 +1103,8 @@ The Narrative Operating System engine package implements a comprehensive, extens
   - **Provider ecosystem**: Support for OpenAI, DeepSeek, Alibaba Cloud, and ByteDance Ark providers with **native embedding capabilities**.
   - **Story-level coordination**: High-level narrative direction and objective generation through the Story Director system.
   - **Character-driven narratives**: Autonomous character decision-making and action planning for authentic storytelling.
+  - **Scope-based context management**: **Efficient narrative scope window extraction and context filtering for optimal scene generation performance**.
+  - **External integration**: **ScopeBuilder exposed through engine exports for external consumption and integration with custom workflows**.
 
 **Section sources**
 - [packages/engine/src/llm/client.ts:40-48](file://packages/engine/src/llm/client.ts#L40-L48)
@@ -999,3 +1116,4 @@ The Narrative Operating System engine package implements a comprehensive, extens
 - [packages/engine/README.md:1-70](file://packages/engine/README.md#L1-L70)
 - [packages/engine/package.json:1-46](file://packages/engine/package.json#L1-L46)
 - [apps/cli/src/commands/config.ts:192-318](file://apps/cli/src/commands/config.ts#L192-L318)
+- [packages/engine/src/scope/scopeBuilder.ts:473-480](file://packages/engine/src/scope/scopeBuilder.ts#L473-L480)

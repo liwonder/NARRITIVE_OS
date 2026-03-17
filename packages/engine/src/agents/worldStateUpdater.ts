@@ -166,7 +166,7 @@ export class WorldStateUpdater {
       for (const discovery of updates.discoveries) {
         try {
           if (discovery.object) {
-            engine.discoverObject(discovery.object, discovery.character);
+            engine.discoverObject(discovery.object, discovery.character, discovery.location);
           }
           if (discovery.fact) {
             engine.addCharacterKnowledge(discovery.character, discovery.fact);

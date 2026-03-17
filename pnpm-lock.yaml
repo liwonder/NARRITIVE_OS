@@ -21,8 +21,8 @@ importers:
         specifier: ^8.3.0
         version: 8.3.0(@types/node@20.19.37)
       '@narrative-os/engine':
-        specifier: workspace:*
-        version: link:../../packages/engine
+        specifier: 0.1.22
+        version: 0.1.22
       commander:
         specifier: ^12.0.0
         version: 12.1.0
@@ -336,6 +336,10 @@ packages:
 
   '@jridgewell/sourcemap-codec@1.5.5':
     resolution: {integrity: sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og==}
+
+  '@narrative-os/engine@0.1.22':
+    resolution: {integrity: sha512-hob4JKMfI8vblyO6NXlEa0cxw3TTFjV50Y2Ylc54v1ai96ETzsMlIKCsXgX5Jml2rnjY0LSRI8Z22t+VeEW6YQ==}
+    engines: {node: '>=20.0.0'}
 
   '@rollup/rollup-android-arm-eabi@4.59.0':
     resolution: {integrity: sha512-upnNBkA6ZH2VKGcBj9Fyl9IGNPULcjXRlg0LLeaioQWueH30p6IXtJEbKAgvyv+mJaMxSm1l6xwDXYjpEMiLMg==}
@@ -1211,6 +1215,15 @@ snapshots:
       '@sinclair/typebox': 0.27.10
 
   '@jridgewell/sourcemap-codec@1.5.5': {}
+
+  '@narrative-os/engine@0.1.22':
+    dependencies:
+      hnswlib-node: 3.0.0
+      openai: 4.104.0(zod@3.25.76)
+      zod: 3.25.76
+    transitivePeerDependencies:
+      - encoding
+      - ws
 
   '@rollup/rollup-android-arm-eabi@4.59.0':
     optional: true

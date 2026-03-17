@@ -5,7 +5,22 @@ import { homedir } from 'os';
 const CONFIG_DIR = join(homedir(), '.narrative-os');
 const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
 
-// Multi-model configuration interface
+// Task-based model configuration
+type TaskType = 'simple' | 'reasoning' | 'embedding';
+
+interface TaskModelConfig {
+  provider: 'openai' | 'deepseek' | 'alibaba' | 'ark';
+  apiKey: string;
+  baseURL?: string;
+  model: string;
+}
+
+interface TaskBasedConfig {
+  version: 2;
+  tasks: Record<TaskType, TaskModelConfig>;
+}
+
+// Legacy configs for backward compatibility
 interface ModelConfig {
   name: string;
   provider: 'openai' | 'deepseek' | 'alibaba' | 'ark';
@@ -20,21 +35,58 @@ interface MultiModelConfig {
   defaultModel: string;
 }
 
-// Legacy single-model config for backward compatibility
 interface LegacyConfig {
   provider: 'openai' | 'deepseek' | 'alibaba' | 'ark';
   apiKey: string;
   model: string;
 }
 
-type Config = LegacyConfig | MultiModelConfig;
+type Config = TaskBasedConfig | MultiModelConfig | LegacyConfig;
 
 const PROVIDERS = [
-  { name: 'OpenAI', value: 'openai', models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'] },
-  { name: 'DeepSeek', value: 'deepseek', models: ['deepseek-chat', 'deepseek-reasoner'] },
-  { name: 'Alibaba Cloud (Qwen)', value: 'alibaba', models: ['qwen-max', 'qwen-plus', 'qwen-turbo', 'text-embedding-v3'] },
-  { name: 'ByteDance Ark', value: 'ark', models: ['doubao-pro-128k', 'doubao-lite-128k', 'doubao-embedding'] },
+  { 
+    name: 'OpenAI', 
+    value: 'openai', 
+    models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'text-embedding-3-small'],
+    baseURL: undefined
+  },
+  { 
+    name: 'DeepSeek', 
+    value: 'deepseek', 
+    models: ['deepseek-chat', 'deepseek-reasoner'],
+    baseURL: 'https://api.deepseek.com'
+  },
+  { 
+    name: 'Alibaba Cloud (Qwen)', 
+    value: 'alibaba', 
+    models: ['qwen-max', 'qwen-plus', 'qwen-turbo', 'text-embedding-v3'],
+    baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1'
+  },
+  { 
+    name: 'ByteDance Ark', 
+    value: 'ark', 
+    models: ['doubao-pro-128k', 'doubao-lite-128k', 'doubao-embedding'],
+    baseURL: 'https://ark.cn-beijing.volces.com/api/v3'
+  },
 ];
+
+const TASK_DESCRIPTIONS: Record<TaskType, { title: string; description: string; examples: string }> = {
+  simple: {
+    title: '📝 Simple/Chat Tasks',
+    description: 'Fast, lightweight tasks',
+    examples: 'Validation, summarization, simple queries'
+  },
+  reasoning: {
+    title: '🧠 Reasoning Tasks',
+    description: 'Complex generation and planning',
+    examples: 'Story generation, scene planning, character decisions'
+  },
+  embedding: {
+    title: '🔍 Embedding Tasks',
+    description: 'Vector embeddings for memory',
+    examples: 'Storing and retrieving story memories'
+  }
+};
 
 function loadConfig(): Config | null {
   if (!existsSync(CONFIG_FILE)) return null;
@@ -50,268 +102,275 @@ function saveConfig(config: Config) {
   writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
 }
 
+function isTaskBasedConfig(config: Config): config is TaskBasedConfig {
+  return 'version' in config && config.version === 2;
+}
+
 function isMultiModelConfig(config: Config): config is MultiModelConfig {
   return 'models' in config && Array.isArray((config as MultiModelConfig).models);
 }
 
-export async function configCommand(showOnly = false) {
-  const existing = loadConfig();
+function maskApiKey(key: string): string {
+  if (!key || key.length < 8) return '❌ Not set';
+  return '✅ ' + '*'.repeat(Math.min(key.length - 4, 12)) + key.slice(-4);
+}
 
-  // Show current configuration
-  if (showOnly) {
-    if (!existing) {
-      console.log('❌ No configuration found.');
-      console.log('Run: nos config  to set up your LLM provider');
-      return;
-    }
-
-    console.log('\n📋 Current Configuration:');
-    console.log('========================');
-    
-    if (isMultiModelConfig(existing)) {
-      console.log(`Mode: Multi-Model (${existing.models.length} models configured)`);
-      console.log('');
-      for (const model of existing.models) {
-        const apiKeyDisplay = model.apiKey 
-          ? '✅ Set (' + '*'.repeat(Math.min(model.apiKey.length - 4, 8)) + model.apiKey.slice(-4) + ')' 
-          : '❌ Not set';
-        console.log(`  [${model.purpose.toUpperCase()}] ${model.name}`);
-        console.log(`    Provider: ${model.provider}`);
-        console.log(`    Model: ${model.model}`);
-        console.log(`    API Key: ${apiKeyDisplay}`);
-        console.log('');
-      }
-    } else {
-      console.log(`Mode: Single Model`);
-      console.log(`Provider: ${existing.provider}`);
-      console.log(`Model: ${existing.model}`);
-      console.log(`API Key: ${existing.apiKey ? '✅ Set (' + '*'.repeat(Math.min(existing.apiKey.length - 4, 8)) + existing.apiKey.slice(-4) + ')' : '❌ Not set'}`);
-    }
-    console.log(`Config file: ${CONFIG_FILE}`);
-    return;
+function displayCurrentConfig(config: Config | null) {
+  console.log('\n📋 Current Configuration');
+  console.log('========================\n');
+  
+  if (!config) {
+    console.log('❌ No configuration found.');
+    console.log('   Run: nos config  to set up your LLM providers\n');
+    return false;
   }
 
-  // Interactive configuration
-  const { select, password, confirm } = await import('@inquirer/prompts');
-
-  const useMultiModel = await confirm({
-    message: 'Configure multiple models (reasoning + chat)?',
-    default: true,
-  });
-
-  if (useMultiModel) {
-    // Multi-model configuration
-    const provider = await select({
-      message: 'Select LLM provider:',
-      choices: PROVIDERS.map(p => ({ name: p.name, value: p.value })),
-    });
-
-    const providerInfo = PROVIDERS.find(p => p.value === provider)!;
-
-    const apiKey = await password({
-      message: `Enter ${providerInfo.name} API key:`,
-      mask: '*',
-    });
-
-    const reasoningModel = await select({
-      message: 'Select REASONING model (for generation/planning):',
-      choices: providerInfo.models.map(m => ({ name: m, value: m })),
-      default: provider === 'deepseek' ? 'deepseek-reasoner' : 'gpt-4o',
-    });
-
-    const chatModel = await select({
-      message: 'Select CHAT model (for validation/summarization):',
-      choices: providerInfo.models.map(m => ({ name: m, value: m })),
-      default: provider === 'deepseek' ? 'deepseek-chat' : 'gpt-4o-mini',
-    });
-
-    // Determine if provider supports embeddings natively
-    const supportsEmbeddings = provider === 'alibaba' || provider === 'ark' || provider === 'openai';
-    const needsSeparateEmbedding = provider === 'deepseek';
-
-    let embeddingConfig: ModelConfig | undefined;
+  if (isTaskBasedConfig(config)) {
+    console.log('Mode: Task-Based Configuration (v2)\n');
     
-    if (needsSeparateEmbedding) {
-      // DeepSeek doesn't support embeddings, ask for alternative
-      const useOpenAIEmbeddings = await confirm({
-        message: 'Use OpenAI for embeddings? (DeepSeek does not support embeddings)',
-        default: true,
-      });
-      
-      if (useOpenAIEmbeddings) {
-        const openAIEmbedKey = await password({
-          message: 'Enter OpenAI API key (for embeddings):',
-          mask: '*',
-        });
-        
-        embeddingConfig = {
-          name: 'embedding',
-          provider: 'openai',
-          apiKey: openAIEmbedKey,
-          model: 'text-embedding-3-small',
-          purpose: 'embedding',
-        };
-      }
-    } else if (supportsEmbeddings) {
-      // Provider supports embeddings, ask if they want to use it
-      const useProviderEmbeddings = await confirm({
-        message: `Use ${provider === 'alibaba' ? 'Alibaba Cloud' : provider === 'ark' ? 'ByteDance Ark' : 'OpenAI'} for embeddings?`,
-        default: true,
-      });
-      
-      if (useProviderEmbeddings) {
-        const embedModel = provider === 'alibaba' 
-          ? 'text-embedding-v3' 
-          : provider === 'ark' 
-            ? 'doubao-embedding' 
-            : 'text-embedding-3-small';
-        
-        // Set baseURL for embedding config based on provider
-        let embedBaseURL: string | undefined;
-        switch (provider) {
-          case 'alibaba':
-            embedBaseURL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
-            break;
-          case 'ark':
-            embedBaseURL = 'https://ark.cn-beijing.volces.com/api/v3';
-            break;
-          default:
-            embedBaseURL = undefined;
-        }
-        
-        embeddingConfig = {
-          name: 'embedding',
-          provider: provider as 'openai' | 'alibaba' | 'ark',
-          apiKey,
-          baseURL: embedBaseURL,
-          model: embedModel,
-          purpose: 'embedding',
-        };
-      }
+    for (const [task, taskConfig] of Object.entries(config.tasks)) {
+      const info = TASK_DESCRIPTIONS[task as TaskType];
+      console.log(`${info.title}`);
+      console.log(`   Purpose: ${info.description}`);
+      console.log(`   Examples: ${info.examples}`);
+      console.log(`   Provider: ${taskConfig.provider}`);
+      console.log(`   Model: ${taskConfig.model}`);
+      console.log(`   API Key: ${maskApiKey(taskConfig.apiKey)}`);
+      console.log('');
     }
-
-    // Set baseURL based on provider
-    let baseURL: string | undefined;
-    switch (provider) {
-      case 'deepseek':
-        baseURL = 'https://api.deepseek.com';
-        break;
-      case 'alibaba':
-        baseURL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
-        break;
-      case 'ark':
-        baseURL = 'https://ark.cn-beijing.volces.com/api/v3';
-        break;
-      default:
-        baseURL = undefined;
-    }
-
-    const models: ModelConfig[] = [
-      {
-        name: 'reasoning',
-        provider: provider as 'openai' | 'deepseek' | 'alibaba' | 'ark',
-        apiKey,
-        baseURL,
-        model: reasoningModel,
-        purpose: 'reasoning',
-      },
-      {
-        name: 'chat',
-        provider: provider as 'openai' | 'deepseek' | 'alibaba' | 'ark',
-        apiKey,
-        baseURL,
-        model: chatModel,
-        purpose: 'chat',
-      },
-    ];
-
-    if (embeddingConfig) {
-      models.push(embeddingConfig);
-    }
-
-    const config: MultiModelConfig = {
-      models,
-      defaultModel: 'chat',
-    };
-
-    saveConfig(config);
-
-    console.log(`\n✅ Multi-model configuration saved!`);
-    console.log(`  Reasoning: ${reasoningModel}`);
-    console.log(`  Chat: ${chatModel}`);
-    if (embeddingConfig) {
-      const embedProvider = embeddingConfig.provider === 'alibaba' ? 'Alibaba Cloud' 
-        : embeddingConfig.provider === 'ark' ? 'ByteDance Ark' 
-        : 'OpenAI';
-      console.log(`  Embeddings: ${embedProvider} (${embeddingConfig.model})`);
-    } else {
-      console.log(`  Embeddings: Mock (no API configured)`);
+  } else if (isMultiModelConfig(config)) {
+    console.log(`Mode: Multi-Model (Legacy)\n`);
+    for (const model of config.models) {
+      console.log(`  [${model.purpose.toUpperCase()}] ${model.name}`);
+      console.log(`    Provider: ${model.provider}`);
+      console.log(`    Model: ${model.model}`);
+      console.log(`    API Key: ${maskApiKey(model.apiKey)}`);
+      console.log('');
     }
   } else {
-    // Single model configuration (legacy)
-    const provider = await select({
-      message: 'Select LLM provider:',
-      choices: PROVIDERS.map(p => ({ name: p.name, value: p.value })),
-      default: (existing as LegacyConfig)?.provider,
-    });
-
-    const providerInfo = PROVIDERS.find(p => p.value === provider)!;
-
-    const model = await select({
-      message: 'Select model:',
-      choices: providerInfo.models.map(m => ({ name: m, value: m })),
-      default: (existing as LegacyConfig)?.model || providerInfo.models[0],
-    });
-
-    const apiKey = await password({
-      message: `Enter ${providerInfo.name} API key:`,
-      mask: '*',
-    });
-
-    const config: LegacyConfig = { provider: provider as 'openai' | 'deepseek' | 'alibaba' | 'ark', model, apiKey };
-    saveConfig(config);
-
-    console.log(`\n✅ Configuration saved for ${providerInfo.name}`);
-    console.log(`Model: ${model}`);
+    console.log('Mode: Single Model (Legacy)');
+    console.log(`  Provider: ${config.provider}`);
+    console.log(`  Model: ${config.model}`);
+    console.log(`  API Key: ${maskApiKey(config.apiKey)}`);
   }
+  
+  console.log(`Config file: ${CONFIG_FILE}\n`);
+  return true;
 }
 
-export function getConfig(): Config | null {
-  return loadConfig();
+async function configureTask(
+  task: TaskType, 
+  existingConfig?: TaskModelConfig
+): Promise<TaskModelConfig> {
+  const { select, password, input } = await import('@inquirer/prompts');
+  const info = TASK_DESCRIPTIONS[task];
+  
+  console.log(`\n${'='.repeat(50)}`);
+  console.log(`${info.title}`);
+  console.log(`${info.description}`);
+  console.log(`Examples: ${info.examples}`);
+  console.log(`${'='.repeat(50)}\n`);
+  
+  // Show current if exists
+  if (existingConfig) {
+    console.log(`Current: ${existingConfig.provider} / ${existingConfig.model}`);
+    const { confirm } = await import('@inquirer/prompts');
+    const keep = await confirm({
+      message: 'Keep current configuration?',
+      default: true,
+    });
+    if (keep) return existingConfig;
+  }
+  
+  const provider = await select({
+    message: 'Select provider:',
+    choices: PROVIDERS.map(p => ({ name: p.name, value: p.value })),
+    default: existingConfig?.provider,
+  });
+  
+  const providerInfo = PROVIDERS.find(p => p.value === provider)!;
+  
+  // Filter models based on task type
+  let availableModels = providerInfo.models;
+  if (task === 'embedding') {
+    availableModels = providerInfo.models.filter(m => 
+      m.includes('embedding') || m.includes('embed')
+    );
+  } else {
+    availableModels = providerInfo.models.filter(m => 
+      !m.includes('embedding') && !m.includes('embed')
+    );
+  }
+  
+  // If no suitable models, show all
+  if (availableModels.length === 0) {
+    availableModels = providerInfo.models;
+  }
+  
+  const model = await select({
+    message: `Select model for ${task} tasks:`,
+    choices: availableModels.map(m => ({ name: m, value: m })),
+    default: existingConfig?.model || availableModels[0],
+  });
+  
+  const apiKey = await password({
+    message: `Enter ${providerInfo.name} API key:`,
+    mask: '*',
+  });
+  
+  return {
+    provider: provider as 'openai' | 'deepseek' | 'alibaba' | 'ark',
+    apiKey,
+    baseURL: providerInfo.baseURL,
+    model,
+  };
 }
 
+/**
+ * Apply configuration to the engine by setting environment variables
+ * This is called at CLI startup to make config available to the engine
+ */
 export function applyConfig() {
   const config = loadConfig();
   if (!config) return;
-
-  if (isMultiModelConfig(config)) {
-    // Set multi-model config as environment variable
-    process.env.LLM_MODELS_CONFIG = JSON.stringify(config);
+  
+  if (isTaskBasedConfig(config)) {
+    // New v2 format: set LLM_MODELS_CONFIG with task-based config
+    // Convert to engine-compatible format
+    const models: any[] = [];
     
-    // Also set individual API keys for backward compatibility
-    for (const model of config.models) {
-      if (model.provider === 'openai') {
-        process.env.OPENAI_API_KEY = model.apiKey;
-      } else if (model.provider === 'deepseek') {
-        process.env.DEEPSEEK_API_KEY = model.apiKey;
-      } else if (model.provider === 'alibaba') {
-        process.env.ALIBABA_API_KEY = model.apiKey;
-      } else if (model.provider === 'ark') {
-        process.env.ARK_API_KEY = model.apiKey;
+    // Simple task -> chat model
+    if (config.tasks.simple) {
+      models.push({
+        name: 'chat',
+        provider: config.tasks.simple.provider,
+        apiKey: config.tasks.simple.apiKey,
+        baseURL: config.tasks.simple.baseURL,
+        model: config.tasks.simple.model,
+        purpose: 'chat'
+      });
+      models.push({
+        name: 'fast',
+        provider: config.tasks.simple.provider,
+        apiKey: config.tasks.simple.apiKey,
+        baseURL: config.tasks.simple.baseURL,
+        model: config.tasks.simple.model,
+        purpose: 'fast'
+      });
+    }
+    
+    // Reasoning task -> reasoning model
+    if (config.tasks.reasoning) {
+      models.push({
+        name: 'reasoning',
+        provider: config.tasks.reasoning.provider,
+        apiKey: config.tasks.reasoning.apiKey,
+        baseURL: config.tasks.reasoning.baseURL,
+        model: config.tasks.reasoning.model,
+        purpose: 'reasoning'
+      });
+    }
+    
+    // Embedding task -> embedding model
+    if (config.tasks.embedding) {
+      models.push({
+        name: 'embedding',
+        provider: config.tasks.embedding.provider,
+        apiKey: config.tasks.embedding.apiKey,
+        baseURL: config.tasks.embedding.baseURL,
+        model: config.tasks.embedding.model,
+        purpose: 'embedding'
+      });
+    }
+    
+    const engineConfig = {
+      models,
+      defaultModel: 'chat'
+    };
+    
+    process.env.LLM_MODELS_CONFIG = JSON.stringify(engineConfig);
+    
+    // Also set legacy env vars for backward compatibility
+    if (config.tasks.reasoning) {
+      process.env.LLM_PROVIDER = config.tasks.reasoning.provider;
+      process.env.LLM_MODEL = config.tasks.reasoning.model;
+      if (config.tasks.reasoning.provider === 'openai') {
+        process.env.OPENAI_API_KEY = config.tasks.reasoning.apiKey;
+      } else if (config.tasks.reasoning.provider === 'deepseek') {
+        process.env.DEEPSEEK_API_KEY = config.tasks.reasoning.apiKey;
       }
     }
+  } else if (isMultiModelConfig(config)) {
+    // Legacy multi-model format
+    process.env.LLM_MODELS_CONFIG = JSON.stringify({
+      models: config.models,
+      defaultModel: config.defaultModel
+    });
   } else {
-    // Legacy single-model config
+    // Legacy single-model format
     process.env.LLM_PROVIDER = config.provider;
     process.env.LLM_MODEL = config.model;
     if (config.provider === 'openai') {
       process.env.OPENAI_API_KEY = config.apiKey;
     } else if (config.provider === 'deepseek') {
       process.env.DEEPSEEK_API_KEY = config.apiKey;
-    } else if (config.provider === 'alibaba') {
-      process.env.ALIBABA_API_KEY = config.apiKey;
-    } else if (config.provider === 'ark') {
-      process.env.ARK_API_KEY = config.apiKey;
     }
   }
+}
+
+export async function configCommand(showOnly = false) {
+  const existing = loadConfig();
+  
+  // Always show current config first
+  const hasConfig = displayCurrentConfig(existing);
+  
+  if (showOnly) {
+    return;
+  }
+  
+  const { confirm } = await import('@inquirer/prompts');
+  
+  // Ask if user wants to reconfigure
+  if (hasConfig) {
+    const reconfigure = await confirm({
+      message: 'Do you want to reconfigure?',
+      default: false,
+    });
+    if (!reconfigure) {
+      console.log('\n✅ Keeping existing configuration.');
+      return;
+    }
+  }
+  
+  console.log('\n🚀 Setting up task-based model configuration\n');
+  console.log('You will configure models for three task types.');
+  console.log('Each task type can use a different provider and model.\n');
+  
+  // Get existing task configs if available
+  const existingTasks = existing && isTaskBasedConfig(existing) ? existing.tasks : undefined;
+  
+  // Configure each task
+  const tasks: Record<TaskType, TaskModelConfig> = {
+    simple: await configureTask('simple', existingTasks?.simple),
+    reasoning: await configureTask('reasoning', existingTasks?.reasoning),
+    embedding: await configureTask('embedding', existingTasks?.embedding),
+  };
+  
+  const config: TaskBasedConfig = {
+    version: 2,
+    tasks,
+  };
+  
+  saveConfig(config);
+  
+  console.log('\n' + '='.repeat(50));
+  console.log('✅ Configuration saved successfully!');
+  console.log('='.repeat(50) + '\n');
+  
+  // Display summary
+  for (const [task, taskConfig] of Object.entries(tasks)) {
+    const info = TASK_DESCRIPTIONS[task as TaskType];
+    console.log(`${info.title}: ${taskConfig.provider} / ${taskConfig.model}`);
+  }
+  console.log('');
 }

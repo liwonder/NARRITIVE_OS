@@ -1,5 +1,6 @@
 import { getLLM } from '../llm/client.js';
 import type { ScenePlan, Scene, StoryBible, StoryState } from '../types/index.js';
+import type { DirectorOutput } from './storyDirector.js';
 
 interface ScenePlannerInput {
   bible: StoryBible;
@@ -7,6 +8,7 @@ interface ScenePlannerInput {
   chapterNumber: number;
   previousChapterSummary?: string;
   targetSceneCount?: number;
+  directorOutput?: DirectorOutput;
 }
 
 /**
@@ -14,7 +16,7 @@ interface ScenePlannerInput {
  * Each scene has a specific purpose, location, characters, and tension level
  */
 export async function planScenes(input: ScenePlannerInput): Promise<ScenePlan> {
-  const { bible, state, chapterNumber, previousChapterSummary, targetSceneCount } = input;
+  const { bible, state, chapterNumber, previousChapterSummary, targetSceneCount, directorOutput } = input;
   
   const llm = getLLM();
   
@@ -28,20 +30,20 @@ export async function planScenes(input: ScenePlannerInput): Promise<ScenePlan> {
     // Use provided target if specified
     suggestedSceneCount = targetSceneCount;
   } else if (progress < 0.1) {
-    // Setup phase: fewer scenes for world-building
-    suggestedSceneCount = 3;
-  } else if (progress < 0.3) {
-    // Early rising action: moderate complexity
-    suggestedSceneCount = 4;
-  } else if (progress < 0.7) {
-    // Middle: more scenes for complex developments
+    // Setup phase: 4-5 scenes for world-building
     suggestedSceneCount = 5;
+  } else if (progress < 0.3) {
+    // Early rising action: 6-7 scenes
+    suggestedSceneCount = 6;
+  } else if (progress < 0.7) {
+    // Middle: 7-8 scenes for complex developments
+    suggestedSceneCount = 7;
   } else if (progress < 0.9) {
-    // Pre-climax: intense, focused scenes
-    suggestedSceneCount = 4;
+    // Pre-climax: 6-7 intense scenes
+    suggestedSceneCount = 6;
   } else {
-    // Final chapters: streamlined resolution
-    suggestedSceneCount = 3;
+    // Final chapters: 4-5 scenes for resolution
+    suggestedSceneCount = 5;
   }
   
   const prompt = `You are a professional story planner. Break down Chapter ${chapterNumber} into ${suggestedSceneCount} scenes.
@@ -69,54 +71,60 @@ Current Story State:
 
 ${previousChapterSummary ? `Previous Chapter Summary:\n${previousChapterSummary}\n` : ''}
 
-Chapter Goal for Chapter ${chapterNumber}:
+${directorOutput ? `## Story Director Guidance
+
+Overall Goal: ${directorOutput.overallGoal}
+
+Objectives:
+${directorOutput.objectives.map(o => `- [${o.priority}] ${o.description}${o.targetScene ? ` (Scene ${o.targetScene})` : ''}`).join('\n')}
+
+Focus Characters: ${directorOutput.focusCharacters.join(', ')}
+
+Suggested Scene Structure:
+${directorOutput.suggestedScenes.map(s => `- Scene ${s.sceneNumber}: ${s.purpose} (${s.suggestedLength}) - Key: ${s.keyEvents.join(', ')}`).join('\n')}
+
+Chapter Structure:
+- Opening: ${directorOutput.chapterStructure.opening}
+- Rising Action: ${directorOutput.chapterStructure.risingAction}
+- Climax: ${directorOutput.chapterStructure.climax}
+- Resolution: ${directorOutput.chapterStructure.resolution}
+
+Tone: ${directorOutput.tone}
+Notes: ${directorOutput.notes}
+` : `Chapter Goal for Chapter ${chapterNumber}:
 - Advance the main plot
 - Develop character relationships
 - Build tension toward the story climax
-- Target tension progression: ${state.currentTension} → ${Math.min(state.currentTension + 2, 10)}
+- Target tension progression: ${state.currentTension} → ${Math.min(state.currentTension + 2, 10)}`}
 
-Create ${targetSceneCount} scenes for this chapter. Each scene should:
-1. Have a clear purpose that advances plot or character
-2. Include specific characters present
-3. Take place in a specific location
-4. Have a target tension level (0-10)
-5. Build toward the next scene
+Create a lightweight scene framework for this chapter with ${suggestedSceneCount} scenes.
+
+Your task is to create a HIGH-LEVEL framework only - NOT detailed scene plans.
+The writer will flesh out locations, characters, and details organically.
 
 Return a JSON object with this structure:
 {
   "scenes": [
     {
       "id": 1,
-      "location": "specific location name",
-      "characters": ["character names present"],
-      "purpose": "what happens in this scene",
+      "purpose": "What narrative function this scene serves (e.g., 'Introduce conflict', 'Reveal secret', 'Build tension')",
       "tension": 5,
-      "conflict": "optional conflict description",
-      "type": "dialogue|action|reveal|investigation|transition"
+      "type": "opening|rising|climax|falling|ending"
     }
   ],
   "chapterTitle": "A compelling, short chapter title (3-6 words)",
   "chapterGoal": "overall goal for this chapter",
-  "targetTension": 7
+  "targetTension": 7,
+  "sceneCount": ${suggestedSceneCount}
 }
 
-Make scenes flow naturally based on story progress (${(progress * 100).toFixed(0)}% through story):
+Guidelines for scene framework:
+- Opening scene: Set the stage, establish mood
+- Rising scenes: Build tension, develop conflicts
+- Climax scene: Peak tension, major development
+- Falling/Ending scenes: Resolve, transition to next chapter
 
-${progress < 0.1 ? `- Scene 1: World introduction and character setup
-- Scene 2: Inciting incident or complication
-- Scene 3: Resolution and transition` : progress < 0.3 ? `- Scene 1: Hook/Setup - establish chapter goal
-- Scene 2: Development - complications arise
-- Scene 3: Rising action - tension builds
-- Scene 4: Resolution/Transition` : progress < 0.7 ? `- Scene 1: Setup - establish situation
-- Scene 2: Complication - obstacles appear
-- Scene 3: Development - deeper conflict
-- Scene 4: Climax - major confrontation
-- Scene 5: Resolution - aftermath and transition` : progress < 0.9 ? `- Scene 1: Setup - approaching final confrontation
-- Scene 2: Rising tension - stakes escalate
-- Scene 3: Climax - major turning point
-- Scene 4: Resolution - consequences unfold` : `- Scene 1: Final confrontation setup
-- Scene 2: Climax - ultimate resolution
-- Scene 3: Epilogue - closure and new beginning`}
+Keep purposes BRIEF and HIGH-LEVEL. Let the writer decide locations, characters, and details.
 
 Return ONLY the JSON object, no markdown formatting.`;
 

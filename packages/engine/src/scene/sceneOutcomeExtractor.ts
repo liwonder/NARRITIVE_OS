@@ -19,8 +19,8 @@ export async function extractSceneOutcome(input: OutcomeExtractorInput): Promise
   const prompt = `Extract the outcomes from this scene. What changed?
 
 ## Scene Information
-Location: ${scene.location}
-Characters: ${scene.characters.join(', ')}
+Location: ${scene.location || 'Not specified'}
+Characters: ${scene.characters?.join(', ') || 'Not specified'}
 Purpose: ${scene.purpose}
 
 ## Scene Content

@@ -1,8 +1,9 @@
 import { getLLM } from '../llm/client.js';
-import type { GenerationContext, WriterOutput } from '../types/index.js';
+import type { GenerationContext, WriterOutput, ScenePlan, Scene } from '../types/index.js';
 import type { CanonStore } from '../memory/canonStore.js';
 import { formatCanonForPrompt } from '../memory/canonStore.js';
 import type { MemoryRetriever } from '../memory/memoryRetriever.js';
+import type { DirectorOutput } from './storyDirector.js';
 
 const WRITER_PROMPT = `You are a professional novelist writing immersive narrative prose.
 
@@ -144,6 +145,127 @@ Continue naturally from the last sentence:`;
     });
 
     return existingContent + '\n\n' + continuation;
+  }
+
+  /**
+   * Write a full chapter holistically based on scene framework
+   * The writer organically weaves scenes together for natural flow
+   */
+  async writeHolistic(
+    context: GenerationContext,
+    scenePlan: ScenePlan,
+    directorOutput: DirectorOutput,
+    canon?: CanonStore,
+    memoryRetriever?: MemoryRetriever
+  ): Promise<WriterOutput> {
+    const { bible, state, chapterNumber } = context;
+    
+    const canonSection = canon ? formatCanonForPrompt(canon) : '';
+
+    // Retrieve relevant memories
+    let memoriesSection = 'No relevant memories yet.';
+    if (memoryRetriever && chapterNumber > 1) {
+      const memories = await memoryRetriever.retrieveForChapter({
+        bible,
+        state,
+        currentChapter: chapterNumber,
+      });
+      memoriesSection = memoryRetriever.formatMemoriesForPrompt(memories) || 'No highly relevant memories for this chapter.';
+    }
+
+    const recentSummaries = state.chapterSummaries
+      .slice(-3)
+      .map(s => `Chapter ${s.chapterNumber}: ${s.summary}`)
+      .join('\n\n') || 'This is the first chapter.';
+
+    const characters = bible.characters
+      .map(c => `- ${c.name} (${c.role}): ${c.personality.join(', ')}. Goals: ${c.goals.join(', ')}`)
+      .join('\n');
+
+    // Format scene framework for the writer
+    const sceneFramework = scenePlan.scenes.map((s: Scene) => 
+      `Scene ${s.id}: [${s.type?.toUpperCase() || 'SCENE'}] Tension ${s.tension}/10 - ${s.purpose}`
+    ).join('\n');
+
+    const languageName = bible.language === 'zh' ? 'Chinese' : bible.language === 'ja' ? 'Japanese' : bible.language === 'ko' ? 'Korean' : bible.language === 'ar' ? 'Arabic' : bible.language === 'ru' ? 'Russian' : bible.language === 'es' ? 'Spanish' : bible.language === 'fr' ? 'French' : bible.language === 'de' ? 'German' : 'English';
+
+    const prompt = `You are a professional novelist writing immersive narrative prose.
+
+Write Chapter ${chapterNumber} of the novel holistically. Do not write separate scenes - weave them together into a flowing narrative.
+
+## Story Bible
+
+**Title:** ${bible.title}
+**Theme:** ${bible.theme}
+**Genre:** ${bible.genre}
+**Setting:** ${bible.setting}
+**Tone:** ${bible.tone}
+**Language:** ${languageName}
+
+**Premise:**
+${bible.premise}
+
+## Characters
+
+${characters}
+
+## Story Canon
+
+${canonSection}
+
+## Relevant Memories
+
+${memoriesSection}
+
+## Recent Chapter Summaries
+
+${recentSummaries}
+
+## Chapter Framework (Write as ONE flowing narrative)
+
+**Chapter Goal:** ${scenePlan.chapterGoal}
+**Target Tension Arc:** Build toward ${scenePlan.targetTension}/10
+
+**Scene Progression (integrate these organically):**
+${sceneFramework}
+
+**Director's Vision:**
+${directorOutput.overallGoal}
+
+**Focus Characters:** ${directorOutput.focusCharacters.join(', ')}
+
+## Writing Guidelines
+
+- Write in ${languageName} language
+- Write in third person limited perspective
+- Show, don't tell
+- Maintain consistent character voices
+- DO NOT label scenes or use scene breaks
+- Let the narrative flow naturally from one moment to the next
+- Reference relevant past memories naturally when appropriate
+- **CRITICAL: Write ${scenePlan.scenes.length * 1000}-${scenePlan.scenes.length * 1500} words minimum. This is a substantial chapter, not a short scene.**
+- Develop each moment fully with description, dialogue, and character thoughts
+- End at a natural stopping point
+
+## Format
+
+Start your response with a chapter title on the first line, formatted as:
+# ${scenePlan.chapterTitle}
+
+Then write the chapter content as one continuous narrative.
+
+Write the full chapter now.`;
+
+    const content = await getLLM().complete(prompt, {
+      temperature: 0.8,
+      maxTokens: 8000,
+      task: 'generation',
+    });
+
+    const title = this.extractTitle(content) || scenePlan.chapterTitle || `Chapter ${chapterNumber}`;
+    const wordCount = content.split(/\s+/).length;
+
+    return { content, title, wordCount };
   }
 
   private inferChapterGoal(bible: GenerationContext['bible'], state: GenerationContext['state'], chapterNumber: number): string {

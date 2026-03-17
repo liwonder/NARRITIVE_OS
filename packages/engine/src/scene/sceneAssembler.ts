@@ -78,7 +78,12 @@ function combineScenes(sceneOutputs: SceneOutput[]): string {
   return parts.join('\n\n');
 }
 
-function generateChapterSummary(sceneOutputs: SceneOutput[], scenePlan: ScenePlan, language?: string): string {
+/**
+ * Generate a natural chapter summary from scene summaries
+ * For now, uses the first scene's summary as the chapter summary
+ * A more sophisticated approach would use LLM to synthesize a proper summary
+ */
+function generateChapterSummary(sceneOutputs: SceneOutput[], scenePlan: ScenePlan, _language?: string): string {
   const summaries = sceneOutputs
     .map(s => s.summary)
     .filter(s => s && s.length > 0);
@@ -87,24 +92,10 @@ function generateChapterSummary(sceneOutputs: SceneOutput[], scenePlan: ScenePla
     return scenePlan.chapterGoal || 'Chapter completed';
   }
   
-  // Combine scene summaries into chapter summary
-  if (summaries.length === 1) {
-    return summaries[0];
-  }
-  
-  // For multiple scenes, create a flowing summary with language-appropriate connector
-  const connector = language === 'zh' ? '。接着，' : 
-                    language === 'ja' ? '。そして、' :
-                    language === 'ko' ? '. 그리고 ' :
-                    ' Then, ';
-  const combined = summaries.join(connector);
-  
-  // Limit length
-  if (combined.length > 300) {
-    return combined.substring(0, 297) + '...';
-  }
-  
-  return combined;
+  // Use the first scene's summary as the chapter summary
+  // This avoids the awkward concatenation with "Then"
+  // TODO: In the future, use LLM to generate a proper synthesized summary
+  return summaries[0];
 }
 
 /**
