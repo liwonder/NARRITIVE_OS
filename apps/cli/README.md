@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/liwonder/NARRITIVE_OS/main/apps/cli/assets/banner.png" alt="Narrative OS Banner" width="100%">
+  <img src="https://raw.githubusercontent.com/liwonder/NARRITIVE_OS/master/apps/cli/assets/banner.png" alt="Narrative OS Banner" width="100%">
 </p>
 
 <h1 align="center">Narrative OS</h1>
