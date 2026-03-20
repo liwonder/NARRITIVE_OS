@@ -74,7 +74,13 @@ export {
   type WorldObject,
   type WorldRelationship,
   type WorldState as WorldStateEngineState,
+  type CharacterStrategy,
 } from './world/worldStateEngine.js';
+export {
+  CharacterStrategyAnalyzer,
+  characterStrategyAnalyzer,
+  type CharacterStrategy as AgentCharacterStrategy,
+} from './agents/characterStrategy.js';
 export {
   WorldStateUpdater,
   worldStateUpdater,
@@ -148,3 +154,13 @@ export { MemoryRetriever, createMemoryRetriever, type RetrievalContext, type Ret
 // Scene
 export { assembleChapter, formatChapterWithHeading } from './scene/sceneAssembler.js';
 export { extractSceneOutcome, mergeSceneOutcomes } from './scene/sceneOutcomeExtractor.js';
+
+// Skills (optional dependency)
+export {
+  getSkill,
+  getAllSkills,
+  getDefaultSkillsForGenre,
+  validateSkills,
+  getSkillInstructions,
+  type SkillInfo,
+} from './skills/loader.js';

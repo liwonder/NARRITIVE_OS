@@ -6,6 +6,7 @@ import { memoryExtractor } from '../agents/memoryExtractor.js';
 import { planScenes } from '../agents/scenePlanner.js';
 import { storyDirector, type DirectorOutput } from '../agents/storyDirector.js';
 import { generateTensionGuidance, analyzeTension } from '../agents/tensionController.js';
+import { characterStrategyAnalyzer, type CharacterStrategy as AgentCharacterStrategy } from '../agents/characterStrategy.js';
 import { createStructuredState } from '../story/structuredState.js';
 import { WorldStateEngine, createWorldStateEngine, type WorldState } from '../world/worldStateEngine.js';
 import type { GenerationContext, Chapter, ChapterSummary, SceneOutput, ScenePlan, StoryBible } from '../types/index.js';
@@ -217,7 +218,53 @@ async function generateChapterSceneLevel(
     }
   }
 
-  // Step 8: Return updated world state
+  // Step 8: Analyze character strategies
+  console.log('  Analyzing character strategies...');
+  const mainCharacters = bible.characters.slice(0, 4); // Analyze top 4 characters
+  const analyzedStrategies: AgentCharacterStrategy[] = [];
+  
+  for (const char of mainCharacters) {
+    const previousStrategy = worldStateEngine.getCharacterStrategy(char.name);
+    const isNewCharacter = !previousStrategy;
+    
+    try {
+      const strategy = await characterStrategyAnalyzer.analyze({
+        characterName: char.name,
+        chapter,
+        bible,
+        worldState: worldStateEngine,
+        previousStrategy: undefined // Don't pass world state strategy to avoid type mismatch
+      });
+      
+      worldStateEngine.setCharacterStrategy(char.name, {
+        currentGoal: strategy.currentGoal,
+        longTermGoal: strategy.longTermGoal,
+        motivation: strategy.motivation,
+        nextChapterTarget: strategy.nextChapterTarget
+      });
+      
+      analyzedStrategies.push(strategy);
+      
+      if (isNewCharacter) {
+        console.log(`    🎭 New character ${char.name}: ${strategy.currentGoal}`);
+      } else {
+        console.log(`    🎭 ${char.name}: ${strategy.nextChapterTarget}`);
+      }
+    } catch (error) {
+      console.warn(`    ⚠️ Failed to analyze ${char.name}:`, error);
+    }
+  }
+  
+  // Detect conflicts between characters
+  const conflicts = characterStrategyAnalyzer.detectConflicts(analyzedStrategies);
+  if (conflicts.length > 0) {
+    console.log(`    ⚔️ Detected ${conflicts.length} character conflict(s):`);
+    for (const conflict of conflicts) {
+      console.log(`       ${conflict.characters.join(' vs ')}: ${conflict.description}`);
+    }
+  }
+
+  // Step 9: Return updated world state
   const updatedWorldState = worldStateEngine.getState();
 
   return { 

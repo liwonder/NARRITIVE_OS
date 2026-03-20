@@ -22,6 +22,7 @@
 - Added new section on Task-Based Model Selection explaining the extraction task configuration
 - Updated dependency analysis to include the new TaskType interface
 - Revised performance considerations to account for optimized model selection
+- Enhanced JSON parsing section to document truncation detection improvements
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -30,17 +31,18 @@
 4. [Architecture Overview](#architecture-overview)
 5. [Detailed Component Analysis](#detailed-component-analysis)
 6. [Task-Based Model Selection](#task-based-model-selection)
-7. [Dependency Analysis](#dependency-analysis)
-8. [Performance Considerations](#performance-considerations)
-9. [Troubleshooting Guide](#troubleshooting-guide)
-10. [Conclusion](#conclusion)
+7. [Enhanced JSON Parsing and Truncation Detection](#enhanced-json-parsing-and-truncation-detection)
+8. [Dependency Analysis](#dependency-analysis)
+9. [Performance Considerations](#performance-considerations)
+10. [Troubleshooting Guide](#troubleshooting-guide)
+11. [Conclusion](#conclusion)
 
 ## Introduction
 The Memory Extractor Agent is a core component of the Narrative Operating System that automatically identifies and extracts narrative memories from generated chapters. It serves as the bridge between creative writing and persistent storytelling knowledge, enabling the system to maintain continuity, track character development, and preserve world-building details across the entire story arc.
 
 The agent operates by analyzing chapter content and extracting structured facts categorized into four fundamental narrative types: events, character moments, world details, and plot developments. These extracted memories are then stored in a vector-based memory system that enables semantic search and retrieval for future writing contexts.
 
-**Enhanced** The Memory Extractor now utilizes task-specific model selection, ensuring that memory extraction operations use chat models optimized for structured data extraction rather than default model configurations.
+**Enhanced** The Memory Extractor now utilizes task-specific model selection, ensuring that memory extraction operations use chat models optimized for structured data extraction rather than default model configurations. The LLM client has been enhanced with improved JSON parsing that includes truncation detection to prevent incomplete response errors.
 
 ## Project Structure
 The Memory Extractor Agent is part of a larger narrative generation ecosystem organized into distinct functional domains:
@@ -100,7 +102,7 @@ LLM --> TT
 ### MemoryExtractor Class
 The MemoryExtractor is the primary component responsible for transforming unstructured narrative content into structured, searchable memories. It implements two extraction modes:
 
-1. **Full Chapter Extraction**: Processes complete chapter content with content length limiting
+1. **Full Chapter Extraction**: Processes complete chapter content with intelligent content length limiting
 2. **Summary Extraction**: Handles chapter summaries for efficiency in batch processing
 
 The extraction process follows a systematic approach:
@@ -109,6 +111,8 @@ The extraction process follows a systematic approach:
 - Category assignment for semantic organization
 - Temperature-controlled creativity vs. consistency
 - **Task-specific model selection** for optimized extraction performance
+
+**Enhanced** The MemoryExtractor now passes `task: 'extraction'` in its LLM configuration, ensuring that extraction operations use chat models optimized for structured data extraction rather than default model configurations.
 
 ### Enhanced LLM Client Architecture
 The LLM Client now implements a sophisticated task-based model routing system:
@@ -121,24 +125,27 @@ TaskCheck --> |generation| GenModel["Select 'reasoning' model for generation"]
 TaskCheck --> |validation| ValModel["Select 'chat' model for validation"]
 TaskCheck --> |summarization| SumModel["Select 'fast' model for summarization"]
 TaskCheck --> |planning| PlanModel["Select 'reasoning' model for planning"]
+TaskCheck --> |embedding| EmbModel["Select 'embedding' model for embeddings"]
 TaskCheck --> |default| DefModel["Select default 'chat' model"]
 ExtractModel --> ModelLookup["Find model with purpose='chat'"]
 GenModel --> ReasoningLookup["Find model with purpose='reasoning'"]
 ValModel --> ChatLookup["Find model with purpose='chat'"]
 SumModel --> FastLookup["Find model with purpose='fast'"]
 PlanModel --> ReasoningLookup
+EmbModel --> EmbLookup["Find model with purpose='embedding'"]
 DefModel --> ChatLookup
 ModelLookup --> Provider["Get LLM Provider"]
 ReasoningLookup --> Provider
 ChatLookup --> Provider
 FastLookup --> Provider
+EmbLookup --> Provider
 Provider --> Execute[Execute Completion]
 Execute --> Response[Return Response]
 ```
 
 **Diagram sources**
 - [client.ts:39-47](file://packages/engine/src/llm/client.ts#L39-L47)
-- [client.ts:113-125](file://packages/engine/src/llm/client.ts#L113-L125)
+- [client.ts:152-164](file://packages/engine/src/llm/client.ts#L152-L164)
 
 The task-based routing ensures that extraction operations use chat models optimized for structured data extraction, while other operations use models suited to their specific requirements.
 
@@ -194,7 +201,7 @@ MR-->>GC : retrieved memories
 **Diagram sources**
 - [generateChapter.ts:26-103](file://packages/engine/src/pipeline/generateChapter.ts#L26-L103)
 - [memoryExtractor.ts:62-66](file://packages/engine/src/agents/memoryExtractor.ts#L62-L66)
-- [client.ts:113-125](file://packages/engine/src/llm/client.ts#L113-L125)
+- [client.ts:152-164](file://packages/engine/src/llm/client.ts#L152-L164)
 
 The architecture demonstrates a clean separation of concerns with enhanced task-specific model selection:
 - **Extraction Layer**: Converts narrative content to structured memories using optimized chat models
@@ -233,6 +240,7 @@ validation
 summarization
 extraction
 planning
+embedding
 default
 }
 MemoryExtractor --> LLMClient : uses with task : 'extraction'
@@ -242,15 +250,16 @@ LLMClient --> TaskType : routes by task
 
 **Diagram sources**
 - [memoryExtractor.ts:52-99](file://packages/engine/src/agents/memoryExtractor.ts#L52-L99)
-- [client.ts:149-180](file://packages/engine/src/llm/client.ts#L149-L180)
-- [index.ts:107-113](file://packages/engine/src/types/index.ts#L107-L113)
+- [client.ts:152-164](file://packages/engine/src/llm/client.ts#L152-L164)
+- [index.ts:107-115](file://packages/engine/src/types/index.ts#L107-L115)
 
 The MemoryExtractor employs sophisticated prompt engineering techniques with enhanced task-specific model selection:
 - **Context Injection**: Story Bible details (title, genre, setting) are embedded into prompts
 - **Task Specification**: Clear extraction guidelines with specific categories and quantities
 - **Output Control**: JSON-only responses with temperature optimization for consistency
-- **Content Management**: Intelligent truncation to prevent token limit issues
+- **Content Management**: Intelligent truncation to prevent token limit issues (limited to 8000 characters)
 - **Model Optimization**: Automatic selection of chat models optimized for structured extraction
+- **Enhanced Error Handling**: Improved JSON parsing with truncation detection for reliable extraction
 
 ### VectorStore Memory Management
 
@@ -316,7 +325,7 @@ The retrieval system prioritizes relevance and context:
 The Memory Extractor now benefits from a sophisticated task-based model selection system that ensures optimal model usage for different operations:
 
 ### Task Type Configuration
-The system defines six distinct task types, each mapped to specific model purposes:
+The system defines seven distinct task types, each mapped to specific model purposes:
 
 ```mermaid
 graph LR
@@ -326,6 +335,7 @@ Planning["planning"] --> Reasoning
 Validation["validation"] --> Chat["chat model"]
 Summarization["summarization"] --> Fast["fast model"]
 Extraction["extraction"] --> Chat
+Embedding["embedding"] --> EmbeddingModel["embedding model"]
 Default["default"] --> Chat
 end
 ```
@@ -340,6 +350,7 @@ Each task type is associated with a specific model purpose:
 - **validation**: Canon validation using chat models
 - **summarization**: Fast text processing for chapter summaries
 - **extraction**: Structured data extraction using optimized chat models
+- **embedding**: Text embeddings using embedding models
 - **default**: Fallback to chat models
 
 ### Implementation Details
@@ -351,8 +362,55 @@ The task-based selection occurs in the `getModelForTask` method:
 
 **Section sources**
 - [client.ts:39-47](file://packages/engine/src/llm/client.ts#L39-L47)
-- [client.ts:113-125](file://packages/engine/src/llm/client.ts#L113-L125)
-- [index.ts:107-113](file://packages/engine/src/types/index.ts#L107-L113)
+- [client.ts:152-164](file://packages/engine/src/llm/client.ts#L152-L164)
+- [index.ts:107-115](file://packages/engine/src/types/index.ts#L107-L115)
+
+## Enhanced JSON Parsing and Truncation Detection
+
+The LLM Client's JSON parsing has been significantly enhanced with robust truncation detection to prevent incomplete response errors:
+
+### JSON Parsing Improvements
+The `completeJSON` method now includes sophisticated parsing logic:
+
+```mermaid
+flowchart TD
+Start([JSON Response]) --> Trim["Trim Response"]
+Trim --> CodeBlock{"Markdown Code Block?"}
+CodeBlock --> |Yes| Extract["Extract JSON from Code Block"]
+CodeBlock --> |No| ObjectArray{"Object/Array Found?"}
+Extract --> Parse["Parse JSON"]
+ObjectArray --> |Object| ExtractObj["Extract Object"]
+ObjectArray --> |Array| ExtractArr["Extract Array"]
+ObjectArray --> |None| Error["No JSON Found"]
+ExtractObj --> Parse
+ExtractArr --> Parse
+Parse --> Truncation{"Truncation Check?"}
+Error --> End([Error])
+Truncation --> |Incomplete| TruncErr["Throw Truncation Error"]
+Truncation --> |Complete| Success["Return Parsed JSON"]
+TruncErr --> End
+Success --> End
+```
+
+**Diagram sources**
+- [client.ts:188-227](file://packages/engine/src/llm/client.ts#L188-L227)
+
+### Truncation Detection Features
+The enhanced JSON parsing includes:
+- **Markdown Code Block Detection**: Automatically extracts JSON from ```json blocks
+- **Brace Matching**: Finds and extracts JSON objects/arrays by matching braces
+- **Truncation Prevention**: Detects incomplete JSON responses and throws descriptive errors
+- **Token Limit Handling**: Prevents errors when responses are cut off mid-JSON
+
+### MemoryExtractor Integration
+The MemoryExtractor now benefits from these improvements:
+- **Reliable Extraction**: JSON parsing errors are minimized with robust truncation detection
+- **Consistent Output**: Structured extraction results are more reliable
+- **Better Error Messages**: Descriptive errors help diagnose extraction issues
+
+**Section sources**
+- [client.ts:188-227](file://packages/engine/src/llm/client.ts#L188-L227)
+- [memoryExtractor.ts:62-66](file://packages/engine/src/agents/memoryExtractor.ts#L62-L66)
 
 ## Dependency Analysis
 
@@ -367,6 +425,7 @@ HNSWLIB[HNSW Library v3.0.0]
 OPENAI[OpenAI SDK v4.52.0]
 VECTOR[Vector Cosine Similarity v1.8.0]
 ZOD[Zod v3.23.0]
+ENDPOINT[Endpoint v0.1.0]
 end
 subgraph "Internal Modules"
 ME[MemoryExtractor]
@@ -393,7 +452,7 @@ LLM --> TT
 - [package.json:11-16](file://packages/engine/package.json#L11-L16)
 - [memoryExtractor.ts:1-3](file://packages/engine/src/agents/memoryExtractor.ts#L1-L3)
 - [client.ts:1-2](file://packages/engine/src/llm/client.ts#L1-L2)
-- [index.ts:107-113](file://packages/engine/src/types/index.ts#L107-L113)
+- [index.ts:107-115](file://packages/engine/src/types/index.ts#L107-L115)
 
 The dependency structure reveals a modular architecture with clear boundaries and enhanced task-based routing:
 - **Storage Dependencies**: HNSW library for efficient vector indexing
@@ -415,6 +474,7 @@ The MemoryExtractor optimizes for both quality and performance with enhanced mod
 - **Batch Processing**: Supports summary-based extraction for improved throughput
 - **JSON Validation**: Built-in response parsing reduces downstream errors
 - **Task-Specific Models**: Uses optimized chat models for structured extraction operations
+- **Enhanced Error Handling**: Robust JSON parsing prevents extraction failures
 
 ### Enhanced Model Selection Performance
 The task-based model selection system provides several performance benefits:
@@ -443,9 +503,10 @@ Memory retrieval achieves optimal performance through:
 
 **Memory Extraction Failures**
 - **Symptom**: JSON parsing errors during extraction
-- **Cause**: LLM response format inconsistencies
+- **Cause**: LLM response format inconsistencies or truncation
 - **Solution**: Verify prompt template integrity and adjust temperature settings
 - **Updated**: Ensure task: 'extraction' parameter is properly passed to maintain model optimization
+- **Enhanced**: The improved JSON parsing now detects and reports truncation issues more effectively
 
 **Vector Store Initialization Errors**
 - **Symptom**: "VectorStore not initialized" errors
@@ -467,9 +528,16 @@ Memory retrieval achieves optimal performance through:
 - **Cause**: Missing or incorrect task parameter configuration
 - **Solution**: Verify that `task: 'extraction'` is included in LLM configuration for memory extraction operations
 
+**JSON Truncation Errors**
+- **Symptom**: "JSON response appears to be truncated" errors
+- **Cause**: Response cut off mid-JSON or insufficient maxTokens
+- **Solution**: Increase maxTokens parameter in extraction configuration
+- **Enhanced**: The new truncation detection provides more descriptive error messages
+
 **Section sources**
 - [memoryExtractor.ts:62-68](file://packages/engine/src/agents/memoryExtractor.ts#L62-L68)
-- [client.ts:113-125](file://packages/engine/src/llm/client.ts#L113-L125)
+- [client.ts:152-164](file://packages/engine/src/llm/client.ts#L152-L164)
+- [client.ts:214-220](file://packages/engine/src/llm/client.ts#L214-L220)
 - [vectorStore.ts:38-40](file://packages/engine/src/memory/vectorStore.ts#L38-L40)
 - [vectorStore.ts:102-113](file://packages/engine/src/memory/vectorStore.ts#L102-L113)
 
@@ -477,7 +545,7 @@ Memory retrieval achieves optimal performance through:
 
 The Memory Extractor Agent represents a sophisticated solution for automated narrative knowledge management. Its integration with the broader Narrative Operating System creates a self-improving storytelling engine capable of maintaining consistency, tracking development, and preserving creative insights across extended narratives.
 
-**Enhanced** The recent addition of task-specific model selection significantly improves the agent's performance and accuracy by ensuring that memory extraction operations use chat models optimized for structured data extraction. This enhancement maintains the agent's balanced approach to creativity and consistency while leveraging specialized models for improved extraction quality.
+**Enhanced** The recent addition of task-specific model selection significantly improves the agent's performance and accuracy by ensuring that memory extraction operations use chat models optimized for structured data extraction. The enhanced JSON parsing with truncation detection provides more reliable extraction results, while the improved error handling makes debugging easier. These enhancements maintain the agent's balanced approach to creativity and consistency while leveraging specialized models for improved extraction quality.
 
 The agent's strength lies in its intelligent model selection, sophisticated prompt engineering, and seamless integration with the broader narrative ecosystem. The combination of semantic memory storage, intelligent retrieval, and task-optimized extraction establishes a foundation for scalable, high-quality automated storytelling.
 

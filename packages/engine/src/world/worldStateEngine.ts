@@ -49,6 +49,14 @@ export interface WorldEvent {
   location: string;
 }
 
+export interface CharacterStrategy {
+  currentGoal: string;
+  longTermGoal: string;
+  motivation: string;
+  nextChapterTarget: string;
+  updatedAtChapter: number;
+}
+
 export interface WorldState {
   storyId: string;
   chapter: number;
@@ -58,6 +66,7 @@ export interface WorldState {
   objects: Record<string, WorldObject>;
   relationships: Record<string, WorldRelationship>; // key: "charA_charB"
   timeline: WorldEvent[];
+  characterStrategies: Record<string, CharacterStrategy>; // key: character name
   lastUpdated: Date;
 }
 
@@ -74,6 +83,7 @@ export class WorldStateEngine {
       objects: {},
       relationships: {},
       timeline: [],
+      characterStrategies: {},
       lastUpdated: new Date()
     };
   }
@@ -294,6 +304,37 @@ export class WorldStateEngine {
 
   exportToJSON(): string {
     return JSON.stringify(this.state, null, 2);
+  }
+
+  // Character Strategy methods
+  setCharacterStrategy(characterName: string, strategy: Omit<CharacterStrategy, 'updatedAtChapter'>): void {
+    this.state.characterStrategies[characterName] = {
+      ...strategy,
+      updatedAtChapter: this.state.chapter
+    };
+    this.touch();
+  }
+
+  getCharacterStrategy(characterName: string): CharacterStrategy | undefined {
+    return this.state.characterStrategies[characterName];
+  }
+
+  getAllCharacterStrategies(): Record<string, CharacterStrategy> {
+    return { ...this.state.characterStrategies };
+  }
+
+  formatCharacterStrategiesForPrompt(): string {
+    const strategies = Object.entries(this.state.characterStrategies);
+    if (strategies.length === 0) return '';
+    
+    const lines = ['## Character Strategies'];
+    for (const [name, strategy] of strategies) {
+      lines.push(`\n**${name}**`);
+      lines.push(`- Current Goal: ${strategy.currentGoal}`);
+      lines.push(`- Target: ${strategy.nextChapterTarget}`);
+      lines.push(`- Motivation: ${strategy.motivation}`);
+    }
+    return lines.join('\n');
   }
 
   // Format for prompts

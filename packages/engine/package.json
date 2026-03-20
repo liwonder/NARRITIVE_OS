@@ -1,6 +1,6 @@
 {
   "name": "@narrative-os/engine",
-  "version": "0.1.30",
+  "version": "0.1.31",
   "description": "Core narrative engine for AI-powered story generation",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -36,6 +36,10 @@
     "hnswlib-node": "^3.0.0",
     "openai": "^4.52.0",
     "zod": "^3.23.0"
+  },
+  "optionalDependencies": {
+    "@narrative-os/skills": "^0.0.1",
+    "@narrative-os/genres": "^0.0.1"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

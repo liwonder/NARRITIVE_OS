@@ -1,0 +1,28 @@
+{
+  "name": "@narrative-os/genres",
+  "version": "0.0.1",
+  "description": "Genre convention packs for Narrative OS",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "narrative",
+    "genre",
+    "plugins",
+    "story",
+    "mystery",
+    "romance",
+    "thriller"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,55 @@
+export { registry } from './registry.js';
+export type { Genre, GenreRegistry, PlotPoint, SceneType } from './types.js';
+
+// Register built-in genres
+import { registry } from './registry.js';
+import { mystery } from './genres/mystery.js';
+import { thriller } from './genres/thriller.js';
+import { romance } from './genres/romance.js';
+import { sciFi } from './genres/sciFi.js';
+import { fantasy } from './genres/fantasy.js';
+import { horror } from './genres/horror.js';
+import { historical } from './genres/historical.js';
+import { drama } from './genres/drama.js';
+import { adventure } from './genres/adventure.js';
+import { comedy } from './genres/comedy.js';
+import { literary } from './genres/literary.js';
+import { noir } from './genres/noir.js';
+import { postApocalyptic } from './genres/postApocalyptic.js';
+import { cyberpunk } from './genres/cyberpunk.js';
+import { western } from './genres/western.js';
+import { youngAdult } from './genres/youngAdult.js';
+import { urbanFantasy } from './genres/urbanFantasy.js';
+import { spaceOpera } from './genres/spaceOpera.js';
+import { steampunk } from './genres/steampunk.js';
+import { cozyMystery } from './genres/cozyMystery.js';
+import { gothic } from './genres/gothic.js';
+import { wuxia } from './genres/wuxia.js';
+import { xianxia } from './genres/xianxia.js';
+import { modernChinese } from './genres/modernChinese.js';
+
+// Register genres
+registry.register(mystery);
+registry.register(thriller);
+registry.register(romance);
+registry.register(sciFi);
+registry.register(fantasy);
+registry.register(horror);
+registry.register(historical);
+registry.register(drama);
+registry.register(adventure);
+registry.register(comedy);
+registry.register(literary);
+registry.register(noir);
+registry.register(postApocalyptic);
+registry.register(cyberpunk);
+registry.register(western);
+registry.register(youngAdult);
+registry.register(urbanFantasy);
+registry.register(spaceOpera);
+registry.register(steampunk);
+registry.register(cozyMystery);
+registry.register(gothic);
+registry.register(wuxia);
+registry.register(xianxia);
+registry.register(modernChinese);

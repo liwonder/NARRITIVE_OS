@@ -1,0 +1,26 @@
+{
+  "name": "@narrative-os/skills",
+  "version": "0.0.1",
+  "description": "Writing technique plugins for Narrative OS",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "narrative",
+    "writing",
+    "skills",
+    "plugins",
+    "story"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

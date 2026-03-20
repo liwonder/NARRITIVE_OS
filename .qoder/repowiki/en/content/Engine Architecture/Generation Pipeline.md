@@ -16,17 +16,16 @@
 - [client.ts](file://packages/engine/src/llm/client.ts)
 - [generate.ts](file://apps/cli/src/commands/generate.ts)
 - [simple.test.ts](file://packages/engine/src/test/simple.test.ts)
+- [world-simulation.test.ts](file://packages/engine/src/test/world-simulation.test.ts)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Major restructuring of chapter generation workflow with enhanced scene-level generation approach
-- Integration of Story Director for chapter-level direction and tension management
-- Implementation of World State Engine for authoritative world simulation and consistency
-- Addition of tension controller for dynamic tension guidance throughout the pipeline
-- Enhanced structured state management for story progression tracking
-- Streamlined dual-mode architecture with scene-level as primary approach
-- Improved world state updates and validation throughout the generation process
+- Enhanced generateChapter pipeline with conditional world state initialization using loadState() method
+- Improved state loading mechanism for external World State Engine integration
+- Better integration with World State Engine through conditional initialization logic
+- Added support for external world state engines with proper state loading
+- Enhanced world state management with conditional initialization based on provided engines
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -42,6 +41,8 @@
 
 ## Introduction
 This document describes the enhanced generation pipeline that orchestrates AI-powered story creation with advanced world simulation capabilities for Phase 14. The pipeline now implements a sophisticated scene-level generation approach as the primary method, integrating comprehensive world state management, story direction, and tension control. The system replaces the legacy chapter-level approach with a more nuanced, scene-driven workflow that maintains logical consistency through the World State Engine while providing rich narrative complexity through the Story Director and tension management systems.
+
+**Updated** Enhanced with conditional world state initialization and improved state loading mechanism using the loadState() method for better integration with external World State Engines.
 
 ## Project Structure
 The generation pipeline now centers around a scene-level architecture with integrated world simulation and story direction capabilities. The enhanced structure includes Scene Planner, Story Director, Tension Controller, World State Engine, and comprehensive state management systems working in concert to create coherent, internally consistent narratives.
@@ -131,6 +132,12 @@ The enhanced pipeline implements a sophisticated scene-level generation architec
 - **Memory Integration**: Extracts and stores memories from chapter content into vector store
 - **Summary Generation**: Produces concise chapter summaries and key event extraction
 
+### Enhanced World State Engine Integration
+- **Conditional Initialization**: Initializes World State Engine conditionally based on whether an external engine is provided
+- **State Loading Mechanism**: Uses loadState() method for external world state integration with proper state management
+- **External Engine Support**: Supports integration with external World State Engines for persistent state management
+- **State Persistence**: Enables world state serialization and deserialization for long-term story consistency
+
 **Section sources**
 - [generateChapter.ts:67-208](file://packages/engine/src/pipeline/generateChapter.ts#L67-L208)
 - [scenePlanner.ts:18-159](file://packages/engine/src/agents/scenePlanner.ts#L18-L159)
@@ -155,6 +162,13 @@ participant World as "WorldStateEngine"
 participant Updater as "WorldStateUpdater"
 participant Assembler as "SceneAssembler"
 CLI->>Engine : "generateChapter(context, options)"
+Engine->>Engine : "Check if worldStateEngine provided"
+alt External World State Engine Provided
+Engine->>World : "Use provided worldStateEngine"
+else No External Engine
+Engine->>World : "createWorldStateEngine(bible.id)"
+Engine->>World : "Initialize from bible characters"
+end
 Engine->>Director : "direct(context)"
 Director->>Tension : "analyzeTension()"
 Tension->>Tension : "calculateTargetTension()"
@@ -202,6 +216,13 @@ The generateChapter function now implements a sophisticated scene-level generati
 - **Outcome Extraction**: Identifies key events and changes from scene content for world state updates
 - **Chapter Assembly**: Combines individual scenes into cohesive chapter narratives with proper transitions
 
+#### Conditional World State Initialization
+- **External Engine Detection**: Checks if worldStateEngine option is provided in GenerateChapterOptions
+- **Conditional Creation**: Creates new World State Engine only if no external engine is provided
+- **State Loading Integration**: Uses loadState() method for external world state integration
+- **Bible-Based Initialization**: Initializes world state from story bible characters when creating new engines
+- **Chapter Scene Tracking**: Sets chapter and scene numbers for proper world state context
+
 #### Legacy Chapter-Level Generation (Fallback Mode)
 - **Input Processing**: Extracts context and applies default chapter-level options
 - **Initial Writing**: Calls the writer to produce the first draft with story context and target word count
@@ -213,8 +234,12 @@ The generateChapter function now implements a sophisticated scene-level generati
 ```mermaid
 flowchart TD
 Start(["Start generateChapter"]) --> CheckMode{"useSceneLevel enabled?"}
-CheckMode --> |Yes| InitWorld["Initialize World State Engine"]
-InitWorld --> Director["StoryDirector.direct()"]
+CheckMode --> |Yes| CheckWorld{"worldStateEngine provided?"}
+CheckWorld --> |Yes| UseProvided["Use provided worldStateEngine"]
+CheckWorld --> |No| CreateEngine["createWorldStateEngine(bible.id)"]
+CreateEngine --> InitFromBible["Initialize from bible characters"]
+InitFromBible --> Director["StoryDirector.direct()"]
+UseProvided --> Director
 Director --> Tension["analyzeTension()"]
 Tension --> CalcTarget["calculateTargetTension()"]
 CalcTarget --> Planner["planScenes(directorOutput)"]
@@ -345,6 +370,13 @@ The World State Engine provides comprehensive world simulation with authoritativ
 - **Prompt Formatting**: Convert world state to narrative-friendly format for LLM consumption
 - **Consistency Validation**: Provide helper methods for character knowledge validation, location checks, and relationship queries
 - **State Export**: Serialize world state for persistence and debugging
+
+#### Enhanced State Loading Mechanism
+- **Conditional Initialization**: Creates new engine instance only when no external engine is provided
+- **External Engine Integration**: Uses provided World State Engine for persistent state management
+- **State Loading Method**: Implements loadState() method for external state integration
+- **Bible-Based Setup**: Initializes world state from story bible when creating new engines
+- **Chapter Scene Tracking**: Sets proper chapter and scene context for world state
 
 **Section sources**
 - [worldStateEngine.ts:52-62](file://packages/engine/src/world/worldStateEngine.ts#L52-L62)
@@ -538,6 +570,8 @@ Enhanced performance considerations for sophisticated scene-level generation wit
 - **Memory Retrieval**: Vector store operations are optimized through selective memory retrieval rather than broad searches
 - **Parallel Processing**: Scene generation can be parallelized while maintaining world state consistency
 - **Logging and Monitoring**: Enhanced logging tracks scene planning, world state updates, and tension calculations with detailed timing information
+- **Conditional Initialization**: Reduces unnecessary world state creation when external engines are provided
+- **State Loading Efficiency**: loadState() method provides efficient state loading for external world state engines
 
 ## Troubleshooting Guide
 Enhanced troubleshooting for sophisticated scene-level generation with world simulation:
@@ -547,6 +581,12 @@ Enhanced troubleshooting for sophisticated scene-level generation with world sim
 - **Tension Calculation Problems**: Check story progression and total chapter count for accurate target tension calculation
 - **World State Integration Errors**: Monitor world state updates for logical consistency and handle edge cases in character movements
 - **Writer Output Quality**: Verify scene framework completeness and ensure adequate world state context for writing
+
+### World State Engine Issues
+- **Conditional Initialization Problems**: Verify worldStateEngine option presence and proper initialization logic
+- **State Loading Failures**: Check loadState() method usage and ensure proper state format for external engines
+- **Bible-Based Initialization Errors**: Verify story bible characters are properly loaded when creating new engines
+- **External Engine Integration**: Ensure external World State Engine is properly configured and accessible
 
 ### Story Director Issues
 - **Objective Generation Failures**: Verify story state consistency and ensure adequate context for director guidance
@@ -588,6 +628,7 @@ Enhanced troubleshooting for sophisticated scene-level generation with world sim
 - **Memory Store Configuration**: Ensure vector store is properly initialized before enabling memory retrieval features
 - **Provider Misconfiguration**: Verify environment variables for provider and API keys. The LLM client handles both scene-level and chapter-level prompts
 - **CLI Errors**: The CLI handles both generation modes seamlessly. Check mode-specific configuration options and logging output
+- **External Engine Integration**: Verify proper world state engine setup and loadState() method usage for external state management
 
 **Section sources**
 - [generateChapter.ts:55-61](file://packages/engine/src/pipeline/generateChapter.ts#L55-L61)
@@ -598,7 +639,9 @@ Enhanced troubleshooting for sophisticated scene-level generation with world sim
 - [structuredState.ts:164-179](file://packages/engine/src/story/structuredState.ts#L164-L179)
 
 ## Conclusion
-The enhanced generation pipeline now provides a sophisticated scene-level generation framework with comprehensive world simulation and story direction capabilities. The integration of Story Director, Tension Controller, World State Engine, and Structured State Management creates a robust narrative world management system that ensures logical consistency and rich character interactions. The new scene-level approach with holistic writing eliminates the need for explicit scene breaks while maintaining narrative coherence through integrated world state updates and tension management. Enhanced world state simulation provides authoritative consistency enforcement through character, location, object, relationship, and timeline tracking. The sophisticated tension control system ensures optimal narrative arc progression through calculated target curves and adaptive guidance. Scene-level generation serves as the primary method with intelligent story direction, dynamic tension management, world state integration, and systematic outcome extraction capabilities. Legacy chapter-level generation maintains backward compatibility while the enhanced type system, memory management, and world simulation provide improved story consistency and contextual awareness. The modular design enables easy extension, testing, and debugging across both generation modes, while the CLI and tests demonstrate practical usage patterns for both approaches with comprehensive world simulation capabilities.
+The enhanced generation pipeline now provides a sophisticated scene-level generation framework with comprehensive world simulation and story direction capabilities. The integration of Story Director, Tension Controller, World State Engine, and Structured State Management creates a robust narrative world management system that ensures logical consistency and rich character interactions. The new scene-level approach with holistic writing eliminates the need for explicit scene breaks while maintaining narrative coherence through integrated world state updates and tension management. Enhanced world state simulation provides authoritative consistency enforcement through character, location, object, relationship, and timeline tracking. The sophisticated tension control system ensures optimal narrative arc progression through calculated target curves and adaptive guidance. Scene-level generation serves as the primary method with intelligent story direction, dynamic tension management, world state integration, and systematic outcome extraction capabilities. 
+
+**Updated** The enhanced conditional world state initialization and improved state loading mechanism using the loadState() method enable seamless integration with external World State Engines, providing persistent state management and better scalability for long-term story projects. The enhanced type system, memory management, and world simulation provide improved story consistency and contextual awareness. The modular design enables easy extension, testing, and debugging across both generation modes, while the CLI and tests demonstrate practical usage patterns for both approaches with comprehensive world simulation capabilities.
 
 ## Appendices
 
@@ -645,6 +688,7 @@ The enhanced generation pipeline now provides a sophisticated scene-level genera
 - **Memory integration**: Configure vectorStore for contextual memory retrieval and scene memory storage with world state integration
 - **Legacy configuration**: Disable scene-level mode with useSceneLevel=false for compatibility with existing workflows
 - **CLI usage**: The CLI supports both modes through configuration flags and automatically selects appropriate generation approach with world simulation
+- **External engine integration**: Provide worldStateEngine option for external World State Engine integration with proper state loading
 
 **Section sources**
 - [generateChapter.ts:42-50](file://packages/engine/src/pipeline/generateChapter.ts#L42-L50)
@@ -662,6 +706,8 @@ The enhanced generation pipeline now provides a sophisticated scene-level genera
 - **Memory enhancement**: Extend memory extraction to capture richer contextual information with world state implications
 - **World state persistence**: Implement custom world state serialization and deserialization for external storage systems
 - **Structured state evolution**: Add custom story progression tracking with domain-specific state metrics and update mechanisms
+- **External engine integration**: Extend World State Engine integration for custom state loading and persistence mechanisms
+- **Conditional initialization**: Implement custom conditional world state initialization logic for specialized use cases
 
 **Section sources**
 - [generateChapter.ts:67-208](file://packages/engine/src/pipeline/generateChapter.ts#L67-L208)
@@ -676,6 +722,8 @@ The enhanced generation pipeline now provides a sophisticated scene-level genera
 - **Story Director diagnostics**: Check director output quality and handle fallback scenarios gracefully
 - **Tension controller diagnostics**: Monitor tension analysis and guidance generation for calculation accuracy
 - **World state diagnostics**: Monitor world state updates and handle consistency violations with detailed logging
+- **Conditional initialization debugging**: Verify worldStateEngine option presence and proper initialization logic
+- **State loading debugging**: Check loadState() method usage and ensure proper state format for external engines
 - **Scene planning debugging**: Isolate scene planning failures and verify context completeness and LLM response quality
 - **Writer debugging**: Trace scene framework integration and world state context for writing failures
 - **Outcome extraction debugging**: Verify scene content quality and handle fallback scenarios for outcome extraction
@@ -684,6 +732,7 @@ The enhanced generation pipeline now provides a sophisticated scene-level genera
 - **Performance profiling**: Track token usage, world state operations, tension calculations, and generation time for both modes
 - **Backward compatibility**: Test legacy mode for compatibility with existing workflows and data structures
 - **Error isolation**: Use separate logging channels for scene-level, world simulation, tension management, and chapter-level operations to identify failure points
+- **External engine debugging**: Verify proper world state engine setup and loadState() method usage for external state management
 
 **Section sources**
 - [generateChapter.ts:55-61](file://packages/engine/src/pipeline/generateChapter.ts#L55-L61)
