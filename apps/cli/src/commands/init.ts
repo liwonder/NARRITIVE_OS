@@ -1,4 +1,4 @@
-import { createStoryBible, createStoryState, generateCharacters } from '@narrative-os/engine';
+import { createStoryBible, createStoryState, generateCharacters, type CharacterProfile } from '@narrative-os/engine';
 import { registry as genreRegistry } from '@narrative-os/genres';
 import { registry as skillRegistry } from '@narrative-os/skills';
 import { saveStory } from '../config/store.js';
@@ -122,8 +122,8 @@ export async function initCommand(options: InitOptions) {
     : await number({
         message: isChinese ? '目标章节数:' : 'Target number of chapters:',
         default: defaultChapters,
-        min: 1,
-        max: 200
+        min: 1
+        // No max limit - support long novels (1000+ chapters)
       }) || defaultChapters;
 
   // Step 9: Skills Selection
@@ -162,21 +162,46 @@ export async function initCommand(options: InitOptions) {
 
   let bible = createStoryBible(title, theme, genreString, setting, tone, premise, targetChapters);
 
-  // Generate characters
-  console.log(isChinese ? '  🎭 生成角色...' : '  🎭 Generating characters...');
-  const characters = await generateCharacters(title, premise, genreString, setting, bible.language);
-  bible.characters = characters;
+  // Generate protagonist for Chapter 1 with retry logic
+  let characters: CharacterProfile[] = [];
+  let generationSuccess = false;
+  let retryCount = 0;
+  const maxRetries = 3;
   
-  console.log(isChinese 
-    ? `     创建了 ${characters.length} 个角色:` 
-    : `     Created ${characters.length} characters:`
-  );
-  characters.forEach(char => {
-    const roleDisplay = char.role === 'protagonist' 
-      ? (isChinese ? '主角' : 'protagonist')
-      : char.role;
-    console.log(`     • ${char.name} (${roleDisplay})`);
-  });
+  while (!generationSuccess && retryCount < maxRetries) {
+    try {
+      console.log(isChinese ? `  🎭 生成主角... (尝试 ${retryCount + 1}/${maxRetries})` : `  🎭 Generating protagonist... (attempt ${retryCount + 1}/${maxRetries})`);
+      characters = await generateCharacters(title, premise, genreString, setting, bible.language);
+      generationSuccess = true;
+      
+      const protagonist = characters[0];
+      if (protagonist) {
+        console.log(isChinese 
+          ? `     主角: ${protagonist.name}` 
+          : `     Protagonist: ${protagonist.name}`
+        );
+      }
+    } catch (error) {
+      retryCount++;
+      console.error(isChinese ? `     生成失败: ${error instanceof Error ? error.message : '未知错误'}` : `     Generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      if (retryCount < maxRetries) {
+        const shouldRetry = await confirm({
+          message: isChinese ? '是否重试生成主角?' : 'Retry generating protagonist?',
+          default: true
+        });
+        
+        if (!shouldRetry) {
+          console.log(isChinese ? '  ⚠️  跳过主角生成，您可以稍后手动添加角色' : '  ⚠️  Skipping protagonist generation. You can add characters manually later.');
+          break;
+        }
+      } else {
+        console.log(isChinese ? '  ⚠️  已达到最大重试次数，跳过主角生成' : '  ⚠️  Max retries reached, skipping protagonist generation');
+      }
+    }
+  }
+  
+  bible.characters = characters;
 
   // Create state with skills
   const state = createStoryState(bible.id, targetChapters);

@@ -171,24 +171,23 @@ Premise: ${premise}
 Setting: ${setting}
 Language: ${languageName}
 
-Create 2-4 main characters for this story. Generate character names appropriate for the ${languageName} language and story setting.
+Create ONLY the protagonist (main character) for Chapter 1. The user may have already mentioned the protagonist's name in the premise - if so, use that name. Otherwise, generate an appropriate name for the ${languageName} language and story setting.
 
-Return a JSON array of characters:
+Return a JSON array with ONE character:
 [
   {
     "name": "Character Name (in ${languageName})",
-    "role": "protagonist|antagonist|supporting|mentor",
+    "role": "protagonist",
     "personality": ["trait1", "trait2", "trait3"],
     "goals": ["primary goal", "secondary goal"]
   }
 ]
 
 Requirements:
-- Include exactly ONE protagonist (main character)
-- Include ONE antagonist (opposing force)
-- Include 1-2 supporting characters
+- Create ONLY ONE protagonist (the main character)
+- Check if the premise already mentions a character name - use it if found
 - Names must be authentic for the language/culture
-- Personality traits should create interesting conflicts
+- Personality traits should fit the story genre and premise
 - Goals should drive the plot based on the premise
 
 Return ONLY the JSON array, no markdown formatting.`;
@@ -196,12 +195,75 @@ Return ONLY the JSON array, no markdown formatting.`;
   try {
     const response = await llm.complete(prompt, {
       temperature: 0.8,
-      maxTokens: 1500,
+      // No maxTokens limit - let LLM return complete JSON
       task: 'generation'
     });
     
+    // DEBUG: Save raw response for analysis
+    const debugDir = '/tmp/nos-debug';
+    if (!require('fs').existsSync(debugDir)) {
+      require('fs').mkdirSync(debugDir, { recursive: true });
+    }
+    require('fs').writeFileSync(
+      `${debugDir}/character-gen-raw-${Date.now()}.json`,
+      JSON.stringify({ raw: response, timestamp: new Date().toISOString() }, null, 2)
+    );
+    
     // Clean up response and parse JSON
-    const cleaned = response.trim().replace(/^```json\s*/, '').replace(/```\s*$/, '');
+    let cleaned = response.trim().replace(/^```json\s*/, '').replace(/```\s*$/, '');
+    
+    // Handle incomplete JSON - find the last valid complete object
+    if (!cleaned.endsWith(']')) {
+      // Try to find the last complete object by matching braces and brackets
+      let braceCount = 0;
+      let bracketCount = 0;
+      let lastValidEnd = -1;
+      let inString = false;
+      let escapeNext = false;
+      
+      for (let i = 0; i < cleaned.length; i++) {
+        const char = cleaned[i];
+        
+        if (escapeNext) {
+          escapeNext = false;
+          continue;
+        }
+        
+        if (char === '\\') {
+          escapeNext = true;
+          continue;
+        }
+        
+        if (char === '"' && !escapeNext) {
+          inString = !inString;
+          continue;
+        }
+        
+        if (!inString) {
+          if (char === '{') braceCount++;
+          if (char === '}') {
+            braceCount--;
+            // Check if we're at the end of a complete object and array is balanced
+            if (braceCount === 0 && bracketCount === 0) {
+              lastValidEnd = i;
+            }
+          }
+          if (char === '[') bracketCount++;
+          if (char === ']') bracketCount--;
+        }
+      }
+      
+      if (lastValidEnd > 0) {
+        cleaned = cleaned.substring(0, lastValidEnd + 1) + ']';
+      } else {
+        // Fallback: try simple brace matching
+        const lastBrace = cleaned.lastIndexOf('}');
+        if (lastBrace > 0) {
+          cleaned = cleaned.substring(0, lastBrace + 1) + ']';
+        }
+      }
+    }
+    
     const characters: CharacterProfile[] = JSON.parse(cleaned);
     
     // Add IDs to characters
@@ -211,32 +273,6 @@ Return ONLY the JSON array, no markdown formatting.`;
     }));
   } catch (error) {
     console.error('Character generation failed:', error);
-    // Return default characters based on language
-    return getDefaultCharacters(language);
+    throw new Error(`Failed to generate protagonist: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
-}
-
-/**
- * Get default characters when LLM generation fails
- */
-function getDefaultCharacters(language: string): CharacterProfile[] {
-  const defaults: Record<string, CharacterProfile[]> = {
-    'zh': [
-      { id: generateId(), name: '李明', role: 'protagonist', personality: ['坚韧', '聪明', '有正义感'], goals: ['揭开真相', '保护家人'] },
-      { id: generateId(), name: '王强', role: 'antagonist', personality: ['狡猾', '野心勃勃', '冷酷'], goals: ['隐藏秘密', '获得权力'] },
-      { id: generateId(), name: '张丽', role: 'supporting', personality: ['善良', '勇敢', '忠诚'], goals: ['帮助朋友', '追求真相'] }
-    ],
-    'en': [
-      { id: generateId(), name: 'Alex Chen', role: 'protagonist', personality: ['determined', 'intelligent', 'resourceful'], goals: ['uncover the truth', 'protect loved ones'] },
-      { id: generateId(), name: 'Victor Black', role: 'antagonist', personality: ['cunning', 'ambitious', 'ruthless'], goals: ['hide the secret', 'gain power'] },
-      { id: generateId(), name: 'Sarah Miller', role: 'supporting', personality: ['kind', 'brave', 'loyal'], goals: ['help friends', 'seek justice'] }
-    ],
-    'ja': [
-      { id: generateId(), name: '田中健一', role: 'protagonist', personality: ['勤勉', '誠実', '勇敢'], goals: ['真実を明らかにする', '家族を守る'] },
-      { id: generateId(), name: '佐藤隆', role: 'antagonist', personality: ['狡猾', '野心的', '冷酷'], goals: ['秘密を隠す', '力を得る'] },
-      { id: generateId(), name: '山田花子', role: 'supporting', personality: ['優しい', '勇敢', '忠実'], goals: ['友達を助ける', '正義を求める'] }
-    ]
-  };
-  
-  return defaults[language] || defaults['en'];
 }

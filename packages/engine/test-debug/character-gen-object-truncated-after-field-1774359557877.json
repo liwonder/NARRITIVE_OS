@@ -1,0 +1,262 @@
+{
+  "testName": "object-truncated-after-field",
+  "timestamp": "2026-03-24T13:39:17.877Z",
+  "rawResponse": "[{\n  \"name\": \"Test\",\n  \"role\": \"protagonist\",\n  \"personality\": [\"brave\", \"smart\"]",
+  "rawResponseLength": 81,
+  "rawResponseChars": [
+    {
+      "index": 31,
+      "char": "\"",
+      "code": 34
+    },
+    {
+      "index": 32,
+      "char": "p",
+      "code": 112
+    },
+    {
+      "index": 33,
+      "char": "r",
+      "code": 114
+    },
+    {
+      "index": 34,
+      "char": "o",
+      "code": 111
+    },
+    {
+      "index": 35,
+      "char": "t",
+      "code": 116
+    },
+    {
+      "index": 36,
+      "char": "a",
+      "code": 97
+    },
+    {
+      "index": 37,
+      "char": "g",
+      "code": 103
+    },
+    {
+      "index": 38,
+      "char": "o",
+      "code": 111
+    },
+    {
+      "index": 39,
+      "char": "n",
+      "code": 110
+    },
+    {
+      "index": 40,
+      "char": "i",
+      "code": 105
+    },
+    {
+      "index": 41,
+      "char": "s",
+      "code": 115
+    },
+    {
+      "index": 42,
+      "char": "t",
+      "code": 116
+    },
+    {
+      "index": 43,
+      "char": "\"",
+      "code": 34
+    },
+    {
+      "index": 44,
+      "char": ",",
+      "code": 44
+    },
+    {
+      "index": 45,
+      "char": "\n",
+      "code": 10
+    },
+    {
+      "index": 46,
+      "char": " ",
+      "code": 32
+    },
+    {
+      "index": 47,
+      "char": " ",
+      "code": 32
+    },
+    {
+      "index": 48,
+      "char": "\"",
+      "code": 34
+    },
+    {
+      "index": 49,
+      "char": "p",
+      "code": 112
+    },
+    {
+      "index": 50,
+      "char": "e",
+      "code": 101
+    },
+    {
+      "index": 51,
+      "char": "r",
+      "code": 114
+    },
+    {
+      "index": 52,
+      "char": "s",
+      "code": 115
+    },
+    {
+      "index": 53,
+      "char": "o",
+      "code": 111
+    },
+    {
+      "index": 54,
+      "char": "n",
+      "code": 110
+    },
+    {
+      "index": 55,
+      "char": "a",
+      "code": 97
+    },
+    {
+      "index": 56,
+      "char": "l",
+      "code": 108
+    },
+    {
+      "index": 57,
+      "char": "i",
+      "code": 105
+    },
+    {
+      "index": 58,
+      "char": "t",
+      "code": 116
+    },
+    {
+      "index": 59,
+      "char": "y",
+      "code": 121
+    },
+    {
+      "index": 60,
+      "char": "\"",
+      "code": 34
+    },
+    {
+      "index": 61,
+      "char": ":",
+      "code": 58
+    },
+    {
+      "index": 62,
+      "char": " ",
+      "code": 32
+    },
+    {
+      "index": 63,
+      "char": "[",
+      "code": 91
+    },
+    {
+      "index": 64,
+      "char": "\"",
+      "code": 34
+    },
+    {
+      "index": 65,
+      "char": "b",
+      "code": 98
+    },
+    {
+      "index": 66,
+      "char": "r",
+      "code": 114
+    },
+    {
+      "index": 67,
+      "char": "a",
+      "code": 97
+    },
+    {
+      "index": 68,
+      "char": "v",
+      "code": 118
+    },
+    {
+      "index": 69,
+      "char": "e",
+      "code": 101
+    },
+    {
+      "index": 70,
+      "char": "\"",
+      "code": 34
+    },
+    {
+      "index": 71,
+      "char": ",",
+      "code": 44
+    },
+    {
+      "index": 72,
+      "char": " ",
+      "code": 32
+    },
+    {
+      "index": 73,
+      "char": "\"",
+      "code": 34
+    },
+    {
+      "index": 74,
+      "char": "s",
+      "code": 115
+    },
+    {
+      "index": 75,
+      "char": "m",
+      "code": 109
+    },
+    {
+      "index": 76,
+      "char": "a",
+      "code": 97
+    },
+    {
+      "index": 77,
+      "char": "r",
+      "code": 114
+    },
+    {
+      "index": 78,
+      "char": "t",
+      "code": 116
+    },
+    {
+      "index": 79,
+      "char": "\"",
+      "code": 34
+    },
+    {
+      "index": 80,
+      "char": "]",
+      "code": 93
+    }
+  ],
+  "error": {
+    "message": "Failed to generate protagonist: Expected ',' or '}' after property value in JSON at position 81 (line 4 column 36)",
+    "stack": "Error: Failed to generate protagonist: Expected ',' or '}' after property value in JSON at position 81 (line 4 column 36)\n    at Module.generateCharacters (C:\\Users\\David\\Documents\\GitHub\\narritive_os\\packages\\engine\\src\\story\\bible.ts:272:11)\n    at C:\\Users\\David\\Documents\\GitHub\\narritive_os\\packages\\engine\\src\\test\\character-generation.test.ts:208:26\n    at runTest (file:///C:/Users/David/Documents/GitHub/narritive_os/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:781:11)\n    at runSuite (file:///C:/Users/David/Documents/GitHub/narritive_os/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:909:15)\n    at runSuite (file:///C:/Users/David/Documents/GitHub/narritive_os/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:909:15)\n    at runFiles (file:///C:/Users/David/Documents/GitHub/narritive_os/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:958:5)\n    at startTests (file:///C:/Users/David/Documents/GitHub/narritive_os/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:967:3)\n    at file:///C:/Users/David/Documents/GitHub/narritive_os/node_modules/.pnpm/vitest@1.6.1_@types+node@20.19.37/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:116:7\n    at withEnv (file:///C:/Users/David/Documents/GitHub/narritive_os/node_modules/.pnpm/vitest@1.6.1_@types+node@20.19.37/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:83:5)\n    at run (file:///C:/Users/David/Documents/GitHub/narritive_os/node_modules/.pnpm/vitest@1.6.1_@types+node@20.19.37/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:105:3)"
+  }
+}

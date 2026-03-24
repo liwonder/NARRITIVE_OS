@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, rmSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 import type { StoryBible, StoryState, Chapter, CanonStore, StoryStructuredState, WorldStateEngineState } from '@narrative-os/engine';
@@ -26,7 +26,19 @@ export function saveStory(
 
   writeFileSync(join(storyDir, 'bible.json'), JSON.stringify(bible, null, 2));
   writeFileSync(join(storyDir, 'state.json'), JSON.stringify(state, null, 2));
-  writeFileSync(join(storyDir, 'chapters.json'), JSON.stringify(chapters, null, 2));
+  
+  // Save chapters to individual files in chapters/ directory
+  const chaptersDir = join(storyDir, 'chapters');
+  if (!existsSync(chaptersDir)) mkdirSync(chaptersDir, { recursive: true });
+  
+  for (const chapter of chapters) {
+    const chapterFile = join(chaptersDir, `chapter-${chapter.number}.json`);
+    writeFileSync(chapterFile, JSON.stringify(chapter, null, 2));
+  }
+  
+  // Also save chapters index for quick lookup
+  const chapterIndex = chapters.map(c => ({ number: c.number, title: c.title, wordCount: c.wordCount }));
+  writeFileSync(join(storyDir, 'chapters-index.json'), JSON.stringify(chapterIndex, null, 2));
   
   const canonToSave = canon || extractCanonFromBible(bible);
   writeFileSync(join(storyDir, 'canon.json'), JSON.stringify(canonToSave, null, 2));
@@ -49,7 +61,36 @@ export function loadStory(storyId: string): { bible: StoryBible; state: StorySta
   try {
     const bible = JSON.parse(readFileSync(join(storyDir, 'bible.json'), 'utf-8'));
     const state = JSON.parse(readFileSync(join(storyDir, 'state.json'), 'utf-8'));
-    const chapters = JSON.parse(readFileSync(join(storyDir, 'chapters.json'), 'utf-8'));
+    
+    // Load chapters from individual files
+    const chapters: Chapter[] = [];
+    const chaptersDir = join(storyDir, 'chapters');
+    
+    // Try to load from new format (individual files)
+    if (existsSync(chaptersDir)) {
+      const chapterFiles = readdirSync(chaptersDir)
+        .filter(f => f.startsWith('chapter-') && f.endsWith('.json'))
+        .sort((a, b) => {
+          const numA = parseInt(a.match(/chapter-(\d+)\.json/)?.[1] || '0');
+          const numB = parseInt(b.match(/chapter-(\d+)\.json/)?.[1] || '0');
+          return numA - numB;
+        });
+      
+      for (const file of chapterFiles) {
+        const chapterPath = join(chaptersDir, file);
+        const chapter = JSON.parse(readFileSync(chapterPath, 'utf-8'));
+        chapters.push(chapter);
+      }
+    } else {
+      // Fallback: try to load from old format (chapters.json)
+      const oldChaptersPath = join(storyDir, 'chapters.json');
+      if (existsSync(oldChaptersPath)) {
+        const oldChapters = JSON.parse(readFileSync(oldChaptersPath, 'utf-8'));
+        chapters.push(...oldChapters);
+        // Migrate to new format
+        saveStory(bible, state, chapters);
+      }
+    }
     
     let canon: CanonStore;
     const canonPath = join(storyDir, 'canon.json');

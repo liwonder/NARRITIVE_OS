@@ -51,21 +51,33 @@ const STATE_EXTRACTION_PROMPT = `You are a narrative state extractor. Analyze th
 
 Extract the following:
 
-1. **Character Changes**: How do characters change? (emotion, location, knowledge, relationships, goals)
-2. **Plot Thread Changes**: How do plot threads progress? (status, tension, summary updates)
-3. **New Facts**: Any new canon facts established?
-4. **World Changes**: Any changes to the world setting?
+1. **Character Changes**: How do EXISTING characters change? (emotion, location, knowledge, relationships, goals)
+2. **New Characters**: Any NEW important characters introduced? (major characters only, not background characters)
+3. **Plot Thread Changes**: How do plot threads progress? (status, tension, summary updates)
+4. **New Facts**: Any new canon facts established?
+5. **World Changes**: Any changes to the world setting?
 
 Output JSON:
 {
   "characterChanges": [
     {
-      "name": "character name",
+      "name": "existing character name",
       "emotionalState": "new emotional state or null",
       "location": "new location or null",
       "newKnowledge": ["facts learned"],
       "relationshipChanges": [{"with": "other character", "newStatus": "relationship"}],
       "newGoal": "new goal or null"
+    }
+  ],
+  "newCharacters": [
+    {
+      "name": "new character name",
+      "role": "protagonist|antagonist|supporting",
+      "importance": "major|minor|background",
+      "personality": ["trait1", "trait2"],
+      "goals": ["goal1"],
+      "background": "brief background if mentioned",
+      "firstAppearanceContext": "how they appear in this chapter"
     }
   ],
   "plotThreadChanges": [
@@ -85,7 +97,12 @@ Output JSON:
     }
   ],
   "worldChanges": ["any changes to the world"]
-}`;
+}
+
+Rules for newCharacters:
+- Only include "major" importance characters (will appear in multiple chapters, drive plot)
+- "minor" and "background" characters should be ignored
+- Check if name already exists in Current Character States before adding`;
 
 export class StateUpdaterPipeline {
   /**
@@ -101,7 +118,28 @@ export class StateUpdaterPipeline {
     // Step 1: Extract state changes using LLM
     const extraction = await this.extractChanges(chapter, bible, currentState);
     
-    // Step 2: Update structured state
+    // Step 2: Add new major characters to bible
+    const newCharactersAdded: string[] = [];
+    for (const newChar of extraction.newCharacters) {
+      if (newChar.importance === 'major' && !this.characterExistsInBible(bible, newChar.name)) {
+        bible.characters.push({
+          id: this.generateId(),
+          name: newChar.name,
+          role: newChar.role,
+          personality: newChar.personality,
+          goals: newChar.goals,
+          background: newChar.background
+        });
+        newCharactersAdded.push(newChar.name);
+        changes.push({
+          type: 'character',
+          description: `New character added to bible: ${newChar.name} (${newChar.role})`,
+          chapter: chapter.number,
+        });
+      }
+    }
+    
+    // Step 3: Update structured state
     let newState = { ...currentState };
     newState.chapter = chapter.number;
     
@@ -263,6 +301,15 @@ export class StateUpdaterPipeline {
       relationshipChanges?: Array<{ with: string; newStatus: string }>;
       newGoal?: string;
     }>;
+    newCharacters: Array<{
+      name: string;
+      role: 'protagonist' | 'antagonist' | 'supporting';
+      importance: 'major' | 'minor' | 'background';
+      personality: string[];
+      goals: string[];
+      background?: string;
+      firstAppearanceContext: string;
+    }>;
     plotThreadChanges: Array<{
       id: string;
       status?: 'dormant' | 'active' | 'escalating' | 'resolved';
@@ -296,6 +343,7 @@ export class StateUpdaterPipeline {
     
     const result = await getLLM().completeJSON<{
       characterChanges: any[];
+      newCharacters: any[];
       plotThreadChanges: any[];
       newFacts: any[];
       worldChanges: string[];
@@ -428,6 +476,16 @@ export class StateUpdaterPipeline {
   
   private sanitizeId(str: string): string {
     return str.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
+  }
+  
+  private characterExistsInBible(bible: StoryBible, name: string): boolean {
+    return bible.characters.some(c => 
+      c.name.toLowerCase() === name.toLowerCase()
+    );
+  }
+  
+  private generateId(): string {
+    return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
   }
 }
 

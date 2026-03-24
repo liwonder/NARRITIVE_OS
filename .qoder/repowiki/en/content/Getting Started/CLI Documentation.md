@@ -19,6 +19,14 @@
 - [status.ts](file://apps/cli/src/commands/status.ts)
 </cite>
 
+## Update Summary
+**Changes Made**
+- Updated Interactive Initialization System section to reflect new multilingual CLI with language selection
+- Added new Genre Selection and Optional Secondary Genres functionality
+- Enhanced Skills Selection section with customizable skill selection and intelligent defaults
+- Updated Configuration System section to reflect task-based configuration improvements
+- Added new multilingual prompt system with Chinese/English support throughout
+
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
@@ -33,6 +41,8 @@
 ## Introduction
 The Narrative OS CLI is an AI-native command-line interface designed for long-form story generation. It provides a complete workflow for creating, managing, and exporting narratives with advanced features like multi-model AI support, persistent memory, and structured storytelling state management. The CLI integrates with the Narrative OS engine to deliver sophisticated narrative generation capabilities while maintaining a simple and intuitive command structure.
 
+**Updated** The CLI now features a comprehensive multilingual initialization system supporting both English and Chinese languages, with intelligent genre selection, optional secondary genres, and customizable skill selection for enhanced creative control.
+
 ## Project Structure
 The CLI follows a modular architecture with clear separation between command handlers, configuration management, and storage persistence:
 
@@ -41,9 +51,9 @@ graph TB
 subgraph "CLI Application"
 Index[index.ts - Main Entry Point]
 subgraph "Command Handlers"
-Init[init.ts]
+Init[init.ts - Multilingual Initialization]
 Generate[generate.ts]
-Config[config.ts]
+Config[config.ts - Task-Based Config]
 List[list.ts]
 Use[use.ts]
 Read[read.ts]
@@ -60,6 +70,8 @@ subgraph "External Dependencies"
 Engine[@narrative-os/engine]
 Prompts[@inquirer/prompts]
 Commander[commander]
+Genres[@narrative-os/genres]
+Skills[@narrative-os/skills]
 end
 end
 Index --> Init
@@ -86,6 +98,8 @@ Config --> Engine
 Read --> Engine
 Export --> Engine
 Status --> Engine
+Init --> Genres
+Init --> Skills
 Index --> Prompts
 Index --> Commander
 ```
@@ -93,6 +107,7 @@ Index --> Commander
 **Diagram sources**
 - [index.ts:1-177](file://apps/cli/src/index.ts#L1-L177)
 - [store.ts:1-208](file://apps/cli/src/config/store.ts#L1-L208)
+- [init.ts:1-203](file://apps/cli/src/commands/init.ts#L1-L203)
 
 **Section sources**
 - [package.json:1-54](file://apps/cli/package.json#L1-L54)
@@ -108,6 +123,8 @@ The CLI supports multiple configuration modes including legacy single-model, mul
 
 ### Storage Persistence
 All story data is persisted in the user's home directory under `.narrative-os/stories/<story-id>/` with separate files for different data types.
+
+**Updated** Enhanced with multilingual support for Chinese and English interfaces throughout the initialization and configuration processes.
 
 **Section sources**
 - [index.ts:21-177](file://apps/cli/src/index.ts#L21-L177)
@@ -166,6 +183,9 @@ class InitCommand {
 +execute(options)
 +validateInputs()
 +generateStory()
++getGenreDisplayName(language)
++getSkillDisplayName(language)
++combineSkills(primary, secondary)
 }
 class GenerateCommand {
 +execute(storyId)
@@ -220,6 +240,48 @@ EnvVars --> Ready([Configuration Ready])
 
 **Section sources**
 - [config.ts:1-377](file://apps/cli/src/commands/config.ts#L1-L377)
+
+### Interactive Initialization System
+**Updated** The CLI now features a comprehensive multilingual initialization system with intelligent defaults and genre-based skill selection:
+
+```mermaid
+flowchart TD
+Start([Story Creation]) --> Language[Language Selection: English/中文]
+Language --> PrimaryGenre[Primary Genre Selection]
+PrimaryGenre --> SecondaryGenre{Add Secondary Genre?}
+SecondaryGenre --> |Yes| SecondarySelect[Secondary Genre Selection]
+SecondaryGenre --> |No| SkipSecondary[Skip Secondary]
+SecondarySelect --> SkipSecondary
+SkipSecondary --> Theme[Theme Input]
+Theme --> Setting[Setting Input]
+Setting --> Tone[Tone Input]
+Tone --> Premise[Premise Input]
+Premise --> Chapters[Chapter Count Selection]
+Chapters --> DefaultSkills[Calculate Default Skills]
+DefaultSkills --> Customize{Customize Skills?}
+Customize --> |Yes| SkillSelection[Interactive Skill Selection]
+Customize --> |No| UseDefaults[Use Genre Defaults]
+SkillSelection --> Title[Title Input]
+UseDefaults --> Title
+Title --> CreateBible[Create Story Bible]
+CreateBible --> GenerateChars[Generate Characters]
+GenerateChars --> SaveStory[Save Story Data]
+SaveStory --> Success[Story Created Successfully]
+```
+
+**Diagram sources**
+- [init.ts:47-203](file://apps/cli/src/commands/init.ts#L47-L203)
+
+The initialization process now includes:
+
+1. **Multilingual Support**: Users can choose between English and Chinese interfaces
+2. **Genre Intelligence**: Primary and optional secondary genre selection with automatic skill recommendations
+3. **Intelligent Defaults**: Automatic calculation of target chapter counts and skill sets based on genre combinations
+4. **Customizable Skills**: Interactive skill selection with genre-based defaults
+5. **Enhanced Validation**: Comprehensive input validation with language-specific messages
+
+**Section sources**
+- [init.ts:1-203](file://apps/cli/src/commands/init.ts#L1-L203)
 
 ### Story Management Commands
 The CLI provides comprehensive story lifecycle management:
@@ -312,22 +374,22 @@ STORY ||--o{ MEMORY : stores
 - [store.ts:1-208](file://apps/cli/src/config/store.ts#L1-L208)
 
 ### Interactive Prompt System
-The CLI uses Inquirer prompts for user-friendly interactions:
+**Updated** The CLI now features a sophisticated multilingual prompt system with genre-aware intelligence:
 
 ```mermaid
 flowchart LR
-Start([Command Execution]) --> Language[Language Selection]
-Language --> Genre[Genre Selection]
-Genre --> Theme[Theme Input]
-Theme --> Setting[Setting Input]
-Setting --> Tone[Tone Input]
-Tone --> Premise[Premise Input]
-Premise --> Chapters[Chapter Count]
-Chapters --> Skills[Skills Selection]
-Skills --> Title[Title Input]
+Start([Command Execution]) --> Language[Language Selection: English/中文]
+Language --> Genre[Genre Selection with Descriptions]
+Genre --> Theme[Theme Input with Defaults]
+Theme --> Setting[Setting Input with Defaults]
+Setting --> Tone[Tone Input with Defaults]
+Tone --> Premise[Premise Input with Validation]
+Premise --> Chapters[Chapter Count Selection]
+Chapters --> Skills[Skills Selection with Genre Defaults]
+Skills --> Title[Title Input with Validation]
 Title --> Generate[Generate Story]
 Generate --> Success[Story Created]
-Success --> NextSteps[Display Next Steps]
+Success --> NextSteps[Display Next Steps in Selected Language]
 NextSteps --> End([End])
 ```
 
@@ -386,6 +448,7 @@ The CLI is optimized for efficient story generation and management:
 - **Batch Operations**: Multiple stories can be processed efficiently
 - **Streaming Responses**: Large outputs are handled progressively
 - **Caching**: Frequently accessed story data is cached in memory
+- **Language Optimization**: Multilingual prompts are cached for improved response times
 
 ## Troubleshooting Guide
 
@@ -411,6 +474,11 @@ The CLI is optimized for efficient story generation and management:
 - Check file permissions for storage directory
 - Ensure proper cleanup of temporary files
 
+**Multilingual Issues**
+- Ensure terminal supports UTF-8 encoding for Chinese characters
+- Verify locale settings for proper language detection
+- Check font support for extended character sets
+
 **Section sources**
 - [config.ts:118-159](file://apps/cli/src/commands/config.ts#L118-L159)
 - [generate.ts:7-14](file://apps/cli/src/commands/generate.ts#L7-L14)
@@ -419,4 +487,6 @@ The CLI is optimized for efficient story generation and management:
 ## Conclusion
 The Narrative OS CLI provides a comprehensive solution for AI-powered story generation with a clean architecture, robust configuration management, and extensive feature set. Its modular design enables easy extensibility while maintaining simplicity for end users. The CLI successfully bridges the gap between powerful AI capabilities and accessible authoring tools, making sophisticated narrative generation available to writers of all technical levels.
 
-The system's strength lies in its thoughtful separation of concerns, comprehensive error handling, and user-friendly command structure that makes complex AI workflows accessible through simple, intuitive commands.
+**Updated** The recent enhancements to the multilingual initialization system, genre-based skill selection, and intelligent defaults significantly improve the user experience for both English and Chinese-speaking authors. The system's strength lies in its thoughtful separation of concerns, comprehensive error handling, user-friendly command structure, and intelligent automation that makes complex AI workflows accessible through simple, intuitive commands while respecting cultural and linguistic preferences.
+
+The system's multilingual capabilities, combined with its genre-aware intelligence and customizable skill selection, represent a significant advancement in making AI-powered narrative generation truly accessible to a global audience while maintaining the sophisticated creative control that experienced authors require.

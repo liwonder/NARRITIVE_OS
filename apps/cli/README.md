@@ -117,13 +117,17 @@ Example configuration:
 - **Auto Language Detection**: Generates stories in the language of your input
 - **Multi-Story Support**: Work on multiple stories simultaneously
 - **Active Story**: Set a current story to avoid typing ID every time
-- **Genre System**: 24 built-in genres with plot structures and pacing patterns
-- **Skills System**: 24 writing skills for different narrative techniques
+- **Genre System**: 24 built-in genres with bilingual names (English/Chinese)
+- **Skills System**: 24 writing skills with bilingual names (English/Chinese)
+- **Primary + Secondary Genre**: Combine two genres for unique story structures
+- **Auto Character Detection**: Automatically detects and adds new major characters to bible
+- **Scalable Storage**: Per-chapter JSON files support 1000+ chapter novels
+- **No Chapter Limit**: Create stories of any length (removed 200-chapter limit)
 
 ## Workflow
 
 ```
-1. nos init          → Create story with premise, characters, total chapters
+1. nos init          → Create story (language → genre → premise → chapters)
 2. nos use <id>      → Set as active story (optional but convenient)
 3. nos generate      → Generate Chapter 1 (4 scenes, 5000+ words)
 4. nos generate      → Generate Chapter 2 (continues from Chapter 1)
@@ -131,15 +135,31 @@ Example configuration:
 6. nos export <id>   → Export complete story to markdown
 ```
 
+### Story Creation Flow (`nos init`)
+
+1. **Language Selection** - Choose English or Chinese
+2. **Primary Genre** - Select main genre (e.g., Wuxia, Sci-Fi, Romance)
+3. **Secondary Genre** (optional) - Add a second genre for hybrid stories
+4. **Story Details** - Title, premise, setting, tone
+5. **Theme** - Central idea of the story
+6. **Target Chapters** - No limit (supports 1000+ chapters)
+7. **Writing Skills** - Customize narrative techniques
+8. **Confirmation** - Review and create
+
 ## Storage
 
 Stories are stored in `~/.narrative-os/stories/<story-id>/`:
 - `bible.json` - Story premise, characters, setting
-- `chapters/` - Generated chapter content
+- `chapters/` - Individual chapter files (`chapter-1.json`, `chapter-2.json`, etc.)
+- `chapters-index.json` - Quick reference index of all chapters
 - `state.json` - Current narrative state
 - `world-state.json` - Character locations, objects, relationships
 - `memories/` - Vector embeddings for semantic search
 - `canon.json` - Established story facts
+- `structured-state.json` - Character and plot tracking
+- `constraint-graph.json` - Narrative constraint relationships
+
+> **Note:** Each chapter is stored in a separate JSON file for scalability, supporting novels with 1000+ chapters without performance issues.
 
 ## Documentation
 
