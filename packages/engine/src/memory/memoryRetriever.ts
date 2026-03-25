@@ -32,7 +32,7 @@ export class MemoryRetriever {
     const results = await this.vectorStore.searchSimilar(searchQuery, k * 2);
 
     // Filter out memories from the current chapter (can't recall what hasn't happened yet)
-    const pastMemories = results.filter(r => r.memory.chapterNumber < currentChapter);
+    const pastMemories = results.filter(r => r.memory && r.memory.chapterNumber !== undefined && r.memory.chapterNumber < currentChapter);
 
     // Re-rank and filter for relevance
     const ranked = await this.rerankMemories(searchQuery, pastMemories, k);

@@ -22,11 +22,12 @@
 
 ## Update Summary
 **Changes Made**
-- Added new world-state.json file format alongside existing story data persistence
-- Updated ConfigStore interface to support optional world state parameter
-- Enhanced story loading workflow to handle world state persistence
-- Added WorldStateEngine integration for comprehensive story world management
-- Updated filesystem organization to include world state files
+- Complete redesign of storage architecture from monolithic chapters.json to individual chapter files (chapter-1.json, chapter-2.json, etc.)
+- Introduction of chapters-index.json for quick navigation and efficient chapter enumeration
+- Implementation of migration logic for converting old-format stories to new format
+- Support for unlimited chapter counts (1000+ chapters) with scalable filesystem organization
+- Enhanced story loading workflow with automatic format detection and fallback mechanisms
+- Improved performance characteristics for large story datasets with individual file access patterns
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -41,10 +42,10 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document describes the Local Storage and Persistence system used by the Narrative Operating System (NOS). It explains the filesystem organization for story data, including directory structure, file naming conventions, and serialization formats. It documents the ConfigStore interface for reading and writing story configurations, including story metadata, state snapshots, generated content, and the new world state persistence. It also covers backup and recovery mechanisms, data migration strategies between versions, conflict resolution for concurrent access, examples of story loading workflows, state restoration after application restart, manual backup procedures, storage limits, cleanup policies, performance optimization for large story datasets, and cross-platform compatibility and filesystem permissions handling.
+This document describes the Local Storage and Persistence system used by the Narrative Operating System (NOS). It explains the redesigned filesystem organization for story data, including directory structure, file naming conventions, and serialization formats. The system now features a complete overhaul from monolithic chapters.json to individual chapter files with chapters-index.json for navigation, enabling support for unlimited chapter counts (1000+ chapters) and improved performance for large story datasets. It documents the ConfigStore interface for reading and writing story configurations, including story metadata, state snapshots, generated content, and the new world state persistence. It also covers backup and recovery mechanisms, data migration strategies between versions, conflict resolution for concurrent access, examples of story loading workflows, state restoration after application restart, manual backup procedures, storage limits, cleanup policies, performance optimization for large story datasets, and cross-platform compatibility and filesystem permissions handling.
 
 ## Project Structure
-The persistence layer centers around a local filesystem layout under the user's home directory. The CLI application orchestrates story lifecycle operations and delegates persistence to a dedicated store module. The system now includes comprehensive world state management alongside traditional story data persistence.
+The persistence layer centers around a local filesystem layout under the user's home directory with a redesigned architecture supporting unlimited chapter counts. The CLI application orchestrates story lifecycle operations and delegates persistence to a dedicated store module. The system now includes comprehensive world state management alongside traditional story data persistence.
 
 - Root data directory: ~/.narrative-os
 - Stories directory: ~/.narrative-os/stories
@@ -52,7 +53,8 @@ The persistence layer centers around a local filesystem layout under the user's 
 - Files per story:
   - bible.json: serialized StoryBible
   - state.json: serialized StoryState
-  - chapters.json: serialized array of Chapter
+  - chapters/ directory: individual chapter files (chapter-1.json, chapter-2.json, etc.)
+  - chapters-index.json: JSON array of chapter metadata for quick navigation
   - canon.json: serialized CanonStore (optional; auto-extracted if missing)
   - structured-state.json: serialized StoryStructuredState (optional)
   - world-state.json: serialized WorldState (new)
@@ -67,7 +69,11 @@ Stories["stories (STORIES_DIR)"]
 Story["{storyId} (per-story directory)"]
 Bible["bible.json"]
 State["state.json"]
-Chapters["chapters.json"]
+ChaptersDir["chapters/ (directory)"]
+Chapter1["chapter-1.json"]
+Chapter2["chapter-2.json"]
+ChapterN["chapter-N.json"]
+Index["chapters-index.json"]
 Canon["canon.json"]
 Structured["structured-state.json"]
 World["world-state.json"]
@@ -78,12 +84,16 @@ DataDir --> Stories
 Stories --> Story
 Story --> Bible
 Story --> State
-Story --> Chapters
+Story --> ChaptersDir
+Story --> Index
 Story --> Canon
 Story --> Structured
 Story --> World
 Story --> Vector
 Story --> Graph
+ChaptersDir --> Chapter1
+ChaptersDir --> Chapter2
+ChaptersDir --> ChapterN
 ```
 
 **Diagram sources**
@@ -96,8 +106,8 @@ Story --> Graph
 
 ## Core Components
 - ConfigStore interface (implemented in the CLI store module):
-  - saveStory(bible, state, chapters, canon?, structuredState?, worldState?): writes six JSON files per story including the new world-state.json.
-  - loadStory(storyId): reads and parses the six JSON files; extracts canon if missing; loads optional world state.
+  - saveStory(bible, state, chapters, canon?, structuredState?, worldState?): writes files including individual chapter files and chapters-index.json.
+  - loadStory(storyId): reads and parses files with automatic format detection; supports both new individual chapter format and legacy chapters.json fallback.
   - listStories(): enumerates stories by scanning the stories directory and validating presence of required files.
 - Engine types and state:
   - StoryBible, StoryState, Chapter, CanonStore define the persisted story data model.
@@ -108,9 +118,9 @@ Story --> Graph
   - WorldStateEngine provides authoritative world database tracking characters, locations, objects, relationships, and timeline.
   - WorldStateManager offers simplified world state management with Map-based collections.
 - CLI commands:
-  - init: creates a new story and persists initial state.
-  - generate: loads story, generates next chapter, updates state, and saves.
-  - continue: loops generation until completion, saving after each chapter.
+  - init: creates a new story and persists initial state with unlimited chapter support.
+  - generate: loads story, generates next chapter, updates state, and saves with individual chapter persistence.
+  - continue: loops generation until completion, saving after each chapter with efficient file access.
   - status: displays story metadata and progress.
   - config: manages LLM provider configuration stored separately in config.json.
 
@@ -129,7 +139,7 @@ Story --> Graph
 - [index.ts:1-90](file://packages/engine/src/types/index.ts#L1-L90)
 
 ## Architecture Overview
-The CLI commands depend on the ConfigStore to manage persistence. The engine provides the data models and state transitions used by the CLI, including the new world state management capabilities.
+The CLI commands depend on the ConfigStore to manage persistence with the new individual chapter file architecture. The engine provides the data models and state transitions used by the CLI, including the new world state management capabilities.
 
 ```mermaid
 graph TB
@@ -183,16 +193,18 @@ WorldEngine --> WorldManager
 
 ## Detailed Component Analysis
 
-### ConfigStore Interface and Enhanced Filesystem Organization
-- Purpose: Provide a simple, deterministic filesystem layout for story data including the new world state persistence.
+### Redesigned ConfigStore Interface and Enhanced Filesystem Organization
+- Purpose: Provide a scalable filesystem layout for story data supporting unlimited chapter counts with individual file access patterns.
 - Directory structure:
   - DATA_DIR: ~/.narrative-os
   - STORIES_DIR: ~/.narrative-os/stories
   - STORY_DIR: ~/.narrative-os/stories/{storyId}
+  - CHAPTERS_DIR: ~/.narrative-os/stories/{storyId}/chapters (new)
 - File naming and serialization:
   - bible.json: StoryBible
   - state.json: StoryState
-  - chapters.json: Chapter[]
+  - chapters/ directory: Individual chapter files (chapter-1.json, chapter-2.json, etc.)
+  - chapters-index.json: JSON array of chapter metadata [{number, title, wordCount}, ...] for quick navigation
   - canon.json: CanonStore (optional; auto-extracted if absent)
   - structured-state.json: StoryStructuredState (optional)
   - world-state.json: WorldState (NEW)
@@ -202,6 +214,7 @@ WorldEngine --> WorldManager
   - Writes occur after ensuring directories exist.
   - No explicit transaction mechanism; writes are synchronous and overwrite existing files.
   - World state persistence supports both raw JSON strings and structured state objects.
+  - Automatic migration from old format (chapters.json) to new format (individual files).
 
 ```mermaid
 flowchart TD
@@ -209,8 +222,10 @@ Start(["saveStory called"]) --> Ensure["ensureDirs()"]
 Ensure --> MakeStoryDir["mkdir storyId if missing"]
 MakeStoryDir --> WriteBible["write bible.json"]
 WriteBible --> WriteState["write state.json"]
-WriteState --> WriteChapters["write chapters.json"]
-WriteChapters --> CanonCheck{"canon provided?"}
+WriteState --> MakeChaptersDir["mkdir chapters/ if missing"]
+MakeChaptersDir --> WriteIndividualChapters["write chapter-N.json files"]
+WriteIndividualChapters --> WriteIndex["write chapters-index.json"]
+WriteIndex --> CanonCheck{"canon provided?"}
 CanonCheck --> |Yes| WriteCanon["write canon.json"]
 CanonCheck --> |No| Extract["extractCanonFromBible()"]
 Extract --> WriteCanon
@@ -230,10 +245,13 @@ WriteWorld --> End(["done"])
 **Section sources**
 - [store.ts:15-43](file://apps/cli/src/config/store.ts#L15-L43)
 
-### Enhanced Story Loading Workflow
+### Enhanced Story Loading Workflow with Format Detection
 - loadStory(storyId):
   - Validates story directory exists.
-  - Reads and parses bible.json, state.json, chapters.json.
+  - Reads and parses bible.json, state.json.
+  - **NEW**: Attempts to load from new individual chapter format (chapters/ directory) with automatic sorting by chapter number.
+  - **NEW**: If chapters/ directory doesn't exist, falls back to legacy chapters.json format.
+  - **NEW**: Automatic migration: converts old format to new format upon first successful load.
   - If canon.json exists, parses it; otherwise, extracts CanonStore from StoryBible.
   - Loads optional structured-state.json if present.
   - Loads optional world-state.json if present.
@@ -249,7 +267,18 @@ Store->>FS : exists(storyDir)?
 alt exists
 Store->>FS : read bible.json
 Store->>FS : read state.json
+Store->>FS : exists(chapters/ directory)?
+alt exists
+Store->>FS : readdir(chapters/)
+Store->>FS : sort by chapter number
+Store->>FS : read chapter-*.json files
+else missing
+Store->>FS : exists(chapters.json)?
+alt exists
 Store->>FS : read chapters.json
+Store->>FS : write new format (chapter-*.json)
+end
+end
 Store->>FS : exists(canon.json)?
 alt exists
 Store->>FS : read canon.json
@@ -275,10 +304,10 @@ end
 ```
 
 **Diagram sources**
-- [store.ts:45-80](file://apps/cli/src/config/store.ts#L45-L80)
+- [store.ts:45-121](file://apps/cli/src/config/store.ts#L45-L121)
 
 **Section sources**
-- [store.ts:45-80](file://apps/cli/src/config/store.ts#L45-L80)
+- [store.ts:45-121](file://apps/cli/src/config/store.ts#L45-L121)
 
 ### World State Management Integration
 - WorldStateEngine (Phase 14):
@@ -321,16 +350,18 @@ ForEach --> |done| Return["return stories[]"]
 ```
 
 **Diagram sources**
-- [store.ts:82-106](file://apps/cli/src/config/store.ts#L82-L106)
+- [store.ts:123-147](file://apps/cli/src/config/store.ts#L123-L147)
 
 **Section sources**
-- [store.ts:82-106](file://apps/cli/src/config/store.ts#L82-L106)
+- [store.ts:123-147](file://apps/cli/src/config/store.ts#L123-L147)
 
 ### Data Serialization Formats
 - All persisted data is serialized as JSON:
   - StoryBible: includes identifiers, metadata, characters, plot threads, timestamps.
   - StoryState: includes story progress, tension, and summaries.
   - Chapter[]: array of generated chapters with content, titles, counts, and timestamps.
+  - **NEW**: Individual chapter files (chapter-1.json, chapter-2.json, etc.) with numeric chapter numbering.
+  - **NEW**: chapters-index.json: JSON array containing [{number, title, wordCount}, ...] for efficient navigation.
   - CanonStore: extracted from StoryBible or persisted separately.
   - StoryStructuredState: narrative structure and character development tracking.
   - WorldState: comprehensive world database including characters, locations, objects, relationships, and timeline (NEW).
@@ -352,56 +383,67 @@ ForEach --> |done| Return["return stories[]"]
 - Manual backup procedure:
   - Copy the entire ~/.narrative-os directory to a safe location.
   - To back up a single story, copy its directory under ~/.narrative-os/stories/{storyId}.
-  - Include all six JSON files (bible.json, state.json, chapters.json, canon.json, structured-state.json, world-state.json) for complete story preservation.
+  - **NEW**: Include the chapters/ directory with all individual chapter files (chapter-1.json, chapter-2.json, etc.) and chapters-index.json for complete story preservation.
+  - **NEW**: For stories migrated from old format, both chapters.json and individual chapter files may exist during transition period.
 - Recovery:
   - Restore the copied directory tree into ~/.narrative-os.
   - Verify story integrity by running status for each story ID.
-  - World state data will be automatically loaded if world-state.json exists.
+  - **NEW**: World state data will be automatically loaded if world-state.json exists.
+  - **NEW**: Automatic format detection will handle both old and new formats during recovery.
 
 **Section sources**
 - [store.ts:7-26](file://apps/cli/src/config/store.ts#L7-L26)
 - [status.ts:1-55](file://apps/cli/src/commands/status.ts#L1-L55)
 
 ### Data Migration Strategies Between Versions
-- Current state:
-  - No formal migration scripts exist.
+- **NEW**: Automatic migration implementation:
+  - When loadStory encounters a story with chapters.json but no chapters/ directory, it automatically migrates to new format.
+  - Migration process: reads chapters.json, writes individual chapter files (chapter-1.json, chapter-2.json, etc.), creates chapters-index.json.
+  - Preserves all chapter data while improving filesystem organization.
 - Recommended approach:
   - Version the DATA_DIR (e.g., ~/.narrative-os/v1, ~/.narrative-os/v2) and migrate on first launch of a new major version.
   - Implement a migration function that:
-    - Reads old-format files.
+    - Reads old-format files (chapters.json).
     - Translates field names or structures as needed.
+    - Creates new individual chapter files and chapters-index.json.
     - Creates new world-state.json files from existing story data.
     - Writes new-format files.
     - Removes or archives old files.
   - Provide a dry-run mode and rollback capability.
   - Handle backward compatibility for stories created before world state persistence was added.
 
+**Section sources**
+- [store.ts:84-93](file://apps/cli/src/config/store.ts#L84-L93)
+
 ### Conflict Resolution for Concurrent Access
 - Current behavior:
   - No explicit locking or concurrency control.
   - Writes are synchronous and overwrite files.
+  - **NEW**: Individual chapter files reduce contention as chapters are written independently.
 - Risk:
   - Concurrent writes from multiple processes may interleave or overwrite each other.
+  - **NEW**: Potential race conditions when multiple processes access the same chapters/ directory.
 - Mitigation strategies:
   - Add advisory file locks (e.g., lock files) during write operations.
   - Implement optimistic concurrency with ETags or last-modified timestamps.
   - Use atomic file replacement (write to temp file, rename) to avoid partial reads.
   - Consider implementing file-based locking for critical world state files.
+  - **NEW**: Individual chapter files reduce the likelihood of conflicts compared to monolithic chapters.json.
 
 **Section sources**
 - [store.ts:15-26](file://apps/cli/src/config/store.ts#L15-L26)
 
 ### Examples of Story Workflows
 
-#### Initialize a New Story with World State
+#### Initialize a New Story with Unlimited Chapter Support
 - Steps:
-  - Create StoryBible via engine APIs.
+  - Create StoryBible via engine APIs with unlimited chapter target (up to 1000+ chapters).
   - Add characters and optional plot threads.
   - Create initial StoryState.
   - Initialize WorldStateEngine for world management.
   - Persist with saveStory including world state.
 - Outcome:
-  - A new directory under ~/.narrative-os/stories/{storyId} with all six JSON files including world-state.json.
+  - A new directory under ~/.narrative-os/stories/{storyId} with individual chapter files and chapters-index.json supporting unlimited chapter counts.
 
 **Section sources**
 - [init.ts:1-50](file://apps/cli/src/commands/init.ts#L1-L50)
@@ -409,16 +451,16 @@ ForEach --> |done| Return["return stories[]"]
 - [state.ts:1-30](file://packages/engine/src/story/state.ts#L1-L30)
 - [store.ts:15-43](file://apps/cli/src/config/store.ts#L15-L43)
 
-#### Generate the Next Chapter with World State Updates
+#### Generate the Next Chapter with Individual File Persistence
 - Steps:
   - Load story with loadStory including world state.
   - Build GenerationContext with current state and chapter number.
   - Call generateChapter from the engine pipeline.
   - Update world state through WorldStateEngine or WorldStateManager.
   - Append new chapter to chapters and update state.
-  - Save with saveStory including updated world state.
+  - **NEW**: Save with saveStory writes individual chapter file (chapter-N.json) and updates chapters-index.json.
 - Outcome:
-  - Updated chapters.json, state.json, and world-state.json reflect the new chapter and world developments.
+  - Updated individual chapter file and chapters-index.json reflect the new chapter and world developments.
 
 **Section sources**
 - [generate.ts:1-55](file://apps/cli/src/commands/generate.ts#L1-L55)
@@ -427,12 +469,13 @@ ForEach --> |done| Return["return stories[]"]
 - [store.ts:15-43](file://apps/cli/src/config/store.ts#L15-L43)
 - [worldStateEngine.ts:64-351](file://packages/engine/src/world/worldStateEngine.ts#L64-L351)
 
-#### Continue Until Completion with World State Tracking
+#### Continue Until Completion with Efficient File Access
 - Steps:
   - Loop while currentChapter < totalChapters.
   - For each iteration, generate, update world state, append chapter, update state, and save.
+  - **NEW**: Each iteration writes only the new chapter file, minimizing I/O overhead.
 - Outcome:
-  - Full story dataset with comprehensive world state persisted incrementally.
+  - Full story dataset with individual chapter files and chapters-index.json supporting thousands of chapters efficiently.
 
 **Section sources**
 - [continue.ts:1-52](file://apps/cli/src/commands/continue.ts#L1-L52)
@@ -440,16 +483,17 @@ ForEach --> |done| Return["return stories[]"]
 - [state.ts:14-24](file://packages/engine/src/story/state.ts#L14-L24)
 - [store.ts:15-43](file://apps/cli/src/config/store.ts#L15-L43)
 
-#### List Stories and Show Status with World State Information
+#### List Stories and Show Status with Enhanced Navigation
 - Steps:
   - listStories to enumerate stories.
   - loadStory to fetch details for a specific story including world state.
+  - **NEW**: chapters-index.json enables efficient chapter enumeration without loading all individual chapter files.
 - Outcome:
-  - Displays progress, titles, recent summaries, and world state information.
+  - Displays progress, titles, recent summaries, and world state information with improved performance for large story datasets.
 
 **Section sources**
 - [status.ts:1-55](file://apps/cli/src/commands/status.ts#L1-L55)
-- [store.ts:82-106](file://apps/cli/src/config/store.ts#L82-L106)
+- [store.ts:123-147](file://apps/cli/src/config/store.ts#L123-L147)
 
 ### Cross-Platform Compatibility and Permissions
 - Platform-specific paths:
@@ -459,9 +503,10 @@ ForEach --> |done| Return["return stories[]"]
   - Ensure the user account has read/write permissions to the home directory.
 - Portable configuration:
   - LLM provider configuration is stored separately in ~/.narrative-os/config.json and applied via environment variables.
-- World state considerations:
+- **NEW**: World state considerations:
   - World state data is platform-independent JSON.
   - Large world state files may require additional disk space considerations.
+  - **NEW**: Individual chapter files improve cross-platform compatibility by avoiding filesystem limitations with monolithic files.
 
 **Section sources**
 - [store.ts:1-8](file://apps/cli/src/config/store.ts#L1-L8)
@@ -470,7 +515,7 @@ ForEach --> |done| Return["return stories[]"]
 
 ## Dependency Analysis
 - CLI depends on:
-  - ConfigStore for persistence including world state.
+  - ConfigStore for persistence including individual chapter files and chapters-index.json.
   - Engine types for data models.
   - Engine pipeline for chapter generation.
   - WorldStateEngine for comprehensive world management.
@@ -518,19 +563,28 @@ Store --> World_Persistence["saveWorldState/loadWorldState"]
 - [index.ts:1-90](file://packages/engine/src/types/index.ts#L1-L90)
 
 ## Performance Considerations
+- **NEW**: Scalable filesystem organization:
+  - Individual chapter files eliminate filesystem limitations with monolithic files.
+  - Supports unlimited chapter counts (1000+ chapters) without performance degradation.
+  - chapters-index.json enables efficient navigation without loading all chapter files.
 - File sizes:
-  - Each story includes a JSON file per component; large chapter arrays and world state data increase file sizes.
+  - Each story includes individual JSON files per chapter; large chapter arrays and world state data increase file sizes.
+  - **NEW**: Individual files enable better memory management and streaming access patterns.
   - World state files can grow significantly with complex narratives and extensive character interactions.
 - I/O patterns:
-  - Frequent small writes during generation; consider batching saves for very large datasets.
-  - World state updates may require more frequent persistence due to complexity.
+  - **NEW**: Individual chapter writes minimize I/O overhead during generation.
+  - **NEW**: chapters-index.json reduces directory scanning overhead for large numbers of chapters.
+  - **NEW**: Automatic migration from monolithic to individual files improves long-term performance.
 - Memory usage:
+  - **NEW**: Individual chapter files enable lazy loading of specific chapters.
   - Entire chapter arrays and world state collections are loaded into memory; for very large stories, consider streaming or paginated reads.
   - World state management requires Map-based collections which consume more memory than simple objects.
 - Disk space:
+  - **NEW**: Individual files improve filesystem performance and reduce fragmentation.
   - No built-in cleanup policy; implement retention policies (e.g., keep only the last N chapters or summaries).
   - Consider implementing world state compaction for very large narratives.
 - Parallelism:
+  - **NEW**: Individual chapter files reduce contention and enable better parallel processing.
   - No concurrency control; avoid running multiple CLI instances against the same story concurrently.
   - World state operations should be serialized to prevent conflicts.
 - Recommendations:
@@ -543,10 +597,18 @@ Store --> World_Persistence["saveWorldState/loadWorldState"]
 - Story not found:
   - Ensure the storyId matches a directory under ~/.narrative-os/stories.
   - Verify bible.json and state.json exist in the directory.
+- **NEW**: Format detection issues:
+  - Stories with chapters.json but no chapters/ directory will trigger automatic migration.
+  - Both old and new formats may coexist temporarily during migration.
+- **NEW**: Individual chapter file issues:
+  - Verify chapters/ directory exists and contains properly named files (chapter-1.json, chapter-2.json, etc.).
+  - Check chapters-index.json for proper JSON formatting and complete chapter metadata.
+  - **NEW**: Use chapters-index.json for troubleshooting chapter enumeration issues.
 - Partial or corrupted files:
   - Re-generate chapters or restore from backup.
   - Validate JSON syntax using a JSON linter.
   - Check world-state.json for corruption if world state is missing.
+  - **NEW**: Individual chapter files can be regenerated independently if corrupted.
 - Permission errors:
   - Confirm the user has read/write access to ~/.narrative-os.
 - Configuration issues:
@@ -563,7 +625,7 @@ Store --> World_Persistence["saveWorldState/loadWorldState"]
 - [config.ts:1-84](file://apps/cli/src/commands/config.ts#L1-L84)
 
 ## Conclusion
-The Local Storage and Persistence system uses a comprehensive, JSON-based filesystem layout under ~/.narrative-os, now enhanced with world state management for Phase 14. The ConfigStore interface centralizes persistence operations including the new world-state.json file format, while the CLI orchestrates story lifecycle tasks. The addition of WorldStateEngine and WorldStateManager provides authoritative world database functionality with logical consistency enforcement. While the current implementation lacks automatic backup, migration, and concurrency control, it provides a solid foundation that can be extended with atomic writes, versioned directories, and conflict resolution to support larger-scale usage with comprehensive world state tracking.
+The Local Storage and Persistence system uses a redesigned, comprehensive, JSON-based filesystem layout under ~/.narrative-os, now featuring individual chapter files and chapters-index.json for scalable support of unlimited chapter counts (1000+ chapters). The ConfigStore interface centralizes persistence operations including the new individual chapter file format and automatic migration logic, while the CLI orchestrates story lifecycle tasks. The addition of WorldStateEngine and WorldStateManager provides authoritative world database functionality with logical consistency enforcement. The redesigned architecture eliminates filesystem limitations, improves performance for large story datasets, and maintains backward compatibility through automatic format migration. While the current implementation lacks automatic backup, conflict resolution, and concurrency control, it provides a solid foundation that can be extended with atomic writes, versioned directories, and conflict resolution to support larger-scale usage with comprehensive world state tracking and unlimited chapter scalability.
 
 ## Appendices
 
@@ -712,26 +774,65 @@ WorldState --> CharacterAgent : "contains"
 - [worldStateEngine.ts:9-62](file://packages/engine/src/world/worldStateEngine.ts#L9-L62)
 - [worldState.ts:4-320](file://packages/engine/src/world/worldState.ts#L4-L320)
 
-### Appendix B: World State Persistence Functions
+### Appendix B: Individual Chapter File Architecture
 ```mermaid
 flowchart TD
-SaveWorld["saveWorldState(storyId, data)"] --> Ensure["ensureDirs()"]
-Ensure --> CheckDir{"storyDir exists?"}
-CheckDir --> |No| CreateDir["mkdir storyDir"]
-CheckDir --> |Yes| WriteFile["write world-state.json"]
-CreateDir --> WriteFile
-WriteFile --> Success["done"]
-LoadWorld["loadWorldState(storyId)"] --> CheckExists{"world-state.json exists?"}
-CheckExists --> |No| ReturnNull["return null"]
-CheckExists --> |Yes| ReadFile["read world-state.json"]
-ReadFile --> ParseData["parse JSON data"]
-ParseData --> ReturnData["return data or null"]
+SaveChapter["saveStory called with chapters[]"] --> EnsureDirs["ensureDirs()"]
+EnsureDirs --> MakeStoryDir["mkdir storyId if missing"]
+MakeStoryDir --> WriteMetadata["write bible.json, state.json, canon.json"]
+WriteMetadata --> MakeChaptersDir["mkdir chapters/ if missing"]
+MakeChaptersDir --> ForEach{"for each chapter"}
+ForEach --> WriteChapter["write chapter-{number}.json"]
+WriteChapter --> NextChapter["next chapter"]
+NextChapter --> ForEach
+ForEach --> |done| WriteIndex["write chapters-index.json"]
+WriteIndex --> Done["done"]
+LoadChapter["loadStory called"] --> CheckChaptersDir{"exists chapters/ directory?"}
+CheckChaptersDir --> |Yes| ReadIndividual["read chapter-*.json files"]
+CheckChaptersDir --> |No| CheckOldFormat{"exists chapters.json?"}
+CheckOldFormat --> |Yes| ReadOld["read chapters.json"]
+ReadOld --> Migrate["migrate to individual files"]
+Migrate --> WriteNew["write chapter-*.json and chapters-index.json"]
+WriteNew --> ReadIndividual
+ReadIndividual --> SortFiles["sort by chapter number"]
+SortFiles --> ParseChapters["parse all chapter files"]
+ParseChapters --> ReturnData["return story data"]
 ```
 
 **Diagram sources**
-- [store.ts:188-208](file://apps/cli/src/config/store.ts#L188-L208)
+- [store.ts:15-43](file://apps/cli/src/config/store.ts#L15-L43)
+- [store.ts:65-93](file://apps/cli/src/config/store.ts#L65-L93)
 
 **Section sources**
-- [store.ts:188-208](file://apps/cli/src/config/store.ts#L188-L208)
-- [worldStateEngine.ts:286-288](file://packages/engine/src/world/worldStateEngine.ts#L286-L288)
-- [worldState.ts:289-315](file://packages/engine/src/world/worldState.ts#L289-L315)
+- [store.ts:15-43](file://apps/cli/src/config/store.ts#L15-L43)
+- [store.ts:65-93](file://apps/cli/src/config/store.ts#L65-L93)
+
+### Appendix C: Migration Process Details
+```mermaid
+sequenceDiagram
+participant User as "User"
+participant Store as "ConfigStore"
+participant FS as "Filesystem"
+User->>Store : loadStory(storyId)
+Store->>FS : check chapters/ directory
+alt chapters/ exists
+Store->>FS : read individual chapter files
+else chapters/ missing
+Store->>FS : check chapters.json
+alt chapters.json exists
+Store->>FS : read chapters.json
+Store->>FS : write chapter-1.json, chapter-2.json, ...
+Store->>FS : write chapters-index.json
+Store->>FS : read newly created files
+else neither exists
+Store-->>User : null
+end
+end
+Store-->>User : story data with chapters[]
+```
+
+**Diagram sources**
+- [store.ts:84-93](file://apps/cli/src/config/store.ts#L84-L93)
+
+**Section sources**
+- [store.ts:84-93](file://apps/cli/src/config/store.ts#L84-L93)

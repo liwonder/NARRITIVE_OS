@@ -4,6 +4,7 @@ import type { CanonStore } from '../memory/canonStore.js';
 import { formatCanonForPrompt } from '../memory/canonStore.js';
 import type { MemoryRetriever } from '../memory/memoryRetriever.js';
 import type { DirectorOutput } from './storyDirector.js';
+import { calculateWordCount } from '../utils/text.js';
 
 const WRITER_PROMPT = `You are a professional novelist writing immersive narrative prose.
 
@@ -118,7 +119,7 @@ export class ChapterWriter {
     });
 
     const title = this.extractTitle(content) || `Chapter ${chapterNumber}`;
-    const wordCount = content.split(/\s+/).length;
+    const wordCount = calculateWordCount(content);
 
     return { content, title, wordCount };
   }
@@ -263,7 +264,7 @@ Write the full chapter now.`;
     });
 
     const title = this.extractTitle(content) || scenePlan.chapterTitle || `Chapter ${chapterNumber}`;
-    const wordCount = content.split(/\s+/).length;
+    const wordCount = calculateWordCount(content);
 
     return { content, title, wordCount };
   }
@@ -292,6 +293,13 @@ Write the full chapter now.`;
     }
     return null;
   }
+
+  /**
+   * Calculate word count for both English and Chinese text
+   * - English: count words separated by whitespace
+   * - Chinese: count characters (each character is a "word")
+   */
+
 }
 
 export const writer = new ChapterWriter();

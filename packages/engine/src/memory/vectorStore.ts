@@ -120,10 +120,19 @@ export class VectorStore {
     
     const results = this.index.searchKnn(queryEmbedding, k);
 
-    return results.neighbors.map((id: number, i: number) => ({
-      memory: this.memories.get(id)!,
-      score: results.distances[i],
-    }));
+    return results.neighbors
+      .map((id: number, i: number) => {
+        const memory = this.memories.get(id);
+        if (!memory) {
+          console.warn(`[VectorStore] Memory with id ${id} not found in map`);
+          return null;
+        }
+        return {
+          memory,
+          score: results.distances[i],
+        };
+      })
+      .filter((result): result is MemorySearchResult => result !== null);
   }
 
   async searchByCategory(query: string, category: NarrativeMemory['category'], k: number = 5): Promise<MemorySearchResult[]> {

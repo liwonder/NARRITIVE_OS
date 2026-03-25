@@ -14,6 +14,7 @@ import type { CanonStore } from '../memory/canonStore.js';
 import { extractCanonFromChapter } from '../memory/canonStore.js';
 import type { VectorStore } from '../memory/vectorStore.js';
 import { createMemoryRetriever, MemoryRetriever } from '../memory/memoryRetriever.js';
+import { calculateWordCount } from '../utils/text.js';
 
 export interface GenerateChapterResult {
   chapter: Chapter;
@@ -306,7 +307,8 @@ async function generateChapterLegacy(
 
     console.log(`  Chapter incomplete, continuing... (attempt ${attempts + 1})`);
     output.content = await writer.continue(output.content, context);
-    output.wordCount = output.content.split(/\s+/).length;
+    // Recalculate word count using the same method as writer
+    output.wordCount = calculateWordCount(output.content);
     attempts++;
   }
 

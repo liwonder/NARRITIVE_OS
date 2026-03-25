@@ -133,6 +133,11 @@ function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 }
 
+// Segment size for long chapters (characters)
+const CANON_SEGMENT_SIZE = 5000;
+// Overlap between segments
+const CANON_SEGMENT_OVERLAP = 400;
+
 /**
  * Extract new canon facts from chapter content
  * Canon stores IMMUTABLE facts only - events that happened, revelations made, background established
@@ -143,6 +148,62 @@ export async function extractCanonFromChapter(
   chapter: Chapter,
   bible: StoryBible
 ): Promise<CanonStore> {
+  const content = chapter.content;
+  
+  // If content is short enough, extract directly
+  if (content.length <= CANON_SEGMENT_SIZE) {
+    return extractCanonFromSegment(store, chapter, bible, content);
+  }
+
+  // For long content, segment and extract from each part
+  console.log(`  Canon extraction: Chapter ${chapter.number} is long (${content.length} chars), segmenting...`);
+  const segments = segmentContentForCanon(content);
+  let updatedStore = store;
+
+  for (let i = 0; i < segments.length; i++) {
+    console.log(`  Extracting canon from segment ${i + 1}/${segments.length}...`);
+    updatedStore = await extractCanonFromSegment(updatedStore, chapter, bible, segments[i], i + 1, segments.length);
+  }
+
+  console.log(`  Canon extraction complete: ${updatedStore.facts.length - store.facts.length} new facts`);
+  return updatedStore;
+}
+
+function segmentContentForCanon(content: string): string[] {
+  const segments: string[] = [];
+  let start = 0;
+
+  while (start < content.length) {
+    const end = Math.min(start + CANON_SEGMENT_SIZE, content.length);
+    // Try to break at a paragraph boundary
+    let breakPoint = end;
+    if (end < content.length) {
+      const searchRange = content.substring(Math.max(start + CANON_SEGMENT_SIZE - 200, start), end + 200);
+      const paragraphBreak = searchRange.lastIndexOf('\n\n');
+      if (paragraphBreak > 0) {
+        breakPoint = Math.max(start + CANON_SEGMENT_SIZE - 200, start) + paragraphBreak + 2;
+      }
+    }
+
+    segments.push(content.substring(start, breakPoint));
+    start = breakPoint - CANON_SEGMENT_OVERLAP;
+  }
+
+  return segments;
+}
+
+async function extractCanonFromSegment(
+  store: CanonStore,
+  chapter: Chapter,
+  bible: StoryBible,
+  segmentContent: string,
+  segmentIndex?: number,
+  totalSegments?: number
+): Promise<CanonStore> {
+  const segmentInfo = segmentIndex && totalSegments && totalSegments > 1 
+    ? ` (Part ${segmentIndex} of ${totalSegments})` 
+    : '';
+
   const prompt = `You are a canon extractor. Extract IMMUTABLE facts from this chapter that should be permanently recorded in the story's canon.
 
 ## Story Bible
@@ -153,8 +214,8 @@ Setting: ${bible.setting}
 ## Existing Canon Facts (DO NOT duplicate these)
 ${store.facts.map(f => `- ${f.subject} ${f.attribute}: ${f.value}`).join('\n') || 'None yet'}
 
-## Chapter ${chapter.number}: ${chapter.title}
-${chapter.content.substring(0, 6000)}
+## Chapter ${chapter.number}: ${chapter.title}${segmentInfo}
+${segmentContent}
 
 ## IMPORTANT: Canon vs World State Boundary
 

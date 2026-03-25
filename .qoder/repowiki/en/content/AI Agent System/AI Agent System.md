@@ -11,15 +11,16 @@
 - [worldState.ts](file://packages/engine/src/world/worldState.ts)
 - [generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts)
 - [stateUpdater.ts](file://packages/engine/src/agents/stateUpdater.ts)
+- [characterStrategy.ts](file://packages/engine/src/agents/characterStrategy.ts)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Updated to include new WorldStateUpdater agent for LLM-based world state extraction and validation
-- Enhanced integration with World State Engine for comprehensive narrative consistency
-- Added sophisticated world state management with character movements, object tracking, and relationship updates
-- Integrated WorldStateUpdater into the scene-level generation pipeline for real-time world state validation
-- Expanded agent ecosystem with advanced world state tracking and consistency enforcement
+- Updated to include new CharacterStrategyAnalyzer agent for analyzing character behaviors, motivations, and narrative arcs
+- Enhanced integration with WorldStateUpdater system for persistent character strategy tracking
+- Expanded AI agent capabilities for automated world-state maintenance and character strategy management
+- Integrated CharacterStrategyAnalyzer into the scene-level generation pipeline for real-time character strategy analysis
+- Added sophisticated character strategy tracking with persistent storage in WorldStateEngine
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -31,20 +32,21 @@
 7. [Character Agent System](#character-agent-system)
 8. [Story Director Integration](#story-director-integration)
 9. [World State Management System](#world-state-management-system)
-10. [WorldStateUpdater Integration](#worldstateupdater-integration)
-11. [Agent Coordination Mechanisms](#agent-coordination-mechanisms)
-12. [Performance Considerations](#performance-considerations)
-13. [Troubleshooting Guide](#troubleshooting-guide)
-14. [Conclusion](#conclusion)
-15. [Appendices](#appendices)
+10. [CharacterStrategyAnalyzer Integration](#characterstrategyanalyzer-integration)
+11. [WorldStateUpdater Integration](#worldstateupdater-integration)
+12. [Agent Coordination Mechanisms](#agent-coordination-mechanisms)
+13. [Performance Considerations](#performance-considerations)
+14. [Troubleshooting Guide](#troubleshooting-guide)
+15. [Conclusion](#conclusion)
+16. [Appendices](#appendices)
 
 ## Introduction
-This document explains the AI Agent System that powers narrative generation, featuring a sophisticated ecosystem of specialized agents working together to create compelling stories. The system has evolved to include advanced coordination mechanisms through the Story Director Agent, intelligent character simulation via the Character Agent System, enhanced tension management through the improved Tension Controller Agent, and a comprehensive World State Management System with the new WorldStateUpdater agent. The system encompasses the agent architecture, responsibilities, communication patterns, and coordination mechanisms. It documents prompt engineering approaches, LLM integration patterns, and parameter configuration for each agent. Practical examples illustrate agent interactions, decision-making, and error handling. Guidance is included for customization, performance optimization, debugging, and the relationship between agents and the overall generation pipeline.
+This document explains the AI Agent System that powers narrative generation, featuring a sophisticated ecosystem of specialized agents working together to create compelling stories. The system has evolved to include advanced coordination mechanisms through the Story Director Agent, intelligent character simulation via the Character Agent System, enhanced tension management through the improved Tension Controller Agent, comprehensive world state management with the new CharacterStrategyAnalyzer agent, and the integrated WorldStateUpdater system for persistent character strategy tracking. The system encompasses the agent architecture, responsibilities, communication patterns, and coordination mechanisms. It documents prompt engineering approaches, LLM integration patterns, and parameter configuration for each agent. Practical examples illustrate agent interactions, decision-making, and error handling. Guidance is included for customization, performance optimization, debugging, and the relationship between agents and the overall generation pipeline.
 
-**Updated** The system now features four major enhancements: the Story Director Agent for high-level narrative coordination, the Character Agent System for intelligent character behavior simulation, the enhanced Tension Controller Agent with advanced parabolic tension calculation and guidance, and the WorldStateUpdater Agent for comprehensive world state extraction and validation.
+**Updated** The system now features five major enhancements: the Story Director Agent for high-level narrative coordination, the Character Agent System for intelligent character behavior simulation, the enhanced Tension Controller Agent with advanced parabolic tension calculation and guidance, the CharacterStrategyAnalyzer Agent for comprehensive character analysis and strategy tracking, and the WorldStateUpdater Agent for comprehensive world state extraction and validation.
 
 ## Project Structure
-The engine package implements a comprehensive AI agent ecosystem including the new Story Director Agent, Character Agent System, enhanced Tension Controller, WorldStateUpdater Agent, and integrated coordination mechanisms. The system supports sophisticated narrative generation workflows with intelligent character simulation, precise tension management, and comprehensive world state tracking.
+The engine package implements a comprehensive AI agent ecosystem including the new CharacterStrategyAnalyzer Agent, Story Director Agent, Character Agent System, enhanced Tension Controller, WorldStateUpdater Agent, and integrated coordination mechanisms. The system supports sophisticated narrative generation workflows with intelligent character simulation, precise tension management, comprehensive world state tracking, and persistent character strategy management.
 
 ```mermaid
 graph TB
@@ -52,6 +54,7 @@ subgraph "Enhanced Agent Ecosystem"
 STORYDIRECTOR["StoryDirector<br/>storyDirector.ts"]
 CHARACTERAGENT["CharacterAgentSystem<br/>characterAgent.ts"]
 TENSIONCONTROLLER["TensionController<br/>tensionController.ts"]
+CHARACTERSTRATEGY["CharacterStrategyAnalyzer<br/>characterStrategy.ts"]
 WORLDSTATEUPDATER["WorldStateUpdater<br/>worldStateUpdater.ts"]
 ENDSUBGRAPH
 subgraph "Core Generation Agents"
@@ -80,9 +83,12 @@ STORYDIRECTOR --> TENSIONCONTROLLER
 STORYDIRECTOR --> CHARACTERAGENT
 CHARACTERAGENT --> EVENTRESOLVER
 EVENTRESOLVER --> WORLDSTATEMANAGER
+CHARACTERSTRATEGY --> WORLDSTATEENGINE
 WORLDSTATEUPDATER --> WORLDSTATEENGINE
 WORLDSTATEUPDATER --> GENERATECHAPTER
+CHARACTERSTRATEGY --> GENERATECHAPTER
 GENERATECHAPTER --> WORLDSTATEUPDATER
+GENERATECHAPTER --> CHARACTERSTRATEGY
 TENSIONCONTROLLER --> SCENEPLANNER
 SCENEPLANNER --> SCENEWRITER
 SCENEWRITER --> SCENEVALIDATOR
@@ -98,6 +104,7 @@ STATEUPDATER --> SUMMARIZER
 - [storyDirector.ts:100-276](file://packages/engine/src/agents/storyDirector.ts#L100-L276)
 - [characterAgent.ts:91-304](file://packages/engine/src/world/characterAgent.ts#L91-L304)
 - [tensionController.ts:214-252](file://packages/engine/src/agents/tensionController.ts#L214-L252)
+- [characterStrategy.ts:71-218](file://packages/engine/src/agents/characterStrategy.ts#L71-L218)
 - [worldStateUpdater.ts:80-251](file://packages/engine/src/agents/worldStateUpdater.ts#L80-L251)
 - [worldStateEngine.ts:64-352](file://packages/engine/src/world/worldStateEngine.ts#L64-L352)
 - [generateChapter.ts:40-420](file://packages/engine/src/pipeline/generateChapter.ts#L40-L420)
@@ -110,23 +117,26 @@ STATEUPDATER --> SUMMARIZER
 - **StoryDirector**: High-level narrative coordinator that determines chapter objectives, manages focus characters, and provides tension guidance for optimal story progression.
 - **CharacterAgentSystem**: Intelligent character simulation system that generates realistic character decisions, manages agendas, and simulates complex social interactions.
 - **TensionController**: Advanced tension management system with parabolic curve calculation, real-time analysis, and comprehensive guidance generation for dramatic arc control.
+- **CharacterStrategyAnalyzer**: Comprehensive character analysis agent that examines character behaviors, motivations, and narrative arcs to provide strategic insights for story development.
 - **WorldStateUpdater**: LLM-based world state extraction agent that analyzes scene/chapter content and updates the WorldStateEngine with new facts, character movements, object changes, and relationship updates.
 - **Enhanced Scene-level Agents**: Six specialized agents (ScenePlanner, SceneWriter, SceneValidator, SceneAssembler, SceneOutcomeExtractor) providing granular narrative control with quality assurance.
 - **Integrated Coordination**: Seamless integration between all agents through centralized export system and shared state management.
 
-**Updated** The addition of the WorldStateUpdater Agent completes the narrative generation ecosystem with sophisticated world state management, comprehensive extraction and validation capabilities, and seamless integration with the existing agent ecosystem.
+**Updated** The addition of the CharacterStrategyAnalyzer Agent completes the narrative generation ecosystem with sophisticated character analysis and strategy tracking, comprehensive extraction and validation capabilities, and seamless integration with the existing agent ecosystem and WorldStateEngine for persistent character strategy management.
 
 **Section sources**
 - [storyDirector.ts:6-31](file://packages/engine/src/agents/storyDirector.ts#L6-L31)
 - [characterAgent.ts:4-39](file://packages/engine/src/world/characterAgent.ts#L4-L39)
 - [tensionController.ts:4-17](file://packages/engine/src/agents/tensionController.ts#L4-L17)
+- [characterStrategy.ts:5-23](file://packages/engine/src/agents/characterStrategy.ts#L5-L23)
 - [worldStateUpdater.ts:1-251](file://packages/engine/src/agents/worldStateUpdater.ts#L1-L251)
 
 ## Architecture Overview
-The enhanced system now features a multi-layered architecture with sophisticated coordination mechanisms and comprehensive world state management:
+The enhanced system now features a multi-layered architecture with sophisticated coordination mechanisms, comprehensive world state management, and advanced character strategy analysis:
 
 - **Strategic Layer**: StoryDirector coordinates high-level narrative objectives and tension management across the entire story arc.
 - **Character Simulation Layer**: CharacterAgentSystem provides intelligent character behavior simulation with complex agendas and relationship management.
+- **Character Strategy Layer**: CharacterStrategyAnalyzer analyzes character behaviors, motivations, and narrative arcs to provide strategic insights and track character development.
 - **Execution Layer**: Enhanced scene-level agents handle detailed narrative execution with comprehensive quality control and state management.
 - **World State Layer**: WorldStateUpdater and WorldStateEngine provide comprehensive world state tracking, extraction, and validation for narrative consistency.
 - **Integration Layer**: Centralized coordination system manages communication between all agents and maintains consistent state throughout the generation process.
@@ -136,6 +146,7 @@ sequenceDiagram
 participant Director as "StoryDirector"
 participant Tension as "TensionController"
 participant Character as "CharacterAgentSystem"
+participant Strategy as "CharacterStrategyAnalyzer"
 participant Planner as "ScenePlanner"
 participant Writer as "SceneWriter"
 participant Validator as "SceneValidator"
@@ -148,21 +159,25 @@ Director->>Character : "Coordinate character simulation"
 Character-->>Director : "Character decisions & outcomes"
 Director->>Planner : "Provide chapter objectives"
 Planner->>Writer : "Execute scene planning"
+Writer->>Strategy : "Analyze character strategies"
+Strategy->>WorldEngine : "Store character strategies"
+Strategy-->>Writer : "Character strategy insights"
 Writer->>WorldUpdater : "Extract world state from content"
 WorldUpdater->>WorldEngine : "Apply world state updates"
 WorldEngine-->>WorldUpdater : "Updated world state"
 Writer->>Validator : "Generate and validate content"
 Validator-->>Writer : "Quality assurance feedback"
 Writer->>Assembler : "Assemble final chapter"
-Note over Director,Assembler : "Multi-layered coordination with intelligent character simulation and comprehensive world state management"
+Note over Director,Assembler : "Multi-layered coordination with intelligent character simulation, comprehensive world state management, and persistent character strategy tracking"
 ```
 
-**Updated** The architecture now includes sophisticated multi-layer coordination with the StoryDirector managing high-level objectives, the CharacterAgentSystem providing intelligent character simulation, the TensionController ensuring optimal dramatic progression, and the WorldStateUpdater maintaining comprehensive world state consistency throughout the narrative.
+**Updated** The architecture now includes sophisticated multi-layer coordination with the StoryDirector managing high-level objectives, the CharacterAgentSystem providing intelligent character simulation, the CharacterStrategyAnalyzer offering strategic character insights, the TensionController ensuring optimal dramatic progression, and the WorldStateUpdater maintaining comprehensive world state consistency throughout the narrative.
 
 **Diagram sources**
 - [storyDirector.ts:100-276](file://packages/engine/src/agents/storyDirector.ts#L100-L276)
 - [tensionController.ts:214-252](file://packages/engine/src/agents/tensionController.ts#L214-L252)
 - [characterAgent.ts:270-304](file://packages/engine/src/world/characterAgent.ts#L270-L304)
+- [characterStrategy.ts:231-247](file://packages/engine/src/agents/characterStrategy.ts#L231-L247)
 - [worldStateUpdater.ts:231-247](file://packages/engine/src/agents/worldStateUpdater.ts#L231-L247)
 - [worldStateEngine.ts:64-352](file://packages/engine/src/world/worldStateEngine.ts#L64-L352)
 
@@ -310,6 +325,68 @@ Practical example:
 
 **Section sources**
 - [tensionController.ts:214-252](file://packages/engine/src/agents/tensionController.ts#L214-L252)
+
+### CharacterStrategyAnalyzer Agent
+**New** Comprehensive character analysis and strategy tracking agent that examines character behaviors, motivations, and narrative arcs to provide strategic insights for story development.
+
+Core responsibilities:
+- **Character Analysis**: Examine character roles, backgrounds, and current situations to understand motivations and goals.
+- **Strategy Generation**: Determine character current goals, long-term objectives, and next chapter targets.
+- **Relationship Mapping**: Analyze character relationships with other key characters and emotional states.
+- **Conflict Detection**: Identify potential conflicts between character strategies and relationships.
+- **New Character Handling**: Provide initial strategy establishment for newly introduced characters.
+- **Persistent Tracking**: Integrate with WorldStateEngine for long-term character strategy storage and retrieval.
+
+Analysis capabilities:
+- **Current Goal Determination**: Identify character's immediate objectives and short-term motivations.
+- **Long-term Objective Mapping**: Understand character's ultimate story objectives and character arcs.
+- **Motivation Analysis**: Extract emotional drivers and psychological reasons behind character actions.
+- **Obstacle Identification**: Recognize barriers and challenges impeding character progress.
+- **Relationship Assessment**: Evaluate character relationships with trust, hostility, and dynamic changes.
+- **Emotional Arc Tracking**: Monitor character emotional development and state changes over time.
+- **Next Chapter Target Setting**: Define specific objectives for upcoming narrative developments.
+
+Prompt engineering approach:
+- **Comprehensive Character Context**: Integrates character background, role, and current story position.
+- **Chapter-specific Analysis**: Considers chapter number, title, and summary for contextual understanding.
+- **Previous Strategy Integration**: Uses WorldStateEngine stored strategies for continuity analysis.
+- **Relationship Context**: Includes other characters for comprehensive relationship mapping.
+- **Structured JSON Output**: Provides detailed character strategy information in standardized format.
+
+LLM integration pattern:
+- **Temperature Control**: Uses 0.4 temperature for focused and analytical character assessment.
+- **Token Management**: Limits analysis to 1500 tokens for comprehensive yet efficient character evaluation.
+- **JSON Mode**: Relies on structured output for reliable parsing and strategy storage.
+
+Parameters:
+- **Temperature**: 0.4 for analytical and consistent character strategy analysis.
+- **Max Tokens**: 1500 for comprehensive character context and strategy evaluation.
+- **Conflict Detection**: Heuristic-based conflict identification using keyword matching and relationship analysis.
+
+Conflict detection system:
+- **Goal Collision Analysis**: Identifies when multiple characters desire the same objectives.
+- **Hostile Relationship Screening**: Flags conflicts between characters with enemy relationships.
+- **Heuristic Conflict Scoring**: Uses common action keywords to identify potential goal conflicts.
+- **Conflict Reporting**: Provides detailed descriptions and character pairings for identified conflicts.
+
+Application logic:
+- **Strategy Storage**: Integrates with WorldStateEngine to persist character strategies.
+- **New Character Recognition**: Detects previously unseen characters and provides initial strategy setup.
+- **Conflict Reporting**: Generates conflict reports for narrative coordination and tension management.
+- **Error Handling**: Continues analysis even when individual character evaluations fail.
+
+Customization tips:
+- **Conflict Detection Tuning**: Adjust keyword matching thresholds for different narrative styles.
+- **Strategy Persistence**: Customize WorldStateEngine integration for different storage requirements.
+- **Analysis Depth**: Modify prompt complexity for different story complexities and character depths.
+
+Practical example:
+- Analyzes character motivations and establishes current goals for established characters.
+- Detects conflicts between characters with competing objectives and hostile relationships.
+- Provides next chapter targets that drive narrative progression and character development.
+
+**Section sources**
+- [characterStrategy.ts:71-218](file://packages/engine/src/agents/characterStrategy.ts#L71-L218)
 
 ### WorldStateUpdater Agent
 **New** Comprehensive world state extraction and validation agent that analyzes scene/chapter content to update the WorldStateEngine with new facts and changes.
@@ -465,16 +542,18 @@ The WorldStateEngine serves as the authoritative database for story reality:
 - **Object Management**: Tracks objects with locations, owners, discovery records, and properties
 - **Relationship Modeling**: Maintains character relationships with trust levels, hostility, and relationship types
 - **Timeline Management**: Records events with descriptions, participants, locations, timestamps, and chapter/scene context
+- **Character Strategies**: Stores character current goals, long-term objectives, motivations, and next chapter targets
 - **Consistency Enforcement**: Prevents logical impossibilities like teleportation or impossible knowledge
 
 ### Core Operations
 Comprehensive state manipulation capabilities:
 
-- **Character Operations**: Add, move, kill, update knowledge, and set emotional states
+- **Character Operations**: Add, move, kill, update knowledge, set emotional states, and track strategies
 - **Location Operations**: Add, connect, and manage location characteristics
 - **Object Operations**: Add, move, and track discoveries
 - **Relationship Operations**: Set and retrieve relationship states
 - **Timeline Operations**: Add and manage event records
+- **Strategy Operations**: Set and retrieve character strategies with persistence
 - **Validation Helpers**: Provide consistency checks and state queries
 
 ### State Formatting
@@ -488,13 +567,59 @@ Structured state presentation for LLM consumption:
 ### Integration Points
 Seamless integration with other systems:
 
-- **Generation Pipeline**: Provides state context for scene generation
+- **Generation Pipeline**: Provides state context for scene generation and strategy analysis
 - **Validation Systems**: Enforces logical consistency during generation
 - **Memory Systems**: Supports knowledge-based memory extraction
 - **Constraint Systems**: Enables constraint satisfaction checking
+- **Strategy Tracking**: Maintains persistent character development records
 
 **Section sources**
 - [worldStateEngine.ts:1-352](file://packages/engine/src/world/worldStateEngine.ts#L1-L352)
+
+## CharacterStrategyAnalyzer Integration
+**New** Sophisticated integration of the CharacterStrategyAnalyzer Agent with the generation pipeline and World State Engine.
+
+### Pipeline Integration
+The CharacterStrategyAnalyzer integrates seamlessly into the scene-level generation workflow:
+
+- **Strategic Analysis**: Processes chapter content and character information to generate strategic insights
+- **Real-time Strategy Updates**: Stores character strategies in WorldStateEngine for persistent tracking
+- **Conflict Detection**: Identifies potential narrative conflicts between character strategies
+- **New Character Handling**: Establishes initial strategies for newly introduced characters
+- **Error Isolation**: Continues generation even if character strategy analysis fails
+
+### Strategy Storage and Retrieval
+Comprehensive character strategy management through WorldStateEngine:
+
+- **Strategy Persistence**: Character strategies stored with chapter timestamps for historical tracking
+- **Strategy Retrieval**: Previous character strategies retrieved for continuity analysis
+- **Strategy Updates**: New strategies overwrite previous ones with updated character development
+- **Conflict Analysis**: Multiple character strategies analyzed for potential narrative conflicts
+- **Error Recovery**: Individual strategy failures don't compromise overall generation
+
+### Analysis Process
+Structured character analysis with comprehensive context:
+
+- **Character Context**: Integrates character background, role, and current story position
+- **Chapter Analysis**: Considers chapter number, title, and summary for contextual understanding
+- **Previous Strategy Integration**: Uses WorldStateEngine stored strategies for continuity analysis
+- **Relationship Context**: Includes other characters for comprehensive relationship mapping
+- **New Character Detection**: Identifies newly introduced characters for initial strategy establishment
+- **Conflict Identification**: Detects potential conflicts between character objectives and relationships
+
+### Conflict Resolution Benefits
+Enhanced narrative coherence through systematic conflict detection:
+
+- **Goal Collision Prevention**: Identifies when multiple characters desire the same objectives
+- **Relationship Conflict Management**: Flags conflicts between characters with enemy relationships
+- **Narrative Tension Enhancement**: Provides strategic insights for dramatic conflict development
+- **Character Development Tracking**: Monitors character growth and changing motivations over time
+- **Story Progression Guidance**: Offers insights for maintaining coherent character-driven narratives
+
+**Section sources**
+- [generateChapter.ts:222-267](file://packages/engine/src/pipeline/generateChapter.ts#L222-L267)
+- [characterStrategy.ts:71-218](file://packages/engine/src/agents/characterStrategy.ts#L71-L218)
+- [worldStateEngine.ts:310-320](file://packages/engine/src/world/worldStateEngine.ts#L310-L320)
 
 ## WorldStateUpdater Integration
 **New** Sophisticated integration of the WorldStateUpdater Agent with the generation pipeline and World State Engine.
@@ -546,17 +671,18 @@ Enhanced narrative consistency through systematic validation:
 ### Centralized Integration
 The enhanced system provides:
 
-- **Unified Export System**: Comprehensive agent exports through centralized index system including new WorldStateUpdater.
+- **Unified Export System**: Comprehensive agent exports through centralized index system including new CharacterStrategyAnalyzer and WorldStateUpdater.
 - **State Synchronization**: Real-time state sharing between coordinating agents and WorldStateEngine.
 - **Communication Protocols**: Standardized interfaces for agent-to-agent communication.
-- **Fallback Coordination**: Graceful degradation when individual agents fail, including WorldStateUpdater failures.
+- **Fallback Coordination**: Graceful degradation when individual agents fail, including CharacterStrategyAnalyzer and WorldStateUpdater failures.
 
 ### Hierarchical Coordination
 Multi-level agent coordination:
 
 - **Strategic Level**: StoryDirector coordinates high-level objectives and tension management.
-- **Execution Level**: Scene-level agents handle detailed narrative execution with WorldStateUpdater integration.
+- **Execution Level**: Scene-level agents handle detailed narrative execution with CharacterStrategyAnalyzer integration.
 - **Simulation Level**: CharacterAgentSystem provides behavioral coordination.
+- **Analysis Level**: CharacterStrategyAnalyzer provides strategic character insights and conflict detection.
 - **Validation Level**: WorldStateUpdater ensures narrative consistency and logical coherence.
 - **Quality Level**: Validation agents ensure narrative consistency and quality.
 
@@ -568,21 +694,23 @@ Seamless state management across all agents and world state systems:
 - **Constraint Enforcement**: Constraint satisfaction across all narrative elements and world state consistency.
 - **Memory Integration**: Persistent memory management through integrated systems with world state tracking.
 - **World State Synchronization**: Real-time world state updates during generation process.
+- **Strategy Persistence**: Character strategies maintained across chapters for coherent character development.
 
 **Section sources**
 - [index.ts:1-140](file://packages/engine/src/index.ts#L1-L140)
 
 ## Performance Considerations
-**Updated** Enhanced performance optimization with sophisticated coordination mechanisms, intelligent fallback systems, and comprehensive world state management.
+**Updated** Enhanced performance optimization with sophisticated coordination mechanisms, intelligent fallback systems, comprehensive world state management, and advanced character strategy analysis.
 
 - **Mathematical Operations**: TensionController performs all calculations without LLM dependency for optimal performance.
-- **Selective LLM Usage**: StoryDirector, CharacterAgentSystem, and WorldStateUpdater use LLM selectively for complex analysis and decision-making.
-- **Fallback Mechanisms**: Comprehensive fallback systems ensure system reliability across all agent types, including WorldStateUpdater failures.
-- **Parallel Processing**: Character simulation, scene generation, and world state updates can operate in parallel streams.
-- **Memory Efficiency**: Heuristic-based tension estimation and content-limited world state extraction reduce computational overhead.
+- **Selective LLM Usage**: StoryDirector, CharacterAgentSystem, CharacterStrategyAnalyzer, and WorldStateUpdater use LLM selectively for complex analysis and decision-making.
+- **Fallback Mechanisms**: Comprehensive fallback systems ensure system reliability across all agent types, including CharacterStrategyAnalyzer and WorldStateUpdater failures.
+- **Parallel Processing**: Character simulation, scene generation, world state updates, and character strategy analysis can operate in parallel streams.
+- **Memory Efficiency**: Heuristic-based tension estimation, content-limited world state extraction, and strategy analysis reduce computational overhead.
 - **State Caching**: Shared state management minimizes redundant computation across agents and world state systems.
 - **Integration Optimization**: Centralized export system reduces import overhead and improves module loading.
 - **World State Optimization**: WorldStateEngine provides efficient state queries and updates for real-time consistency checking.
+- **Strategy Persistence**: CharacterStrategyAnalyzer integrates with WorldStateEngine for efficient strategy storage and retrieval.
 
 ## Troubleshooting Guide
 **Updated** Comprehensive troubleshooting guide addressing new agent systems, coordination mechanisms, and world state management.
@@ -591,34 +719,37 @@ Common issues and resolutions:
 - **StoryDirector failures**: Check LLM availability and story context completeness; verify tension guidance integration.
 - **CharacterAgentSystem issues**: Review character state consistency and agenda management; check relationship updates.
 - **TensionController problems**: Verify story progression and chapter count accuracy; check mathematical calculations.
+- **CharacterStrategyAnalyzer failures**: Check LLM availability and extraction prompt formatting; verify WorldStateEngine connectivity and strategy persistence.
 - **WorldStateUpdater failures**: Check LLM availability and extraction prompt formatting; verify WorldStateEngine connectivity.
-- **WorldStateEngine issues**: Review state consistency and constraint satisfaction; check for logical impossibilities.
+- **WorldStateEngine issues**: Review state consistency and constraint satisfaction; check for logical impossibilities and strategy storage.
 - **Coordination failures**: Ensure proper agent initialization and state synchronization; verify integration layer functionality.
-- **Fallback mechanism issues**: Test StoryDirector fallback objectives, CharacterAgentSystem simple decisions, and WorldStateUpdater empty update handling.
-- **Performance bottlenecks**: Monitor LLM usage patterns, mathematical operation efficiency, and world state update frequency.
-- **State synchronization problems**: Verify shared state access, event propagation across coordinating agents and world state systems.
+- **Fallback mechanism issues**: Test StoryDirector fallback objectives, CharacterAgentSystem simple decisions, CharacterStrategyAnalyzer error handling, and WorldStateUpdater empty update handling.
+- **Performance bottlenecks**: Monitor LLM usage patterns, mathematical operation efficiency, world state update frequency, and strategy analysis overhead.
+- **State synchronization problems**: Verify shared state access, event propagation across coordinating agents and world state systems, and strategy persistence.
 
 Operational logs:
 - StoryDirector logs chapter objectives and tension guidance generation.
 - CharacterAgentSystem tracks character decisions, agenda updates, and relationship changes.
 - TensionController monitors tension calculations, guidance generation, and content analysis.
+- CharacterStrategyAnalyzer logs strategy analysis requests, LLM responses, and application operations.
 - WorldStateUpdater logs extraction requests, LLM responses, and application operations.
-- WorldStateEngine logs state modifications, constraint validations, and consistency checks.
+- WorldStateEngine logs state modifications, constraint validations, strategy storage, and consistency checks.
 - Integration system logs show proper agent coordination, state synchronization, and world state updates.
 
 **Section sources**
 - [storyDirector.ts:218-276](file://packages/engine/src/agents/storyDirector.ts#L218-L276)
 - [characterAgent.ts:270-304](file://packages/engine/src/world/characterAgent.ts#L270-L304)
 - [tensionController.ts:214-252](file://packages/engine/src/agents/tensionController.ts#L214-L252)
+- [characterStrategy.ts:231-247](file://packages/engine/src/agents/characterStrategy.ts#L231-L247)
 - [worldStateUpdater.ts:124-127](file://packages/engine/src/agents/worldStateUpdater.ts#L124-L127)
 - [worldStateEngine.ts:343-345](file://packages/engine/src/world/worldStateEngine.ts#L343-L345)
 
 ## Conclusion
-**Updated** The AI Agent System now provides a comprehensive narrative generation ecosystem featuring sophisticated coordination mechanisms, intelligent character simulation, precise tension management, and comprehensive world state tracking.
+**Updated** The AI Agent System now provides a comprehensive narrative generation ecosystem featuring sophisticated coordination mechanisms, intelligent character simulation, precise tension management, comprehensive world state tracking, and advanced character strategy analysis.
 
-The system includes the StoryDirector Agent for high-level narrative coordination, the CharacterAgentSystem for intelligent character behavior simulation, the enhanced TensionController Agent for mathematical precision in dramatic arc control, and the new WorldStateUpdater Agent for comprehensive world state extraction and validation. These agents work seamlessly with existing scene-level components through the centralized integration system, providing flexible workflow selection and comprehensive narrative control.
+The system includes the StoryDirector Agent for high-level narrative coordination, the CharacterAgentSystem for intelligent character behavior simulation, the enhanced TensionController Agent for mathematical precision in dramatic arc control, the new CharacterStrategyAnalyzer Agent for comprehensive character analysis and strategy tracking, and the WorldStateUpdater Agent for comprehensive world state extraction and validation. These agents work seamlessly with existing scene-level components through the centralized integration system, providing flexible workflow selection and comprehensive narrative control.
 
-**The enhanced agent ecosystem offers sophisticated multi-layer coordination with intelligent character simulation, precise tension management, comprehensive world state tracking, and robust consistency enforcement.** This advanced system enables both strategic narrative planning and detailed execution while maintaining system reliability and performance through intelligent coordination, state management, and comprehensive world state validation.
+**The enhanced agent ecosystem offers sophisticated multi-layer coordination with intelligent character simulation, precise tension management, comprehensive world state tracking, persistent character strategy management, and robust consistency enforcement.** This advanced system enables both strategic narrative planning and detailed execution while maintaining system reliability and performance through intelligent coordination, state management, comprehensive world state validation, and advanced character development tracking.
 
 ## Appendices
 
@@ -634,6 +765,9 @@ The system includes the StoryDirector Agent for high-level narrative coordinatio
 - **Enhanced TensionController Agent**
   - Responsibilities: Calculate parabolic tension targets, analyze tension gaps, generate guidance, estimate content tension.
   - Parameters: mathematical calculation (4 × progress × (1 - progress)), analysis thresholds (0.2 escalation, 0.15 maintenance, 0.85 climax), scene type recommendations.
+- **CharacterStrategyAnalyzer Agent**
+  - Responsibilities: Analyze character behaviors, determine motivations and goals, detect conflicts, manage new character strategies, integrate with WorldStateEngine.
+  - Parameters: temperature 0.4, maxTokens 1500, conflict detection heuristics, strategy persistence, error handling mechanisms.
 - **WorldStateUpdater Agent**
   - Responsibilities: Extract world state changes from content, update WorldStateEngine, handle errors gracefully, maintain narrative consistency.
   - Parameters: temperature 0.3, maxTokens 1500, content limit 3000, extraction schema compliance, error recovery mechanisms.
@@ -643,28 +777,31 @@ The system includes the StoryDirector Agent for high-level narrative coordinatio
 - [storyDirector.ts:100-276](file://packages/engine/src/agents/storyDirector.ts#L100-L276)
 - [characterAgent.ts:91-304](file://packages/engine/src/world/characterAgent.ts#L91-L304)
 - [tensionController.ts:214-252](file://packages/engine/src/agents/tensionController.ts#L214-L252)
+- [characterStrategy.ts:71-218](file://packages/engine/src/agents/characterStrategy.ts#L71-L218)
 - [worldStateUpdater.ts:80-251](file://packages/engine/src/agents/worldStateUpdater.ts#L80-L251)
 
 ### Integration Patterns and Workflow Examples
 **Updated** Examples of enhanced agent integration with sophisticated coordination mechanisms and comprehensive world state management.
 
 Enhanced workflow patterns include:
-- **Strategic-Execution Coordination**: StoryDirector → TensionController → CharacterAgentSystem → Scene-level agents with WorldStateUpdater integration.
+- **Strategic-Execution Coordination**: StoryDirector → TensionController → CharacterAgentSystem → Scene-level agents with CharacterStrategyAnalyzer integration.
 - **Intelligent Character Simulation**: CharacterAgentSystem → EventResolver → WorldStateManager → StoryDirector coordination.
 - **Tension-Aware Generation**: TensionController → ScenePlanner → SceneWriter → SceneValidator → SceneAssembler workflow with real-time world state validation.
-- **Multi-Agent Coordination**: Parallel character simulation with sequential narrative execution and concurrent world state updates.
+- **Character Strategy Integration**: CharacterStrategyAnalyzer → WorldStateEngine → Scene-level agents for coherent character-driven narrative.
+- **Multi-Agent Coordination**: Parallel character simulation with sequential narrative execution, concurrent world state updates, and integrated strategy analysis.
 - **World State Consistency**: Real-time extraction and application of world state changes during scene generation.
-- **Fallback Integration**: Graceful degradation through StoryDirector fallback objectives, CharacterAgentSystem simple decisions, and WorldStateUpdater empty update handling.
+- **Strategy Persistence**: Character strategies maintained across chapters for coherent character development tracking.
+- **Conflict Detection**: Systematic identification and management of character strategy conflicts for enhanced narrative tension.
 
 Integration benefits:
-- **Sophisticated Coordination**: Multi-layer agent coordination with intelligent state management and comprehensive world state tracking.
-- **Performance Optimization**: Mathematical operations without LLM dependency for critical calculations, selective LLM usage for complex operations.
-- **Reliability Enhancement**: Comprehensive fallback mechanisms across all agent types, including robust error handling in WorldStateUpdater.
-- **Flexibility**: Support for both coordinated and independent agent operation modes with real-time world state validation.
-- **Scalability**: Modular design supporting expansion with additional specialized agents and enhanced world state management.
-- **Consistency Assurance**: Automated world state validation and constraint enforcement throughout the generation process.
+- **Sophisticated Coordination**: Multi-layer agent coordination with intelligent state management, comprehensive world state tracking, and persistent character strategy management.
+- **Performance Optimization**: Mathematical operations without LLM dependency for critical calculations, selective LLM usage for complex operations, and efficient strategy persistence.
+- **Reliability Enhancement**: Comprehensive fallback mechanisms across all agent types, including robust error handling in CharacterStrategyAnalyzer and WorldStateUpdater.
+- **Flexibility**: Support for both coordinated and independent agent operation modes with real-time world state validation and strategy tracking.
+- **Scalability**: Modular design supporting expansion with additional specialized agents, enhanced world state management, and advanced character development tracking.
+- **Consistency Assurance**: Automated world state validation, constraint enforcement, and systematic character strategy analysis throughout the generation process.
 
 **Section sources**
 - [index.ts:1-140](file://packages/engine/src/index.ts#L1-L140)
-- [generateChapter.ts:278-286](file://packages/engine/src/pipeline/generateChapter.ts#L278-L286)
+- [generateChapter.ts:222-267](file://packages/engine/src/pipeline/generateChapter.ts#L222-L267)
 - [worldStateEngine.ts:247-269](file://packages/engine/src/world/worldStateEngine.ts#L247-L269)

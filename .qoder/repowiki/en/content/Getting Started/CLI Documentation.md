@@ -22,10 +22,11 @@
 ## Update Summary
 **Changes Made**
 - Updated Interactive Initialization System section to reflect new multilingual CLI with language selection
-- Added new Genre Selection and Optional Secondary Genres functionality
 - Enhanced Skills Selection section with customizable skill selection and intelligent defaults
 - Updated Configuration System section to reflect task-based configuration improvements
-- Added new multilingual prompt system with Chinese/English support throughout
+- Updated Storage and Persistence section to reflect unlimited chapter support
+- Enhanced Troubleshooting Guide with multilingual support considerations
+- Updated Feature List to reflect new capabilities
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -41,7 +42,7 @@
 ## Introduction
 The Narrative OS CLI is an AI-native command-line interface designed for long-form story generation. It provides a complete workflow for creating, managing, and exporting narratives with advanced features like multi-model AI support, persistent memory, and structured storytelling state management. The CLI integrates with the Narrative OS engine to deliver sophisticated narrative generation capabilities while maintaining a simple and intuitive command structure.
 
-**Updated** The CLI now features a comprehensive multilingual initialization system supporting both English and Chinese languages, with intelligent genre selection, optional secondary genres, and customizable skill selection for enhanced creative control.
+**Updated** The CLI now features a comprehensive multilingual initialization system supporting both English and Chinese languages, with intelligent genre selection, optional secondary genres, and customizable skill selection for enhanced creative control. The system supports unlimited chapter generation without the previous 200-chapter limitation.
 
 ## Project Structure
 The CLI follows a modular architecture with clear separation between command handlers, configuration management, and storage persistence:
@@ -106,8 +107,8 @@ Index --> Commander
 
 **Diagram sources**
 - [index.ts:1-177](file://apps/cli/src/index.ts#L1-L177)
-- [store.ts:1-208](file://apps/cli/src/config/store.ts#L1-L208)
-- [init.ts:1-203](file://apps/cli/src/commands/init.ts#L1-L203)
+- [store.ts:1-249](file://apps/cli/src/config/store.ts#L1-L249)
+- [init.ts:1-228](file://apps/cli/src/commands/init.ts#L1-L228)
 
 **Section sources**
 - [package.json:1-54](file://apps/cli/package.json#L1-L54)
@@ -124,12 +125,12 @@ The CLI supports multiple configuration modes including legacy single-model, mul
 ### Storage Persistence
 All story data is persisted in the user's home directory under `.narrative-os/stories/<story-id>/` with separate files for different data types.
 
-**Updated** Enhanced with multilingual support for Chinese and English interfaces throughout the initialization and configuration processes.
+**Updated** Enhanced with multilingual support for Chinese and English interfaces throughout the initialization and configuration processes. Storage now supports unlimited chapter files with per-chapter JSON organization for scalability.
 
 **Section sources**
 - [index.ts:21-177](file://apps/cli/src/index.ts#L21-L177)
 - [config.ts:1-377](file://apps/cli/src/commands/config.ts#L1-L377)
-- [store.ts:1-208](file://apps/cli/src/config/store.ts#L1-L208)
+- [store.ts:1-249](file://apps/cli/src/config/store.ts#L1-L249)
 
 ## Architecture Overview
 
@@ -264,13 +265,13 @@ Customize --> |No| UseDefaults[Use Genre Defaults]
 SkillSelection --> Title[Title Input]
 UseDefaults --> Title
 Title --> CreateBible[Create Story Bible]
-CreateBible --> GenerateChars[Generate Characters]
+CreateBible --> GenerateChars[Generate Characters with Retry Logic]
 GenerateChars --> SaveStory[Save Story Data]
 SaveStory --> Success[Story Created Successfully]
 ```
 
 **Diagram sources**
-- [init.ts:47-203](file://apps/cli/src/commands/init.ts#L47-L203)
+- [init.ts:47-228](file://apps/cli/src/commands/init.ts#L47-L228)
 
 The initialization process now includes:
 
@@ -279,9 +280,11 @@ The initialization process now includes:
 3. **Intelligent Defaults**: Automatic calculation of target chapter counts and skill sets based on genre combinations
 4. **Customizable Skills**: Interactive skill selection with genre-based defaults
 5. **Enhanced Validation**: Comprehensive input validation with language-specific messages
+6. **Retry Logic**: Automatic retry mechanism for character generation failures with user control
+7. **Unlimited Chapters**: Removed 200-chapter limitation for long-form storytelling
 
 **Section sources**
-- [init.ts:1-203](file://apps/cli/src/commands/init.ts#L1-L203)
+- [init.ts:1-228](file://apps/cli/src/commands/init.ts#L1-L228)
 
 ### Story Management Commands
 The CLI provides comprehensive story lifecycle management:
@@ -308,15 +311,15 @@ Validating --> Ready : validation_passed
 ```
 
 **Diagram sources**
-- [init.ts:47-203](file://apps/cli/src/commands/init.ts#L47-L203)
+- [init.ts:47-228](file://apps/cli/src/commands/init.ts#L47-L228)
 - [generate.ts:4-91](file://apps/cli/src/commands/generate.ts#L4-L91)
 
 **Section sources**
-- [init.ts:1-203](file://apps/cli/src/commands/init.ts#L1-L203)
+- [init.ts:1-228](file://apps/cli/src/commands/init.ts#L1-L228)
 - [generate.ts:1-91](file://apps/cli/src/commands/generate.ts#L1-L91)
 
 ### Storage and Persistence
-The storage system maintains multiple data structures for different aspects of story management:
+**Updated** The storage system maintains multiple data structures for different aspects of story management with unlimited chapter support:
 
 ```mermaid
 erDiagram
@@ -368,10 +371,10 @@ STORY ||--o{ MEMORY : stores
 
 **Diagram sources**
 - [store.ts:15-80](file://apps/cli/src/config/store.ts#L15-L80)
-- [store.ts:108-208](file://apps/cli/src/config/store.ts#L108-L208)
+- [store.ts:108-249](file://apps/cli/src/config/store.ts#L108-L249)
 
 **Section sources**
-- [store.ts:1-208](file://apps/cli/src/config/store.ts#L1-L208)
+- [store.ts:1-249](file://apps/cli/src/config/store.ts#L1-L249)
 
 ### Interactive Prompt System
 **Updated** The CLI now features a sophisticated multilingual prompt system with genre-aware intelligence:
@@ -384,7 +387,7 @@ Genre --> Theme[Theme Input with Defaults]
 Theme --> Setting[Setting Input with Defaults]
 Setting --> Tone[Tone Input with Defaults]
 Tone --> Premise[Premise Input with Validation]
-Premise --> Chapters[Chapter Count Selection]
+Premise --> Chapters[Chapter Count Selection (Unlimited)]
 Chapters --> Skills[Skills Selection with Genre Defaults]
 Skills --> Title[Title Input with Validation]
 Title --> Generate[Generate Story]
@@ -394,10 +397,10 @@ NextSteps --> End([End])
 ```
 
 **Diagram sources**
-- [init.ts:47-203](file://apps/cli/src/commands/init.ts#L47-L203)
+- [init.ts:47-228](file://apps/cli/src/commands/init.ts#L47-L228)
 
 **Section sources**
-- [init.ts:47-203](file://apps/cli/src/commands/init.ts#L47-L203)
+- [init.ts:47-228](file://apps/cli/src/commands/init.ts#L47-L228)
 
 ## Dependency Analysis
 
@@ -449,6 +452,7 @@ The CLI is optimized for efficient story generation and management:
 - **Streaming Responses**: Large outputs are handled progressively
 - **Caching**: Frequently accessed story data is cached in memory
 - **Language Optimization**: Multilingual prompts are cached for improved response times
+- **Scalable Storage**: Per-chapter JSON files support unlimited chapter generation without performance degradation
 
 ## Troubleshooting Guide
 
@@ -468,16 +472,19 @@ The CLI is optimized for efficient story generation and management:
 - Monitor API quota limits
 - Verify story prerequisites are met
 - Check for conflicting story modifications
+- **Updated** Character generation failures now include retry logic with user control
 
 **Storage Issues**
 - Verify sufficient disk space
 - Check file permissions for storage directory
 - Ensure proper cleanup of temporary files
+- **Updated** Unlimited chapter storage automatically handles large numbers of chapter files
 
 **Multilingual Issues**
 - Ensure terminal supports UTF-8 encoding for Chinese characters
 - Verify locale settings for proper language detection
 - Check font support for extended character sets
+- **Updated** Language selection is preserved throughout the initialization process
 
 **Section sources**
 - [config.ts:118-159](file://apps/cli/src/commands/config.ts#L118-L159)
@@ -487,6 +494,6 @@ The CLI is optimized for efficient story generation and management:
 ## Conclusion
 The Narrative OS CLI provides a comprehensive solution for AI-powered story generation with a clean architecture, robust configuration management, and extensive feature set. Its modular design enables easy extensibility while maintaining simplicity for end users. The CLI successfully bridges the gap between powerful AI capabilities and accessible authoring tools, making sophisticated narrative generation available to writers of all technical levels.
 
-**Updated** The recent enhancements to the multilingual initialization system, genre-based skill selection, and intelligent defaults significantly improve the user experience for both English and Chinese-speaking authors. The system's strength lies in its thoughtful separation of concerns, comprehensive error handling, user-friendly command structure, and intelligent automation that makes complex AI workflows accessible through simple, intuitive commands while respecting cultural and linguistic preferences.
+**Updated** The recent enhancements to the multilingual initialization system, genre-based skill selection, intelligent defaults, retry logic for character generation, and unlimited chapter support significantly improve the user experience for both English and Chinese-speaking authors. The system's strength lies in its thoughtful separation of concerns, comprehensive error handling, user-friendly command structure, and intelligent automation that makes complex AI workflows accessible through simple, intuitive commands while respecting cultural and linguistic preferences.
 
-The system's multilingual capabilities, combined with its genre-aware intelligence and customizable skill selection, represent a significant advancement in making AI-powered narrative generation truly accessible to a global audience while maintaining the sophisticated creative control that experienced authors require.
+The system's multilingual capabilities, combined with its genre-aware intelligence, customizable skill selection, and scalable storage architecture, represent a significant advancement in making AI-powered narrative generation truly accessible to a global audience while maintaining the sophisticated creative control that experienced authors require. The removal of chapter limitations and enhanced retry mechanisms ensures that writers can pursue ambitious long-form projects with confidence and reliability.

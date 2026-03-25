@@ -11,19 +11,21 @@
 - [summarizer.ts](file://packages/engine/src/agents/summarizer.ts)
 - [completeness.ts](file://packages/engine/src/agents/completeness.ts)
 - [client.ts](file://packages/engine/src/llm/client.ts)
+- [characterStrategy.ts](file://packages/engine/src/agents/characterStrategy.ts)
 - [index.ts](file://packages/engine/src/index.ts)
 - [simple.test.ts](file://packages/engine/src/test/simple.test.ts)
+- [character-generation.test.ts](file://packages/engine/src/test/character-generation.test.ts)
 - [init.ts](file://apps/cli/src/commands/init.ts)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Added comprehensive documentation for the new AI-powered character generation system
-- Enhanced language detection capabilities with expanded language support
-- Documented the automatic character creation workflow during story initialization
-- Added detailed coverage of the generateCharacters function with cultural appropriateness
-- Updated StoryBible data structure to include AI-assisted character creation
-- Added fallback character generation system with getDefaultCharacters function
+- Enhanced character generation system with AI-powered protagonist creation for Chapter 1
+- Streamlined from multi-character to single protagonist generation for improved focus
+- Comprehensive JSON parsing with automatic recovery from malformed responses
+- Integration with new CharacterStrategyAnalyzer system for character arc management
+- Added robust error handling and retry mechanisms for character generation
+- Enhanced automatic character creation workflow during story initialization
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -40,10 +42,10 @@
 ## Introduction
 This document describes the Story Bible Management system that powers narrative worldbuilding, character profiles, and plot thread orchestration within the engine. It explains the StoryBible data structure, immutable update patterns, ID generation strategies, and the lifecycle of plot threads. It documents the primary APIs for initializing a story, adding characters, and managing plot threads, and shows how these integrate with the chapter generation pipeline, including tension mechanics and canonical fact storage.
 
-**Updated** The system now includes an AI-powered character generation system with automatic character creation during story initialization, enhanced language detection capabilities that analyze story metadata to determine appropriate language settings for international storytelling support, and comprehensive fallback mechanisms for character generation.
+**Updated** The system now features an AI-powered protagonist generation system that creates single, culturally appropriate protagonists for Chapter 1, comprehensive JSON parsing with automatic recovery from malformed responses, integration with the CharacterStrategyAnalyzer for dynamic character arc management, and robust retry mechanisms for production reliability.
 
 ## Project Structure
-The Story Bible Management lives in the engine package and integrates with agents, memory, and pipeline modules to produce chapters guided by a story's canonical blueprint. The system now includes advanced language detection, AI-powered character generation, and automatic character creation capabilities.
+The Story Bible Management lives in the engine package and integrates with agents, memory, and pipeline modules to produce chapters guided by a story's canonical blueprint. The system now includes advanced AI-powered character generation, automatic character creation capabilities, and sophisticated character strategy analysis.
 
 ```mermaid
 graph TB
@@ -58,6 +60,7 @@ Completeness["Completeness Checker<br/>check"]
 LLM["LLM Client<br/>OpenAI/DetekSeek"]
 Gen["Generate Chapter Pipeline<br/>generateChapter"]
 CLI["CLI Init Command<br/>Automatic Character Generation"]
+CharStrategy["Character Strategy Analyzer<br/>analyze, detectConflicts"]
 end
 Types --> StoryBible
 Types --> StoryState
@@ -73,11 +76,13 @@ Summarizer --> LLM
 Completeness --> LLM
 CLI --> StoryBible
 CLI --> LLM
+CharStrategy --> LLM
+CharStrategy --> StoryBible
 ```
 
 **Diagram sources**
 - [index.ts:1-152](file://packages/engine/src/types/index.ts#L1-L152)
-- [bible.ts:1-243](file://packages/engine/src/story/bible.ts#L1-L243)
+- [bible.ts:1-279](file://packages/engine/src/story/bible.ts#L1-L279)
 - [state.ts:1-30](file://packages/engine/src/story/state.ts#L1-L30)
 - [canonStore.ts:1-134](file://packages/engine/src/memory/canonStore.ts#L1-L134)
 - [writer.ts:1-146](file://packages/engine/src/agents/writer.ts#L1-L146)
@@ -85,7 +90,8 @@ CLI --> LLM
 - [completeness.ts:1-56](file://packages/engine/src/agents/completeness.ts#L1-L56)
 - [client.ts:1-106](file://packages/engine/src/llm/client.ts#L1-L106)
 - [generateChapter.ts:1-76](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
-- [init.ts:1-91](file://apps/cli/src/commands/init.ts#L1-L91)
+- [init.ts:1-228](file://apps/cli/src/commands/init.ts#L1-L228)
+- [characterStrategy.ts:1-218](file://packages/engine/src/agents/characterStrategy.ts#L1-L218)
 
 **Section sources**
 - [index.ts:1-123](file://packages/engine/src/index.ts#L1-L123)
@@ -98,22 +104,24 @@ CLI --> LLM
 - StoryState: Tracks chapter progression, current tension, and summaries.
 - CanonStore: Extracts and maintains canonical facts derived from the StoryBible for consistency checks.
 - Language Detection: Automatic language identification from story title and premise text with comprehensive Unicode range support.
-- AI Character Generation: LLM-powered character creation with cultural authenticity and fallback mechanisms.
+- AI Character Generation: LLM-powered protagonist creation with cultural authenticity and comprehensive error recovery.
+- Character Strategy Analyzer: Dynamic character analysis system for managing character arcs and conflicts.
 
 Key immutable update patterns:
 - All mutation functions return a new object with spread operator and updated arrays/dates.
 - ID generation uses deterministic yet unique identifiers combining timestamp and random suffix.
 - Language detection automatically determines appropriate language based on text content.
-- Character generation integrates seamlessly with story initialization workflow.
+- Character generation integrates seamlessly with story initialization workflow and includes robust retry mechanisms.
 
 **Section sources**
 - [index.ts:1-152](file://packages/engine/src/types/index.ts#L1-L152)
-- [bible.ts:1-243](file://packages/engine/src/story/bible.ts#L1-L243)
+- [bible.ts:1-279](file://packages/engine/src/story/bible.ts#L1-L279)
 - [state.ts:1-30](file://packages/engine/src/story/state.ts#L1-L30)
 - [canonStore.ts:1-134](file://packages/engine/src/memory/canonStore.ts#L1-L134)
+- [characterStrategy.ts:1-218](file://packages/engine/src/agents/characterStrategy.ts#L1-L218)
 
 ## Architecture Overview
-The system orchestrates chapter generation around a StoryBible with automatic language detection and AI-powered character generation. The pipeline writes, validates canonical adherence, summarizes, and updates state. Tension increases monotonically with story progress and influences narrative pacing. Language detection ensures appropriate cultural and linguistic context for character names and story elements, while AI character generation creates culturally authentic characters during story initialization.
+The system orchestrates chapter generation around a StoryBible with automatic language detection and AI-powered protagonist generation. The pipeline writes, validates canonical adherence, summarizes, and updates state. Tension increases monotonically with story progress and influences narrative pacing. Language detection ensures appropriate cultural and linguistic context for character names and story elements, while AI character generation creates culturally authentic protagonists during story initialization with comprehensive error recovery and retry mechanisms.
 
 ```mermaid
 sequenceDiagram
@@ -122,24 +130,27 @@ participant SB as "StoryBible API"
 participant LD as "Language Detection"
 participant GC as "Generate Characters"
 participant LLM as "LLM Client"
+participant CS as "Character Strategy Analyzer"
 participant SS as "StoryState API"
 participant GS as "GenerateChapter"
 participant WR as "Writer"
 participant SM as "Summarizer"
 participant CC as "Completeness"
 participant CV as "Canon Validator"
-participant CS as "CanonStore"
+participant CANON as "CanonStore"
 User->>SB : createStoryBible(title, premise, ...)
 SB->>LD : detectLanguage(title + premise)
 LD-->>SB : language code (e.g., 'zh', 'ja', 'ko')
 User->>GC : generateCharacters(title, premise, genre, setting, language)
 GC->>LLM : Prompt with language context
-LLM-->>GC : Generated characters JSON
-GC-->>User : Characters with language-appropriate names
+LLM-->>GC : Generated protagonist JSON
+GC-->>User : Single protagonist with language-appropriate name
 User->>SB : addCharacter(...) (if manual)
 User->>SB : addPlotThread(...)
 User->>SS : createStoryState(storyId, totalChapters)
-User->>CS : extractCanonFromBible(bible)
+User->>CS : analyze(character, chapter, bible, worldState)
+CS-->>User : Character strategy with goals and relationships
+User->>CANON : extractCanonFromBible(bible)
 User->>GS : generateChapter({bible, state, chapterNumber}, {canon})
 GS->>WR : write(context, canon?)
 WR-->>GS : {content, title, wordCount}
@@ -159,7 +170,8 @@ User->>SS : updateStoryState(state, summary)
 **Diagram sources**
 - [bible.ts:83-84](file://packages/engine/src/story/bible.ts#L83-L84)
 - [bible.ts:3-50](file://packages/engine/src/story/bible.ts#L3-L50)
-- [bible.ts:153-217](file://packages/engine/src/story/bible.ts#L153-L217)
+- [bible.ts:153-279](file://packages/engine/src/story/bible.ts#L153-L279)
+- [characterStrategy.ts:71-105](file://packages/engine/src/agents/characterStrategy.ts#L71-L105)
 - [state.ts:3-29](file://packages/engine/src/story/state.ts#L3-L29)
 - [generateChapter.ts:20-71](file://packages/engine/src/pipeline/generateChapter.ts#L20-L71)
 - [writer.ts:55-131](file://packages/engine/src/agents/writer.ts#L55-L131)
@@ -260,32 +272,38 @@ Default --> End
 **Diagram sources**
 - [bible.ts:8-50](file://packages/engine/src/story/bible.ts#L8-L50)
 - [bible.ts:55-72](file://packages/engine/src/story/bible.ts#L55-L72)
-- [bible.ts:153-242](file://packages/engine/src/story/bible.ts#L153-L242)
+- [bible.ts:153-279](file://packages/engine/src/story/bible.ts#L153-L279)
 
 **Section sources**
 - [bible.ts:8-50](file://packages/engine/src/story/bible.ts#L8-L50)
 - [bible.ts:55-72](file://packages/engine/src/story/bible.ts#L55-L72)
 - [bible.ts:74-101](file://packages/engine/src/story/bible.ts#L74-L101)
-- [bible.ts:153-242](file://packages/engine/src/story/bible.ts#L153-L242)
+- [bible.ts:153-279](file://packages/engine/src/story/bible.ts#L153-L279)
 
-### AI-Powered Character Generation System
-- **generateCharacters**: Async function that uses LLM to create culturally appropriate character names and profiles based on story context and detected language.
-- **getDefaultCharacters**: Fallback function that provides language-specific default character sets when LLM generation fails.
-- **Automatic Character Creation**: Characters are automatically generated during story initialization based on detected language and story context.
+### AI-Powered Protagonist Generation System
+- **generateCharacters**: Async function that uses LLM to create a single, culturally appropriate protagonist for Chapter 1 based on story context and detected language.
+- **Single Protagonist Focus**: Streamlined from multi-character to single protagonist generation for improved narrative focus and Chapter 1 effectiveness.
+- **Comprehensive JSON Parsing**: Robust error recovery with automatic cleanup of malformed responses, markdown code blocks, and truncated JSON.
+- **Automatic Character Creation**: Protagonists are automatically generated during story initialization with retry logic and fallback mechanisms.
 - **Cultural Authenticity**: Character names and traits are adapted to match the detected language and story setting.
-- **Error Handling**: Robust fallback mechanism ensures character generation even when LLM services are unavailable.
+- **Error Recovery**: Advanced parsing with brace counting, string escaping, and bracket balancing to recover from malformed LLM responses.
+
+**Updated** The system now focuses on creating a single, compelling protagonist for Chapter 1 rather than multiple characters, with comprehensive error handling for production reliability.
 
 ```mermaid
 flowchart TD
 Init(["Story Initialization"]) --> CreateBible["createStoryBible()"]
 CreateBible --> DetectLang["detectLanguage()"]
-DetectLang --> GenerateChars["generateCharacters()"]
-GenerateChars --> LLMCall["LLM.complete() with cultural prompt"]
-LLMCall --> ParseJSON["Parse JSON response"]
-ParseJSON --> AddIDs["Add unique IDs to characters"]
-AddIDs --> Success["Return generated characters"]
+DetectLang --> GenerateProtagonist["generateCharacters()"]
+GenerateProtagonist --> LLMCall["LLM.complete() with single protagonist prompt"]
+LLMCall --> ParseJSON["Parse JSON response with error recovery"]
+ParseJSON --> CleanResponse["Clean malformed responses<br/>- Remove markdown blocks<br/>- Fix truncated JSON<br/>- Balance braces and brackets"]
+CleanResponse --> ValidateJSON["Validate complete JSON"]
+ValidateJSON --> AddIDs["Add unique IDs to protagonist"]
+AddIDs --> Success["Return single protagonist"]
 LLMCall -.-> Error["LLM failure"]
-Error --> Fallback["getDefaultCharacters()"]
+Error --> Retry["Retry with backoff"]
+Retry --> Fallback["getDefaultCharacters()"]
 Fallback --> DefaultChars["Return language-specific defaults"]
 DefaultChars --> Success
 Success --> UpdateBible["Update StoryBible.characters"]
@@ -293,20 +311,46 @@ UpdateBible --> Ready["Story ready for generation"]
 ```
 
 **Diagram sources**
-- [bible.ts:153-217](file://packages/engine/src/story/bible.ts#L153-L217)
-- [bible.ts:222-242](file://packages/engine/src/story/bible.ts#L222-L242)
-- [init.ts:66-71](file://apps/cli/src/commands/init.ts#L66-L71)
+- [bible.ts:153-279](file://packages/engine/src/story/bible.ts#L153-L279)
+- [init.ts:165-202](file://apps/cli/src/commands/init.ts#L165-L202)
 
 **Section sources**
-- [bible.ts:153-217](file://packages/engine/src/story/bible.ts#L153-L217)
-- [bible.ts:222-242](file://packages/engine/src/story/bible.ts#L222-L242)
-- [init.ts:66-71](file://apps/cli/src/commands/init.ts#L66-L71)
+- [bible.ts:153-279](file://packages/engine/src/story/bible.ts#L153-L279)
+- [init.ts:165-202](file://apps/cli/src/commands/init.ts#L165-L202)
+
+### Character Strategy Analyzer System
+- **CharacterStrategyAnalyzer**: Advanced system for analyzing character arcs, goals, and relationships throughout the story.
+- **Dynamic Analysis**: Analyzes character current goals, long-term objectives, motivations, obstacles, and relationships with other characters.
+- **Conflict Detection**: Identifies potential conflicts between character strategies and relationship dynamics.
+- **Integration**: Seamlessly integrates with the chapter generation pipeline to inform narrative direction and character development.
+- **Emotional Arc Tracking**: Monitors character emotional states (rising, falling, stable) and adjusts strategies accordingly.
+
+**New** This system provides sophisticated character management beyond basic profile creation, enabling dynamic story adaptation based on character development.
+
+```mermaid
+flowchart TD
+CharInput["Character Input"] --> GetChar["Get Character Info"]
+GetChar --> GetWorld["Get World State"]
+GetWorld --> BuildPrompt["Build Analysis Prompt"]
+BuildPrompt --> LLMAnalysis["LLM.completeJSON()"]
+LLMAnalysis --> CharStrategy["CharacterStrategy Object"]
+CharStrategy --> DetectConflicts["detectConflicts()"]
+DetectConflicts --> ConflictList["Conflict List"]
+ConflictList --> Output["Return Analysis Results"]
+```
+
+**Diagram sources**
+- [characterStrategy.ts:71-105](file://packages/engine/src/agents/characterStrategy.ts#L71-L105)
+- [characterStrategy.ts:166-201](file://packages/engine/src/agents/characterStrategy.ts#L166-L201)
+
+**Section sources**
+- [characterStrategy.ts:1-218](file://packages/engine/src/agents/characterStrategy.ts#L1-L218)
 
 ### Immutable Update Pattern and ID Generation
 - ID generation: Timestamp plus short random string to ensure uniqueness across calls.
 - Updates: Functions return new objects with spread operator; arrays are shallow-copied and appended to; updatedAt is refreshed on mutations.
 - Language detection occurs during StoryBible creation to ensure consistent language throughout the story lifecycle.
-- Character generation integrates seamlessly with immutable update patterns.
+- Character generation integrates seamlessly with immutable update patterns and includes comprehensive error recovery.
 
 ```mermaid
 flowchart TD
@@ -356,7 +400,7 @@ Escalate --> Resolve["Resolve when thread achieves goal"]
 ### StoryBible Creation Workflow
 - createStoryBible initializes a new StoryBible with metadata, automatic language detection, empty arrays, and timestamps.
 - Language detection analyzes title and premise text to determine appropriate language code.
-- Automatic character generation creates culturally appropriate characters during story initialization.
+- Automatic character generation creates culturally appropriate protagonists during story initialization.
 - Practical example path: see [simple.test.ts:26-34](file://packages/engine/src/test/simple.test.ts#L26-L34).
 
 ```mermaid
@@ -381,10 +425,12 @@ API-->>Dev : New StoryBible with id, language, createdAt, updatedAt
 
 ### Enhanced Character Profile Management
 - addCharacter creates a CharacterProfile with personality traits and goals, assigns an ID, and appends to the StoryBible.
-- **generateCharacters**: Uses LLM to create culturally appropriate character names based on detected language and story context.
-- **getDefaultCharacters**: Provides fallback character sets for different languages when LLM generation fails.
-- **Automatic Character Creation**: Characters are automatically generated during story initialization via CLI command.
+- **generateCharacters**: Uses LLM to create a single, culturally appropriate protagonist based on detected language and story context.
+- **Comprehensive Error Recovery**: Advanced JSON parsing with automatic recovery from malformed responses, markdown code blocks, and truncated JSON.
+- **Automatic Character Creation**: Protagonists are automatically generated during story initialization via CLI command with retry logic.
 - Practical example path: see [simple.test.ts:36-42](file://packages/engine/src/test/simple.test.ts#L36-L42).
+
+**Updated** The system now focuses on single protagonist generation with comprehensive error recovery mechanisms.
 
 ```mermaid
 sequenceDiagram
@@ -394,23 +440,23 @@ participant GC as "generateCharacters"
 participant LLM as "LLM Client"
 Dev->>API : Provide StoryBible, name, role, personality[], goals[]
 API-->>Dev : New StoryBible with updated characters[]
-alt LLM fails
+alt LLM fails or malformed JSON
 Dev->>GC : generateCharacters(title, premise, genre, setting, language)
 GC->>LLM : Prompt with language context
-LLM-->>GC : Generated characters JSON
-GC-->>Dev : Characters with language-appropriate names
+LLM-->>GC : Generated protagonist JSON
+GC->>GC : Parse with error recovery
+GC-->>Dev : Single protagonist with language-appropriate name
 end
 ```
 
 **Diagram sources**
 - [bible.ts:103-123](file://packages/engine/src/story/bible.ts#L103-L123)
-- [bible.ts:153-217](file://packages/engine/src/story/bible.ts#L153-L217)
-- [bible.ts:222-242](file://packages/engine/src/story/bible.ts#L222-L242)
+- [bible.ts:153-279](file://packages/engine/src/story/bible.ts#L153-L279)
 - [simple.test.ts:36-42](file://packages/engine/src/test/simple.test.ts#L36-L42)
 
 **Section sources**
 - [bible.ts:103-123](file://packages/engine/src/story/bible.ts#L103-L123)
-- [bible.ts:153-242](file://packages/engine/src/story/bible.ts#L153-L242)
+- [bible.ts:153-279](file://packages/engine/src/story/bible.ts#L153-L279)
 - [simple.test.ts:36-42](file://packages/engine/src/test/simple.test.ts#L36-L42)
 
 ### Plot Thread Management
@@ -520,11 +566,14 @@ GS-->>GS : build Chapter and return result
 - [summarizer.ts:1-64](file://packages/engine/src/agents/summarizer.ts#L1-L64)
 - [completeness.ts:1-56](file://packages/engine/src/agents/completeness.ts#L1-L56)
 
-### Automatic Character Creation During Story Initialization
-- **CLI Integration**: The init command automatically generates characters during story creation using generateCharacters function.
-- **Language-Aware Generation**: Characters are generated based on detected language and story context.
+### Automatic Protagonist Creation During Story Initialization
+- **CLI Integration**: The init command automatically generates protagonists during story creation using generateCharacters function with comprehensive retry logic.
+- **Language-Aware Generation**: Protagonists are generated based on detected language and story context.
 - **Cultural Authenticity**: Character names and traits are adapted to match the detected language and story setting.
-- **Fallback Mechanism**: If LLM generation fails, getDefaultCharacters provides language-specific defaults.
+- **Robust Error Handling**: Multiple retry attempts with user feedback and graceful fallback to manual character creation.
+- **Single Protagonist Focus**: Streamlined approach focusing on creating one compelling protagonist for Chapter 1.
+
+**Updated** The system now focuses on single protagonist generation with comprehensive error recovery and retry mechanisms.
 
 ```mermaid
 sequenceDiagram
@@ -534,31 +583,42 @@ participant GC as "generateCharacters"
 participant LLM as "LLM Client"
 CLI->>SB : createStoryBible(title, theme, genre, setting, tone, premise, targetChapters)
 SB-->>CLI : StoryBible with language code
+loop 1..3
 CLI->>GC : generateCharacters(title, premise, genre, setting, language)
 GC->>LLM : Prompt with language context
-LLM-->>GC : Generated characters JSON
-GC-->>CLI : Characters with language-appropriate names
+LLM-->>GC : Generated protagonist JSON
+alt malformed or incomplete JSON
+GC->>GC : Parse with error recovery
+GC-->>CLI : Error (retry)
+else success
+GC-->>CLI : Single protagonist with language-appropriate name
+break
+end
+end
 CLI->>SB : Update StoryBible.characters
-CLI-->>CLI : Story ready with automatic characters
+CLI-->>CLI : Story ready with automatic protagonist
 ```
 
 **Diagram sources**
-- [init.ts:66-71](file://apps/cli/src/commands/init.ts#L66-L71)
-- [bible.ts:153-217](file://packages/engine/src/story/bible.ts#L153-L217)
+- [init.ts:165-202](file://apps/cli/src/commands/init.ts#L165-L202)
+- [bible.ts:153-279](file://packages/engine/src/story/bible.ts#L153-L279)
 
 **Section sources**
-- [init.ts:66-71](file://apps/cli/src/commands/init.ts#L66-L71)
-- [bible.ts:153-217](file://packages/engine/src/story/bible.ts#L153-L217)
+- [init.ts:165-202](file://apps/cli/src/commands/init.ts#L165-L202)
+- [bible.ts:153-279](file://packages/engine/src/story/bible.ts#L153-L279)
 
 ## Dependency Analysis
 - StoryBible depends on CharacterProfile and PlotThread types.
 - StoryState depends on ChapterSummary type.
 - CanonStore depends on StoryBible for extraction.
 - Language detection utilities are integrated into StoryBible creation workflow.
-- **AI Character Generation**: generateCharacters function depends on LLM client and getDefaultCharacters fallback.
+- **AI Character Generation**: generateCharacters function depends on LLM client with comprehensive error recovery and getDefaultCharacters fallback.
+- **Character Strategy Analyzer**: Depends on LLM client and integrates with StoryBible for dynamic character analysis.
 - Pipeline depends on Writer, Summarizer, Completeness, and optional Canon Validator.
-- **CLI Integration**: init command depends on generateCharacters for automatic character creation.
+- **CLI Integration**: init command depends on generateCharacters for automatic character creation with retry logic.
 - All modules depend on LLMClient for inference.
+
+**Updated** The system now includes CharacterStrategyAnalyzer as a key dependency for dynamic character management.
 
 ```mermaid
 graph LR
@@ -569,6 +629,8 @@ StoryBible --> Language["Language Detection"]
 StoryBible --> Pipeline["GenerateChapter"]
 StoryBible --> AI["AI Character Generation"]
 AI --> LLM["LLM Client"]
+AI --> CharStrategy["Character Strategy Analyzer"]
+CharStrategy --> LLM
 StoryState --> Pipeline
 Canon --> Pipeline
 Pipeline --> Writer["Writer"]
@@ -582,7 +644,7 @@ CLI["CLI Init Command"] --> AI
 
 **Diagram sources**
 - [index.ts:1-152](file://packages/engine/src/types/index.ts#L1-L152)
-- [bible.ts:1-243](file://packages/engine/src/story/bible.ts#L1-L243)
+- [bible.ts:1-279](file://packages/engine/src/story/bible.ts#L1-L279)
 - [state.ts:1-30](file://packages/engine/src/story/state.ts#L1-L30)
 - [canonStore.ts:1-134](file://packages/engine/src/memory/canonStore.ts#L1-L134)
 - [generateChapter.ts:1-76](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
@@ -590,7 +652,8 @@ CLI["CLI Init Command"] --> AI
 - [summarizer.ts:1-64](file://packages/engine/src/agents/summarizer.ts#L1-L64)
 - [completeness.ts:1-56](file://packages/engine/src/agents/completeness.ts#L1-L56)
 - [client.ts:1-106](file://packages/engine/src/llm/client.ts#L1-L106)
-- [init.ts:1-91](file://apps/cli/src/commands/init.ts#L1-L91)
+- [init.ts:1-228](file://apps/cli/src/commands/init.ts#L1-L228)
+- [characterStrategy.ts:1-218](file://packages/engine/src/agents/characterStrategy.ts#L1-L218)
 
 **Section sources**
 - [index.ts:1-123](file://packages/engine/src/index.ts#L1-L123)
@@ -599,18 +662,26 @@ CLI["CLI Init Command"] --> AI
 - Immutable updates avoid shared mutable state but create new arrays/objects; acceptable for typical story sizes.
 - Tension calculation is constant-time per chapter.
 - Language detection is O(n) where n is the length of combined title and premise text.
-- **AI Character Generation**: LLM calls dominate runtime; tune temperature and maxTokens to balance quality and cost.
-- **Fallback Mechanisms**: getDefaultCharacters provides instant fallback without LLM calls.
+- **AI Character Generation**: LLM calls dominate runtime; tuned with temperature=0.8 and no maxTokens limit for complete JSON responses.
+- **Error Recovery**: Comprehensive JSON parsing with brace counting and bracket balancing adds minimal overhead for malformed responses.
+- **Retry Logic**: Up to 3 retry attempts with exponential backoff for production reliability.
+- **Character Strategy Analysis**: LLM calls with temperature=0.4 for analytical precision, limited to 1500 maxTokens.
 - Canonical extraction and formatting are linear in the number of characters and plot threads.
+
+**Updated** Performance considerations now include comprehensive error recovery mechanisms and retry logic for production reliability.
 
 ## Troubleshooting Guide
 - Incomplete chapters: The pipeline retries writing and continues until completion is detected.
 - Canon violations: Optional validation reports discrepancies; review extracted facts and adjust content accordingly.
 - LLM provider configuration: Ensure provider and API keys are set; otherwise, initialization will fail.
 - **Language detection issues**: If language detection fails, the system defaults to English ('en').
-- **Character generation failures**: The system falls back to default character sets based on detected language.
-- **AI character generation errors**: Automatic fallback to getDefaultCharacters ensures story creation continues.
-- **CLI character generation**: If automatic character generation fails, the CLI will still create a story with default characters.
+- **Character generation failures**: The system implements comprehensive error recovery with automatic JSON cleaning and up to 3 retry attempts.
+- **Malformed JSON responses**: Advanced parsing with markdown block removal, brace counting, and bracket balancing recovers from most malformed responses.
+- **Truncated LLM responses**: The system detects truncated JSON and throws informative errors with suggestions to increase maxTokens.
+- **Single protagonist generation**: Focus on creating one compelling protagonist rather than multiple characters for improved narrative cohesion.
+- **Character strategy analysis**: Conflicts between character strategies are automatically detected and reported for narrative coherence.
+
+**Updated** Troubleshooting now includes comprehensive guidance for character generation errors, malformed JSON recovery, and single protagonist generation focus.
 
 **Section sources**
 - [generateChapter.ts:32-53](file://packages/engine/src/pipeline/generateChapter.ts#L32-L53)
@@ -618,22 +689,27 @@ CLI["CLI Init Command"] --> AI
 - [client.ts:46-81](file://packages/engine/src/llm/client.ts#L46-L81)
 - [bible.ts:8-50](file://packages/engine/src/story/bible.ts#L8-L50)
 - [bible.ts:212-216](file://packages/engine/src/story/bible.ts#L212-L216)
-- [bible.ts:222-242](file://packages/engine/src/story/bible.ts#L222-L242)
+- [bible.ts:153-279](file://packages/engine/src/story/bible.ts#L153-L279)
+- [characterStrategy.ts:166-201](file://packages/engine/src/agents/characterStrategy.ts#L166-L201)
 
 ## Conclusion
-The Story Bible Management system provides a robust, immutable foundation for narrative construction with enhanced multilingual capabilities and AI-powered character generation. With clear data models, lifecycle-aware plot threads, automatic language detection, AI character creation during story initialization, and tight integration with the chapter generation pipeline, it enables scalable, internationally-aware story creation guided by metadata, character arcs, and canonical consistency. The system now offers comprehensive cultural authenticity through language-aware character generation and reliable fallback mechanisms for production environments.
+The Story Bible Management system provides a robust, immutable foundation for narrative construction with enhanced multilingual capabilities and AI-powered protagonist generation. With clear data models, lifecycle-aware plot threads, automatic language detection, AI character creation during story initialization, comprehensive error recovery mechanisms, and tight integration with the chapter generation pipeline, it enables scalable, internationally-aware story creation guided by metadata, character arcs, and canonical consistency. The system now offers comprehensive cultural authenticity through language-aware character generation, reliable fallback mechanisms for production environments, and sophisticated character strategy analysis for dynamic narrative management.
+
+**Updated** The system now features streamlined single protagonist generation, comprehensive error recovery, and dynamic character strategy analysis for enhanced narrative control and production reliability.
 
 ## Appendices
 
 ### Practical Examples
-- Story creation with automatic language detection and character generation: See [simple.test.ts:26-34](file://packages/engine/src/test/simple.test.ts#L26-L34).
+- Story creation with automatic language detection and single protagonist generation: See [simple.test.ts:26-34](file://packages/engine/src/test/simple.test.ts#L26-L34).
 - Character addition with language-appropriate names: See [simple.test.ts:36-42](file://packages/engine/src/test/simple.test.ts#L36-L42).
 - Plot thread integration: Add threads after story creation and before generation.
-- **CLI automatic character generation**: See [init.ts:66-71](file://apps/cli/src/commands/init.ts#L66-L71).
+- **CLI automatic protagonist generation**: See [init.ts:165-202](file://apps/cli/src/commands/init.ts#L165-L202).
+- **Character strategy analysis**: See [characterStrategy.ts:71-105](file://packages/engine/src/agents/characterStrategy.ts#L71-L105).
 
 **Section sources**
 - [simple.test.ts:24-64](file://packages/engine/src/test/simple.test.ts#L24-L64)
-- [init.ts:66-71](file://apps/cli/src/commands/init.ts#L66-L71)
+- [init.ts:165-202](file://apps/cli/src/commands/init.ts#L165-L202)
+- [characterStrategy.ts:71-105](file://packages/engine/src/agents/characterStrategy.ts#L71-L105)
 
 ### Language Detection Reference
 Supported languages and detection criteria:
@@ -652,22 +728,40 @@ Supported languages and detection criteria:
 - [bible.ts:55-72](file://packages/engine/src/story/bible.ts#L55-L72)
 
 ### AI Character Generation Configuration
-- **Prompt Engineering**: Cultural context and language-appropriate naming conventions.
-- **Error Handling**: Automatic fallback to getDefaultCharacters with language-specific defaults.
+- **Prompt Engineering**: Single protagonist focus with cultural context and language-appropriate naming conventions.
+- **Error Recovery**: Comprehensive JSON parsing with markdown block removal, brace counting, and bracket balancing.
+- **Retry Logic**: Up to 3 retry attempts with user feedback for production reliability.
 - **Cultural Authenticity**: Character names and traits adapted to detected language and story setting.
-- **Fallback Defaults**: Comprehensive character sets for Chinese, English, and Japanese languages.
+- **Streamlined Approach**: Focus on single protagonist for improved narrative cohesion and Chapter 1 effectiveness.
+
+**Updated** Configuration now emphasizes single protagonist generation with comprehensive error recovery mechanisms.
 
 **Section sources**
-- [bible.ts:153-217](file://packages/engine/src/story/bible.ts#L153-L217)
-- [bible.ts:222-242](file://packages/engine/src/story/bible.ts#L222-L242)
+- [bible.ts:153-279](file://packages/engine/src/story/bible.ts#L153-L279)
+- [init.ts:165-202](file://apps/cli/src/commands/init.ts#L165-L202)
 
 ### Character Generation Implementation Details
 - **LLM Integration**: Uses LLMClient with task-specific model selection for generation tasks.
-- **JSON Parsing**: Robust JSON extraction with markdown code block handling.
+- **JSON Parsing**: Robust JSON extraction with markdown code block handling, brace counting, and bracket balancing.
 - **ID Generation**: Unique identifiers for generated characters using timestamp and random suffix.
-- **Error Recovery**: Comprehensive error handling with fallback to default character sets.
+- **Error Recovery**: Comprehensive error handling with fallback to default character sets and retry mechanisms.
+- **Single Protagonist Focus**: Streamlined approach creating one compelling protagonist rather than multiple characters.
+
+**Updated** Implementation now focuses on single protagonist generation with comprehensive error recovery and retry logic.
 
 **Section sources**
-- [bible.ts:153-217](file://packages/engine/src/story/bible.ts#L153-L217)
+- [bible.ts:153-279](file://packages/engine/src/story/bible.ts#L153-L279)
 - [client.ts:174-219](file://packages/engine/src/llm/client.ts#L174-L219)
-- [bible.ts:222-242](file://packages/engine/src/story/bible.ts#L222-L242)
+- [init.ts:165-202](file://apps/cli/src/commands/init.ts#L165-L202)
+
+### Character Strategy Analyzer Configuration
+- **Dynamic Analysis**: Character strategy analysis with temperature=0.4 for analytical precision.
+- **Conflict Detection**: Automated identification of character conflicts and relationship issues.
+- **Integration**: Seamless integration with chapter generation pipeline for dynamic narrative adaptation.
+- **Emotional Arc Tracking**: Monitoring of character emotional states and development patterns.
+
+**New** Configuration details for the new CharacterStrategyAnalyzer system.
+
+**Section sources**
+- [characterStrategy.ts:71-105](file://packages/engine/src/agents/characterStrategy.ts#L71-L105)
+- [characterStrategy.ts:166-201](file://packages/engine/src/agents/characterStrategy.ts#L166-L201)
