@@ -4,6 +4,7 @@ import type { CanonStore } from '../memory/canonStore.js';
 import { formatCanonForPrompt } from '../memory/canonStore.js';
 import type { MemoryRetriever } from '../memory/memoryRetriever.js';
 import type { DirectorOutput } from './storyDirector.js';
+import type { WorldStateEngine } from '../world/worldStateEngine.js';
 import { calculateWordCount } from '../utils/text.js';
 
 const WRITER_PROMPT = `You are a professional novelist writing immersive narrative prose.
@@ -157,7 +158,8 @@ Continue naturally from the last sentence:`;
     scenePlan: ScenePlan,
     directorOutput: DirectorOutput,
     canon?: CanonStore,
-    memoryRetriever?: MemoryRetriever
+    memoryRetriever?: MemoryRetriever,
+    worldStateEngine?: WorldStateEngine
   ): Promise<WriterOutput> {
     const { bible, state, chapterNumber } = context;
     
@@ -188,6 +190,17 @@ Continue naturally from the last sentence:`;
       `Scene ${s.id}: [${s.type?.toUpperCase() || 'SCENE'}] Tension ${s.tension}/10 - ${s.purpose}`
     ).join('\n');
 
+    // Build current world state section
+    let worldStateSection = '';
+    if (worldStateEngine && chapterNumber > 1) {
+      const worldState = worldStateEngine.getState();
+      const protagonist = bible.characters.find(c => c.role === 'protagonist')?.name;
+      if (protagonist && worldState.characters[protagonist]) {
+        const char = worldState.characters[protagonist];
+        worldStateSection = `\n## Current Character States (CRITICAL: Maintain Continuity)\n\n**${protagonist}** (Protagonist):\n- Current Location: ${char.location}\n- Emotional State: ${char.emotionalState}\n- Status: ${char.alive ? 'Alive' : 'Deceased'}\n\n**IMPORTANT**: The chapter MUST begin with the protagonist at "${char.location}". Do NOT start at a different location without explicitly showing how they got there.\n`;
+      }
+    }
+
     const languageName = bible.language === 'zh' ? 'Chinese' : bible.language === 'ja' ? 'Japanese' : bible.language === 'ko' ? 'Korean' : bible.language === 'ar' ? 'Arabic' : bible.language === 'ru' ? 'Russian' : bible.language === 'es' ? 'Spanish' : bible.language === 'fr' ? 'French' : bible.language === 'de' ? 'German' : 'English';
 
     const prompt = `You are a professional novelist writing immersive narrative prose.
@@ -209,6 +222,7 @@ ${bible.premise}
 ## Characters
 
 ${characters}
+${worldStateSection}
 
 ## Story Canon
 
@@ -244,7 +258,8 @@ ${directorOutput.overallGoal}
 - DO NOT label scenes or use scene breaks
 - Let the narrative flow naturally from one moment to the next
 - Reference relevant past memories naturally when appropriate
-- **CRITICAL: Write ${scenePlan.scenes.length * 1000}-${scenePlan.scenes.length * 1500} words minimum. This is a substantial chapter, not a short scene.**
+- **CRITICAL: Target word count: ${Math.max(4000, scenePlan.scenes.length * 1000)}-${Math.min(7500, Math.max(5000, scenePlan.scenes.length * 1500))} words. Do not exceed 7500 words. This is a substantial chapter with proper depth and development.**
+- **CRITICAL: Maintain location continuity. If the previous chapter ended at a specific location, this chapter must begin there unless you explicitly show the transition.**
 - Develop each moment fully with description, dialogue, and character thoughts
 - End at a natural stopping point
 

@@ -91,7 +91,12 @@ Based on all the above information, decide what Chapter {{nextChapter}} should a
 4. **Unresolved Questions**: Which mysteries should be addressed?
 5. **Story Arc**: Where are we in the overall narrative (setup/rising action/climax/resolution)?
 
-This is a LONG-FORM chapter (target: 5000+ words, 5-7 scenes). Plan accordingly.
+This is a LONG-FORM chapter (target: 5000-7500 words, 4-7 scenes). Plan accordingly:
+- 3-4 scenes → target ~4000-5000 words
+- 5 scenes → target ~5000-6500 words  
+- 6-7 scenes → target ~6000-7500 words (max 7500)
+
+Do not plan scenes that would exceed 7500 words total. Each scene should be substantial (800-1200 words) but not overly long.
 
 Output a JSON object with:
 

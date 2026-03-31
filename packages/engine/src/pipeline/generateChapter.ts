@@ -7,6 +7,7 @@ import { planScenes } from '../agents/scenePlanner.js';
 import { storyDirector, type DirectorOutput } from '../agents/storyDirector.js';
 import { generateTensionGuidance, analyzeTension } from '../agents/tensionController.js';
 import { characterStrategyAnalyzer, type CharacterStrategy as AgentCharacterStrategy } from '../agents/characterStrategy.js';
+import { worldStateUpdater } from '../agents/worldStateUpdater.js';
 import { createStructuredState } from '../story/structuredState.js';
 import { WorldStateEngine, createWorldStateEngine, type WorldState } from '../world/worldStateEngine.js';
 import type { GenerationContext, Chapter, ChapterSummary, SceneOutput, ScenePlan, StoryBible } from '../types/index.js';
@@ -92,8 +93,11 @@ async function generateChapterSceneLevel(
   // Phase 14: Initialize World State Engine
   const worldStateEngine = providedWorldState || createWorldStateEngine(bible.id);
   
-  // Initialize world state from bible characters only if no world state was provided
-  if (!providedWorldState) {
+  // Initialize world state from bible characters if empty or not provided
+  const currentState = worldStateEngine.getState();
+  const hasCharacters = Object.keys(currentState.characters).length > 0;
+  
+  if (!hasCharacters) {
     console.log('  Initializing world state from story bible...');
     for (const char of bible.characters) {
       worldStateEngine.addCharacter(char.name, 'unknown', 'neutral');
@@ -125,13 +129,28 @@ async function generateChapterSceneLevel(
   // Step 2: Plan scenes for this chapter (now with director guidance)
   console.log('  Planning scenes...');
   const previousSummary = state.chapterSummaries[state.chapterSummaries.length - 1]?.summary;
+  
+  // Get previous chapter's ending location from World State for continuity
+  let previousEndingLocation: string | undefined;
+  let previousEndingContext: string | undefined;
+  if (worldStateEngine && chapterNumber > 1) {
+    const worldState = worldStateEngine.getState();
+    const protagonist = bible.characters.find(c => c.role === 'protagonist')?.name;
+    if (protagonist && worldState.characters[protagonist]) {
+      previousEndingLocation = worldState.characters[protagonist].location;
+      previousEndingContext = `Protagonist was at ${previousEndingLocation}, feeling ${worldState.characters[protagonist].emotionalState}`;
+    }
+  }
+  
   const scenePlan = await planScenes({
     bible,
     state,
     chapterNumber,
     previousChapterSummary: previousSummary,
     targetSceneCount,
-    directorOutput
+    directorOutput,
+    previousEndingLocation,
+    previousEndingContext
   });
   console.log(`  Planned ${scenePlan.scenes.length} scenes`);
 
@@ -143,7 +162,8 @@ async function generateChapterSceneLevel(
     scenePlan,
     directorOutput,
     canon,
-    memoryRetriever
+    memoryRetriever,
+    worldStateEngine
   );
   
   console.log(`  Generated: ${writerOutput.wordCount} words`);
@@ -189,7 +209,23 @@ async function generateChapterSceneLevel(
 
   console.log(`  Generated: ${writerOutput.wordCount} words (${scenePlan.scenes.length} scenes framework)`);
 
-  // Step 6: Extract and store memories
+  // Step 6: Update World State from chapter content (track character locations, etc.)
+  if (worldStateEngine) {
+    console.log('  Updating world state...');
+    try {
+      await worldStateUpdater.updateFromScene(
+        worldStateEngine,
+        writerOutput.content,
+        bible,
+        chapterNumber
+      );
+      console.log('  ✓ World state updated');
+    } catch (e) {
+      console.warn('  ⚠️  Failed to update world state:', e);
+    }
+  }
+
+  // Step 7: Extract and store memories
   let memoriesExtracted = 0;
   if (vectorStore) {
     console.log('  Extracting memories...');
@@ -208,7 +244,7 @@ async function generateChapterSceneLevel(
     console.log(`  Stored ${memoriesExtracted} memories`);
   }
 
-  // Step 7: Extract new canon facts from chapter
+  // Step 8: Extract new canon facts from chapter
   let updatedCanon: CanonStore | undefined;
   if (canon) {
     console.log('  Extracting new canon facts...');
@@ -219,7 +255,7 @@ async function generateChapterSceneLevel(
     }
   }
 
-  // Step 8: Analyze character strategies
+  // Step 9: Analyze character strategies
   console.log('  Analyzing character strategies...');
   const mainCharacters = bible.characters.slice(0, 4); // Analyze top 4 characters
   const analyzedStrategies: AgentCharacterStrategy[] = [];

@@ -1,6 +1,6 @@
 {
   "name": "@narrative-os/cli",
-  "version": "0.1.45",
+  "version": "0.1.51",
   "description": "AI-native narrative engine for long-form story generation",
   "main": "dist/index.js",
   "bin": {
@@ -41,7 +41,7 @@
   },
   "dependencies": {
     "@inquirer/prompts": "^8.3.0",
-    "@narrative-os/engine": "0.1.35",
+    "@narrative-os/engine": "0.1.42",
     "@narrative-os/genres": "^0.0.1",
     "@narrative-os/skills": "^0.0.1",
     "commander": "^12.0.0"

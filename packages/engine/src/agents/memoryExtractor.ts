@@ -50,10 +50,10 @@ Respond with JSON only:
 }`;
 
 export class MemoryExtractor {
-  // Segment size for long chapters (characters)
-  private readonly SEGMENT_SIZE = 6000;
-  // Overlap between segments to ensure continuity
-  private readonly SEGMENT_OVERLAP = 500;
+  // Segment size for long chapters (characters) - reduced to save memory
+  private readonly SEGMENT_SIZE = 4000;
+  // Overlap between segments - reduced to save memory
+  private readonly SEGMENT_OVERLAP = 200;
 
   async extract(chapter: Chapter, bible: StoryBible): Promise<ExtractedMemory[]> {
     const content = chapter.content;
@@ -63,46 +63,75 @@ export class MemoryExtractor {
       return this.extractFromSegment(content, chapter, bible);
     }
 
-    // For long content, segment and extract from each part
+    // For long content, process segments one by one (streaming) to save memory
     console.log(`  Chapter ${chapter.number} content is long (${content.length} chars), segmenting for extraction...`);
-    const segments = this.segmentContent(content);
     const allMemories: ExtractedMemory[] = [];
+    const totalSegments = this.calculateSegmentCount(content);
 
-    for (let i = 0; i < segments.length; i++) {
-      console.log(`  Extracting from segment ${i + 1}/${segments.length}...`);
-      const segmentMemories = await this.extractFromSegment(segments[i], chapter, bible, i + 1, segments.length);
+    let start = 0;
+    let segmentIndex = 0;
+    while (start < content.length) {
+      segmentIndex++;
+      const segment = this.getNextSegment(content, start);
+      console.log(`  Extracting from segment ${segmentIndex}/${totalSegments}...`);
+      
+      const segmentMemories = await this.extractFromSegment(segment, chapter, bible, segmentIndex, totalSegments);
       allMemories.push(...segmentMemories);
+      
+      // Move start position, accounting for overlap
+      // Ensure we make at least (SEGMENT_SIZE - OVERLAP) progress to avoid infinite loop
+      const minAdvance = this.SEGMENT_SIZE - this.SEGMENT_OVERLAP;
+      start = start + Math.max(segment.length - this.SEGMENT_OVERLAP, minAdvance);
+      
+      // Hint to GC that segment can be freed
+      if (segmentIndex % 2 === 0) {
+        global.gc && global.gc();
+      }
     }
 
     // Deduplicate memories by content similarity
     const deduplicated = this.deduplicateMemories(allMemories);
-    console.log(`  Extracted ${deduplicated.length} unique memories from ${segments.length} segments`);
+    console.log(`  Extracted ${deduplicated.length} unique memories from ${totalSegments} segments`);
     
     return deduplicated;
   }
 
-  private segmentContent(content: string): string[] {
-    const segments: string[] = [];
-    let start = 0;
+  private calculateSegmentCount(content: string): number {
+    // Approximate segment count
+    const effectiveSize = this.SEGMENT_SIZE - this.SEGMENT_OVERLAP;
+    return Math.ceil(content.length / effectiveSize);
+  }
 
-    while (start < content.length) {
-      const end = Math.min(start + this.SEGMENT_SIZE, content.length);
-      // Try to break at a paragraph boundary
-      let breakPoint = end;
-      if (end < content.length) {
-        // Look for paragraph break within 200 chars of the target end
-        const searchRange = content.substring(Math.max(start + this.SEGMENT_SIZE - 200, start), end + 200);
-        const paragraphBreak = searchRange.lastIndexOf('\n\n');
-        if (paragraphBreak > 0) {
-          breakPoint = Math.max(start + this.SEGMENT_SIZE - 200, start) + paragraphBreak + 2;
+  private getNextSegment(content: string, start: number): string {
+    const end = Math.min(start + this.SEGMENT_SIZE, content.length);
+    
+    // Try to break at a paragraph boundary
+    let breakPoint = end;
+    if (end < content.length) {
+      // Look for paragraph break within 200 chars of the target end
+      const searchStart = Math.max(end - 200, start);
+      const searchRange = content.substring(searchStart, end + 200);
+      
+      // Try different paragraph separators (\n\n for Western, \n for Chinese, etc.)
+      let paragraphBreak = searchRange.lastIndexOf('\n\n');
+      if (paragraphBreak < 0) {
+        paragraphBreak = searchRange.lastIndexOf('\n');
+      }
+      if (paragraphBreak < 0) {
+        paragraphBreak = searchRange.lastIndexOf('。');
+      }
+      
+      if (paragraphBreak > 0) {
+        const candidateBreak = searchStart + paragraphBreak + 1;
+        // Ensure we make reasonable progress (at least 50% of SEGMENT_SIZE)
+        const minProgress = Math.floor(this.SEGMENT_SIZE * 0.5);
+        if (candidateBreak - start >= minProgress) {
+          breakPoint = candidateBreak;
         }
       }
-
-      segments.push(content.substring(start, breakPoint));
-      start = breakPoint - this.SEGMENT_OVERLAP; // Overlap for continuity
     }
 
-    return segments;
+    return content.substring(start, breakPoint);
   }
 
   private async extractFromSegment(

@@ -9,6 +9,8 @@ interface ScenePlannerInput {
   previousChapterSummary?: string;
   targetSceneCount?: number;
   directorOutput?: DirectorOutput;
+  previousEndingLocation?: string; // Location where previous chapter ended
+  previousEndingContext?: string;  // Additional context about how previous chapter ended
 }
 
 /**
@@ -16,7 +18,7 @@ interface ScenePlannerInput {
  * Each scene has a specific purpose, location, characters, and tension level
  */
 export async function planScenes(input: ScenePlannerInput): Promise<ScenePlan> {
-  const { bible, state, chapterNumber, previousChapterSummary, targetSceneCount, directorOutput } = input;
+  const { bible, state, chapterNumber, previousChapterSummary, targetSceneCount, directorOutput, previousEndingLocation, previousEndingContext } = input;
   
   const llm = getLLM();
   
@@ -70,6 +72,15 @@ Current Story State:
 - Active Plot Threads: ${state.activePlotThreads.join(', ')}
 
 ${previousChapterSummary ? `Previous Chapter Summary:\n${previousChapterSummary}\n` : ''}
+
+${previousEndingLocation ? `## Previous Chapter Ending (CRITICAL for Continuity)
+
+**Ending Location:** ${previousEndingLocation}
+${previousEndingContext ? `**Context:** ${previousEndingContext}` : ''}
+
+**IMPORTANT:** The first scene of this chapter MUST begin at "${previousEndingLocation}" unless there's an explicit transition showing how the character(s) moved. Maintain continuity with where the story left off.
+
+` : ''}
 
 ${directorOutput ? `## Story Director Guidance
 

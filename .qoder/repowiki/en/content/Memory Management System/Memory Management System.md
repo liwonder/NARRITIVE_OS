@@ -34,12 +34,10 @@
 
 ## Update Summary
 **Changes Made**
-- Enhanced MemoryExtractor Agent with automatic memory extraction from generated chapters and improved structured memory categorization
-- Integrated automatic vector store memory extraction into the generation pipeline with dual extraction modes (full chapter and summary-based)
-- Improved VectorStore with enhanced embedding provider flexibility and mock embedding fallback mechanisms
-- Added comprehensive memory lifecycle management with automatic extraction, validation, and integration
-- Enhanced StateUpdaterPipeline with integrated memory extraction and structured categorization
-- Updated CLI integration with automatic memory persistence and vector store management
+- Enhanced MemoryExtractor with intelligent long chapter segmentation (4,000+ character threshold with 200-character overlap), improved paragraph boundary detection, automatic deduplication using Jaccard similarity (0.8 threshold), and streaming memory extraction for memory efficiency
+- Enhanced CanonStore with 5,000-character segment handling and 400-character overlap for processing long chapter content
+- Improved memory extraction algorithms with better content segmentation and deduplication strategies
+- Enhanced vector memory management with streaming extraction and automatic memory optimization
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -54,29 +52,29 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document describes the Memory Management System with a focus on Canonical Fact Storage, Enhanced Vector Memory System with Flexible Embedding Providers, Memory Validation, and Comprehensive State Management. The system now includes a sophisticated vector memory system with flexible embedding provider architecture that enables seamless switching between multiple providers (OpenAI, DeepSeek) for embedding generation, while maintaining backward compatibility and robust fallback mechanisms. The enhanced vector memory system integrates seamlessly with the canonical fact storage, memory validation, and state management components to provide a comprehensive memory infrastructure for narrative coherence and intelligent story generation.
+This document describes the Memory Management System with a focus on Canonical Fact Storage, Enhanced Vector Memory System with Intelligent Long Chapter Segmentation, Memory Validation, and Comprehensive State Management. The system now includes sophisticated memory extraction capabilities with intelligent segmentation for long chapters, automatic deduplication using Jaccard similarity, and enhanced canonical fact processing with streaming extraction for improved memory efficiency and performance.
 
-**Updated** Enhanced memory management now features automatic memory extraction from generated chapters, structured memory categorization (events, characters, world, plot), and comprehensive vector store integration with improved embedding provider flexibility and mock embedding fallback mechanisms.
+**Updated** Enhanced memory management now features intelligent long chapter segmentation with configurable segment sizes and overlaps, automatic paragraph boundary detection, Jaccard similarity-based deduplication with 0.8 threshold, and comprehensive vector store integration with streaming memory extraction for optimal performance with large content volumes.
 
 ## Project Structure
-The memory system now encompasses a comprehensive vector memory infrastructure with enhanced state management capabilities and flexible embedding provider architecture:
-- Memory: Canonical fact representation, vector-based memory storage, memory extraction, and retrieval
+The memory system now encompasses a comprehensive vector memory infrastructure with enhanced state management capabilities and intelligent memory extraction:
+- Memory: Canonical fact representation, vector-based memory storage, intelligent memory extraction with segmentation, and retrieval
 - Story: Structured story state with characters, plot threads, and unresolved questions
-- Agents: Writers, completeness checker, summarizer, canonical validator, state updater, and memory extractor
-- Pipeline: Orchestration of chapter generation with optional canonical validation, vector memory extraction, and state updates
+- Agents: Writers, completeness checker, summarizer, canonical validator, state updater, and memory extractor with enhanced segmentation capabilities
+- Pipeline: Orchestration of chapter generation with optional canonical validation, intelligent memory extraction, and state updates
 - CLI: Command-line integration for iterative chapter generation with enhanced persistence including vector stores
 - LLM Client: Multi-model configuration system supporting embedding provider flexibility and task-specific model routing
 - Scene Assembly: Multilingual scene assembly with cultural narrative flow adaptation and language-aware connectors
 
 ```mermaid
 graph TB
-subgraph "Enhanced Vector Memory System"
+subgraph "Enhanced Intelligent Memory Extraction"
 VS["VectorStore<br/>Flexible Embedding Providers<br/>Auto-resize()<br/>searchSimilar()<br/>serialize()/load()"]
 MR["MemoryRetriever<br/>retrieveForChapter()<br/>retrieveForCharacter()<br/>formatMemoriesForPrompt()"]
-ME["MemoryExtractor<br/>extract()<br/>extractFromSummary()<br/>Automatic Chapter Memory Extraction"]
+ME["MemoryExtractor<br/>Intelligent Segmentation<br/>Paragraph Boundary Detection<br/>Jaccard Similarity Deduplication<br/>Streaming Memory Extraction"]
 end
-subgraph "Canonical Memory"
-CS["CanonStore<br/>createCanonStore()<br/>extractCanonFromBible()<br/>extractCanonFromChapter()<br/>addFact()/updateFact()"]
+subgraph "Enhanced Canonical Memory"
+CS["CanonStore<br/>5,000 Char Segments<br/>400 Char Overlap<br/>extractCanonFromBible()<br/>extractCanonFromChapter()<br/>addFact()/updateFact()"]
 end
 subgraph "Enhanced State Management"
 SS["StructuredState<br/>createStructuredState()<br/>initializeCharactersFromBible()"]
@@ -93,7 +91,7 @@ SW["SceneWriter<br/>writeScene()<br/>language-aware content"]
 SA["SceneAssembler<br/>assembleChapter()<br/>multilingual connectors"]
 end
 subgraph "Enhanced Pipeline & CLI"
-G["generateChapter()<br/>scene-level generation<br/>enhanced orchestration<br/>Automatic Memory Extraction"]
+G["generateChapter()<br/>scene-level generation<br/>enhanced orchestration<br/>Intelligent Memory Extraction"]
 CMD["generateCommand()"]
 end
 subgraph "LLM Client & Embedding Providers"
@@ -128,7 +126,7 @@ EP --> LC
 **Diagram sources**
 - [vectorStore.ts:19-58](file://packages/engine/src/memory/vectorStore.ts#L19-L58)
 - [memoryRetriever.ts:18-41](file://packages/engine/src/memory/memoryRetriever.ts#L18-L41)
-- [memoryExtractor.ts:52-68](file://packages/engine/src/agents/memoryExtractor.ts#L52-L68)
+- [memoryExtractor.ts:52-95](file://packages/engine/src/agents/memoryExtractor.ts#L52-L95)
 - [canonStore.ts:17-58](file://packages/engine/src/memory/canonStore.ts#L17-L58)
 - [stateUpdater.ts:90-248](file://packages/engine/src/memory/stateUpdater.ts#L90-L248)
 - [bible.ts:3-26](file://packages/engine/src/story/bible.ts#L3-L26)
@@ -152,8 +150,8 @@ EP --> LC
 ## Core Components
 - **VectorStore**: Enhanced HNSW (Hierarchical Navigable Small World) algorithm-based vector memory storage with semantic similarity search, flexible embedding generation supporting multiple providers, auto-resizing capabilities, and full persistence support.
 - **MemoryRetriever**: Advanced contextual memory retrieval system that searches vector stores for relevant past events, character memories, plot threads, and world details with intelligent query generation.
-- **MemoryExtractor**: Sophisticated automated narrative memory extraction agent that identifies and categorizes important facts from chapters into four categories: events, characters, world, and plot with automatic extraction from generated chapters.
-- **CanonStore**: Immutable store of canonical facts with helpers to extract, add, update, filter, and format facts for prompts, including new automatic extraction from chapter content.
+- **MemoryExtractor**: Sophisticated automated narrative memory extraction agent with intelligent long chapter segmentation (4,000+ character threshold with 200-character overlap), improved paragraph boundary detection, automatic deduplication using Jaccard similarity (0.8 threshold), and streaming memory extraction for memory efficiency.
+- **CanonStore**: Immutable store of canonical facts with helpers to extract, add, update, filter, and format facts for prompts, including enhanced 5,000-character segment handling and 400-character overlap for processing long chapter content.
 - **StateUpdaterPipeline**: Comprehensive post-chapter state management pipeline that extracts narrative changes, updates constraint graphs, maintains recent events, and integrates vector memory extraction with enhanced performance and automatic memory extraction.
 - **StructuredState**: Rich story state representation with characters, plot threads, unresolved questions, and recent events tracking.
 - **StoryBible**: Central story definition containing characters and plot threads used to seed canonical facts and initialize structured state.
@@ -166,7 +164,7 @@ EP --> LC
   - ChapterSummarizer: Produces concise chapter summaries for memory extraction.
   - CanonValidator: Validates generated chapters against canonical facts using LLM reasoning.
   - StateUpdater: Extracts and applies state changes for unresolved questions and recent events.
-- **Enhanced Pipeline**: Orchestrates generation, optional canonical validation, vector memory extraction, and comprehensive state updates with scene-level generation capabilities and automatic memory extraction.
+- **Enhanced Pipeline**: Orchestrates generation, optional canonical validation, intelligent memory extraction, and comprehensive state updates with scene-level generation capabilities and automatic memory extraction.
 - **CLI**: Iteratively generates chapters, updates state, persists progress, and manages vector store persistence with enhanced memory and constraint graph persistence, including embedding provider configuration.
 
 **Section sources**
@@ -189,11 +187,11 @@ EP --> LC
 - [client.ts:50-210](file://packages/engine/src/llm/client.ts#L50-L210)
 
 ## Architecture Overview
-The enhanced memory system integrates comprehensive vector memory capabilities with flexible embedding provider architecture and the generation pipeline as follows:
+The enhanced memory system integrates comprehensive vector memory capabilities with intelligent segmentation, flexible embedding provider architecture, and the generation pipeline as follows:
 - StoryBible seeds both CanonStore and StructuredState via extraction and initialization.
 - VectorStore integrates with LLM client for flexible embedding generation supporting multiple providers.
 - VectorStore and MemoryRetriever are integrated into the writer to provide contextual memory injection.
-- MemoryExtractor automatically extracts narrative memories from generated chapters and adds them to the vector store with structured categorization.
+- MemoryExtractor automatically extracts narrative memories from generated chapters with intelligent segmentation and deduplication, adding them to the vector store with structured categorization.
 - SceneWriter generates scenes with language-aware content adaptation.
 - SceneAssembler combines scenes with cultural narrative flow adaptation and language-specific connectors.
 - After writing, the pipeline checks completeness and optionally validates against canonical facts.
@@ -242,7 +240,6 @@ LC-->>VS : "EmbeddingConfig"
 VS-->>ME : "memory stored"
 Pipe->>StateUp : "update(context with new chapter)"
 StateUp-->>Pipe : "StateUpdateResult"
-Pipe-->>CLI : "GenerateChapterResult"
 ```
 
 **Diagram sources**
@@ -253,7 +250,7 @@ Pipe-->>CLI : "GenerateChapterResult"
 - [summarizer.ts:24-38](file://packages/engine/src/agents/summarizer.ts#L24-L38)
 - [canonValidator.ts:32-55](file://packages/engine/src/agents/canonValidator.ts#L32-L55)
 - [stateUpdater.ts:94-248](file://packages/engine/src/memory/stateUpdater.ts#L94-L248)
-- [memoryExtractor.ts:52-68](file://packages/engine/src/agents/memoryExtractor.ts#L52-L68)
+- [memoryExtractor.ts:52-95](file://packages/engine/src/agents/memoryExtractor.ts#L52-L95)
 - [vectorStore.ts:66-93](file://packages/engine/src/memory/vectorStore.ts#L66-L93)
 - [memoryRetriever.ts:25-41](file://packages/engine/src/memory/memoryRetriever.ts#L25-L41)
 - [client.ts:192-200](file://packages/engine/src/llm/client.ts#L192-L200)
@@ -262,34 +259,73 @@ Pipe-->>CLI : "GenerateChapterResult"
 
 ## Detailed Component Analysis
 
-### Enhanced MemoryExtractor: Sophisticated Automated Narrative Memory Extraction
-The MemoryExtractor agent automatically identifies and categorizes important narrative elements from chapters with significantly enhanced capabilities:
+### Enhanced MemoryExtractor: Intelligent Long Chapter Segmentation and Deduplication
+The MemoryExtractor agent now features sophisticated intelligent segmentation and deduplication capabilities for processing long chapters efficiently:
 
-- **Advanced Extraction Capabilities**: Identifies events, character developments, world details, and plot thread progress from chapter content with better extraction accuracy and structured categorization.
-- **Enhanced Structured Output**: Returns memories in standardized format with content and category classification (event, character, world, plot) with improved consistency.
-- **Dual Extraction Modes**: Can extract from full chapter content or from chapter summaries for efficiency with better content length management and automatic extraction from generated chapters.
-- **Improved Prompt Engineering**: Uses carefully crafted prompts to ensure consistent and relevant memory extraction with better instruction clarity and structured output formatting.
-- **Advanced Content Limiting**: Implements content length limits to control token usage and maintain performance with better content truncation strategies.
-- **Automatic Integration**: Seamlessly integrated into the generation pipeline to automatically extract memories from generated chapters without manual intervention.
+- **Intelligent Long Chapter Segmentation**: Processes chapters longer than 4,000 characters using 200-character overlap to maintain context while managing memory usage effectively.
+- **Improved Paragraph Boundary Detection**: Smartly detects paragraph breaks within 200 characters of segment boundaries to ensure semantic coherence and natural content division.
+- **Automatic Deduplication with Jaccard Similarity**: Implements Jaccard similarity algorithm with 0.8 threshold to eliminate redundant memories, reducing storage requirements and improving search efficiency.
+- **Streaming Memory Extraction**: Processes content in segments with garbage collection hints to prevent memory buildup during long chapter processing.
+- **Enhanced Segment Context**: Provides segment numbering and overlap information to maintain temporal context across segmented processing.
+- **Memory Optimization**: Reduces memory footprint by processing content in manageable chunks rather than loading entire chapters into memory.
 
 ```mermaid
 flowchart TD
-A["Enhanced Chapter Input"] --> B["Generate Advanced Extraction Prompt"]
-B --> C["LLM Analysis"]
-C --> D["Extract Enhanced Memories"]
-D --> E["Categorize Content<br/>event/character/world/plot"]
-E --> F["Return Enhanced ExtractedMemory[]"]
-F --> G["Automatic VectorStore Integration"]
-G --> H["Structured Memory Storage"]
+A["Long Chapter Content (>4,000 chars)"] --> B["Calculate Segment Count<br/>(Effective Size: 3,800 chars)"]
+B --> C["Process First Segment<br/>(200-char overlap)"]
+C --> D["Extract Memories from Segment"]
+D --> E["Stream to VectorStore"]
+E --> F{"More Segments?"}
+F --> |Yes| G["Advance with Overlap<br/>(Start = End - 200)"]
+G --> H["Detect Paragraph Boundary<br/>(Within 200 chars)"]
+H --> C
+F --> |No| I["Deduplicate Memories<br/>(Jaccard Similarity > 0.8)"]
+I --> J["Store Unique Memories"]
+J --> K["Memory Extraction Complete"]
 ```
 
 **Diagram sources**
-- [memoryExtractor.ts:52-68](file://packages/engine/src/agents/memoryExtractor.ts#L52-L68)
-- [memoryExtractor.ts:70-93](file://packages/engine/src/agents/memoryExtractor.ts#L70-L93)
-- [generateChapter.ts:190-207](file://packages/engine/src/pipeline/generateChapter.ts#L190-L207)
+- [memoryExtractor.ts:52-95](file://packages/engine/src/agents/memoryExtractor.ts#L52-L95)
+- [memoryExtractor.ts:97-119](file://packages/engine/src/agents/memoryExtractor.ts#L97-L119)
+- [memoryExtractor.ts:153-186](file://packages/engine/src/agents/memoryExtractor.ts#L153-L186)
 
 **Section sources**
-- [memoryExtractor.ts:1-99](file://packages/engine/src/agents/memoryExtractor.ts#L1-L99)
+- [memoryExtractor.ts:1-216](file://packages/engine/src/agents/memoryExtractor.ts#L1-L216)
+
+### Enhanced CanonStore: 5,000-Character Segment Processing
+The CanonStore now provides enhanced processing capabilities for long chapter content with intelligent segmentation:
+
+- **5,000-Character Segment Threshold**: Processes chapters longer than 5,000 characters using 400-character overlap to maintain context while managing memory usage.
+- **Smart Paragraph Boundary Detection**: Detects paragraph breaks within 200-character range to ensure semantic coherence across segment boundaries.
+- **Enhanced Duplicate Prevention**: Prevents duplicate fact extraction by checking existing canonical facts before adding new ones.
+- **Streaming Fact Processing**: Processes content in segments with garbage collection hints for memory efficiency during long chapter analysis.
+- **Chapter Number Integration**: Automatically includes chapter numbers in fact attributes for temporal tracking and provenance.
+- **Robust Error Handling**: Gracefully handles extraction failures while preserving existing canonical facts.
+
+```mermaid
+flowchart TD
+A["Chapter Content (>5,000 chars)"] --> B["Calculate Segment Count<br/>(Effective Size: 4,600 chars)"]
+B --> C["Process First Segment<br/>(400-char overlap)"]
+C --> D["Extract New Canon Facts"]
+D --> E["Check for Duplicates<br/>(Existing Facts)"]
+E --> F{"Duplicate Found?"}
+F --> |Yes| G["Skip Fact"]
+F --> |No| H["Add to Store<br/>(Chapter Established)"]
+H --> I{"More Segments?"}
+I --> |Yes| J["Advance with Overlap<br/>(Start = End - 400)"]
+J --> K["Detect Paragraph Boundary<br/>(Within 200 chars)"]
+K --> C
+I --> |No| L["Return Updated Store"]
+L --> M["Canon Extraction Complete"]
+```
+
+**Diagram sources**
+- [canonStore.ts:146-182](file://packages/engine/src/memory/canonStore.ts#L146-L182)
+- [canonStore.ts:184-204](file://packages/engine/src/memory/canonStore.ts#L184-L204)
+- [canonStore.ts:206-299](file://packages/engine/src/memory/canonStore.ts#L206-L299)
+
+**Section sources**
+- [canonStore.ts:136-304](file://packages/engine/src/memory/canonStore.ts#L136-L304)
 
 ### Enhanced VectorStore: Flexible Embedding Provider Architecture
 The VectorStore provides sophisticated vector memory management with enhanced embedding provider flexibility and improved fallback mechanisms:
@@ -345,7 +381,7 @@ LLMClient --> ModelConfig : "returns"
 - [index.ts:92-104](file://packages/engine/src/types/index.ts#L92-L104)
 
 **Section sources**
-- [vectorStore.ts:1-237](file://packages/engine/src/memory/vectorStore.ts#L1-L237)
+- [vectorStore.ts:1-271](file://packages/engine/src/memory/vectorStore.ts#L1-L271)
 
 ### Enhanced StateUpdaterPipeline: Comprehensive Post-Chapter State Management
 The StateUpdaterPipeline represents a significant enhancement to the memory management system, now fully integrated with vector memory capabilities:
@@ -374,12 +410,12 @@ G --> H["Enhanced StateUpdateResult"]
 - [stateUpdater.ts:341-389](file://packages/engine/src/memory/stateUpdater.ts#L341-L389)
 
 **Section sources**
-- [stateUpdater.ts:90-435](file://packages/engine/src/memory/stateUpdater.ts#L90-L435)
+- [stateUpdater.ts:90-493](file://packages/engine/src/memory/stateUpdater.ts#L90-L493)
 
-### Enhanced generateChapter: Automatic Memory Extraction Integration
-The generateChapter function now orchestrates automatic memory extraction from generated chapters with enhanced capabilities:
+### Enhanced generateChapter: Intelligent Memory Extraction Integration
+The generateChapter function now orchestrates intelligent memory extraction from generated chapters with enhanced capabilities:
 
-- **Automatic Memory Extraction**: Seamlessly extracts memories from generated chapters using MemoryExtractor and adds them to vector store without manual intervention.
+- **Intelligent Memory Extraction**: Seamlessly extracts memories from generated chapters using MemoryExtractor with automatic segmentation for long chapters and deduplication for efficiency.
 - **Dual Extraction Modes**: Supports both full chapter extraction and summary-based extraction for efficiency with better content management.
 - **Enhanced Pipeline Integration**: Integrates MemoryExtractor into the generation pipeline with automatic vector store management and embedding generation.
 - **Structured Memory Categorization**: Automatically categorizes extracted memories into events, characters, world, and plot categories for organized storage.
@@ -396,24 +432,24 @@ loop "for each memory"
 G->>VS : "addMemory(memory)"
 VS-->>G : "MemoryStored"
 end
-G-->>G : "Automatic Memory Extraction Complete"
+G-->>G : "Intelligent Memory Extraction Complete"
 ```
 
 **Diagram sources**
 - [generateChapter.ts:190-207](file://packages/engine/src/pipeline/generateChapter.ts#L190-L207)
-- [memoryExtractor.ts:52-68](file://packages/engine/src/agents/memoryExtractor.ts#L52-L68)
+- [memoryExtractor.ts:52-95](file://packages/engine/src/agents/memoryExtractor.ts#L52-L95)
 - [vectorStore.ts:77-105](file://packages/engine/src/memory/vectorStore.ts#L77-L105)
 
 **Section sources**
 - [generateChapter.ts:190-207](file://packages/engine/src/pipeline/generateChapter.ts#L190-L207)
 
-### Enhanced Memory Lifecycle: Extraction → Validation → Integration → State Updates → Vector Memory
-The enhanced memory lifecycle now includes comprehensive vector memory integration with improved performance and flexible embedding providers:
+### Enhanced Memory Lifecycle: Intelligent Extraction → Validation → Integration → State Updates → Vector Memory
+The enhanced memory lifecycle now includes comprehensive vector memory integration with intelligent segmentation and improved performance:
 
-- **Enhanced Extraction**: extractCanonFromBible reads characters and plot threads from the story bible and writes canonical facts into CanonStore with better extraction logic.
-- **Advanced Vector Memory Extraction**: MemoryExtractor automatically extracts narrative memories from generated chapters and adds them to VectorStore with improved extraction accuracy and structured categorization.
+- **Intelligent Extraction**: extractCanonFromBible reads characters and plot threads from the story bible and writes canonical facts into CanonStore with enhanced extraction logic.
+- **Enhanced Vector Memory Extraction**: MemoryExtractor automatically extracts narrative memories from generated chapters with intelligent segmentation and deduplication, adding them to VectorStore with improved extraction accuracy and structured categorization.
 - **Enhanced Validation**: CanonValidator compares generated chapter content against formatted canonical facts and reports contradictions with better validation logic.
-- **Advanced Integration**: The pipeline passes CanonStore, VectorStore, and MemoryRetriever to the writer and optionally invokes validation; summaries trigger memory extraction with better integration.
+- **Enhanced Integration**: The pipeline passes CanonStore, VectorStore, and MemoryRetriever to the writer and optionally invokes validation; summaries trigger memory extraction with better integration.
 - **Enhanced State Updates**: StateUpdaterPipeline processes chapters to extract narrative changes, update constraint graphs, maintain recent events, and integrate vector memory extraction with improved performance.
 - **Enhanced Persistence**: Enhanced CLI functions persist chapters, state, vector stores, and constraint graph data with better persistence mechanisms.
 - **Flexible Embedding Providers**: VectorStore supports multiple embedding providers with automatic configuration and fallback mechanisms for maximum compatibility.
@@ -457,7 +493,7 @@ SU-->>SW : "state updates applied"
 - [writer.ts:55-94](file://packages/engine/src/agents/writer.ts#L55-L94)
 - [canonValidator.ts:32-55](file://packages/engine/src/agents/canonValidator.ts#L32-L55)
 - [stateUpdater.ts:94-248](file://packages/engine/src/memory/stateUpdater.ts#L94-L248)
-- [memoryExtractor.ts:52-68](file://packages/engine/src/agents/memoryExtractor.ts#L52-L68)
+- [memoryExtractor.ts:52-95](file://packages/engine/src/agents/memoryExtractor.ts#L52-L95)
 - [vectorStore.ts:37-58](file://packages/engine/src/memory/vectorStore.ts#L37-L58)
 - [memoryRetriever.ts:25-41](file://packages/engine/src/memory/memoryRetriever.ts#L25-L41)
 - [constraintGraph.ts:163-192](file://packages/engine/src/constraints/constraintGraph.ts#L163-L192)
@@ -469,14 +505,14 @@ SU-->>SW : "state updates applied"
 - [canonValidator.ts:31-55](file://packages/engine/src/agents/canonValidator.ts#L31-L55)
 - [generateChapter.ts:20-71](file://packages/engine/src/pipeline/generateChapter.ts#L20-L71)
 - [stateUpdater.ts:94-248](file://packages/engine/src/memory/stateUpdater.ts#L94-L248)
-- [memoryExtractor.ts:52-68](file://packages/engine/src/agents/memoryExtractor.ts#L52-L68)
+- [memoryExtractor.ts:52-95](file://packages/engine/src/agents/memoryExtractor.ts#L52-L95)
 - [client.ts:192-200](file://packages/engine/src/llm/client.ts#L192-L200)
 
-### Enhanced Practical Examples: Chapter Generation with Enhanced Vector Memory Integration
-Enhanced CLI-driven generation now includes comprehensive vector memory management with flexible embedding providers:
+### Enhanced Practical Examples: Chapter Generation with Intelligent Vector Memory Integration
+Enhanced CLI-driven generation now includes comprehensive vector memory management with intelligent segmentation:
 
 - **Enhanced CLI-driven generation**: The CLI command constructs a GenerationContext, loads or initializes VectorStore, calls generateChapter with CanonStore and VectorStore, and persists the new chapter, updated state, and vector store.
-- **Advanced Memory extraction automation**: The pipeline automatically extracts memories from generated chapters using MemoryExtractor and adds them to the vector store with improved extraction accuracy and structured categorization.
+- **Intelligent Memory extraction automation**: The pipeline automatically extracts memories from generated chapters using MemoryExtractor with intelligent segmentation for long chapters and deduplication for efficiency.
 - **Enhanced Test-driven example**: Demonstrates creating a story bible, adding a character, building a CanonStore, generating a chapter with validation and summarization, extracting memories, and processing state updates.
 - **Flexible Embedding Provider Configuration**: CLI supports embedding provider selection with DeepSeek compatibility and mock embedding fallback for testing environments.
 - **Automatic Memory Persistence**: Vector store memories are automatically persisted to disk after each chapter generation with enhanced serialization and deserialization.
@@ -509,7 +545,6 @@ LC-->>Mem : "EmbeddingConfig"
 Mem-->>Engine : "memories stored"
 Engine->>StateUp : "update(context)"
 StateUp-->>Engine : "StateUpdateResult"
-Engine-->>CLI : "GenerateChapterResult"
 ```
 
 **Diagram sources**
@@ -517,7 +552,7 @@ Engine-->>CLI : "GenerateChapterResult"
 - [generateChapter.ts:20-71](file://packages/engine/src/pipeline/generateChapter.ts#L20-L71)
 - [writer.ts:55-94](file://packages/engine/src/agents/writer.ts#L55-L94)
 - [summarizer.ts:24-38](file://packages/engine/src/agents/summarizer.ts#L24-L38)
-- [memoryExtractor.ts:52-68](file://packages/engine/src/agents/memoryExtractor.ts#L52-L68)
+- [memoryExtractor.ts:52-95](file://packages/engine/src/agents/memoryExtractor.ts#L52-L95)
 - [stateUpdater.ts:94-248](file://packages/engine/src/memory/stateUpdater.ts#L94-L248)
 - [vectorStore.ts:66-93](file://packages/engine/src/memory/vectorStore.ts#L66-L93)
 - [client.ts:192-200](file://packages/engine/src/llm/client.ts#L192-L200)
@@ -528,7 +563,7 @@ Engine-->>CLI : "GenerateChapterResult"
 - [simple.test.ts:24-73](file://packages/engine/src/test/simple.test.ts#L24-L73)
 
 ### Enhanced Canonical Fact Prioritization and Growth Strategies
-Enhanced prioritization and growth strategies leverage comprehensive state management and vector memory integration:
+Enhanced prioritization and growth strategies leverage comprehensive state management and intelligent vector memory integration:
 
 - **Advanced Prioritization**: The writer's prompt template places Story Canon prominently, ensuring the LLM considers canonical facts during generation with better priority management.
 - **Enhanced Vector Memory Integration**: VectorStore enables semantic search for relevant past events, character developments, and plot threads, enriching the context provided to the writer with improved memory access.
@@ -572,18 +607,18 @@ OptionalUpdate --> Next
 - [stateUpdater.ts:94-248](file://packages/engine/src/memory/stateUpdater.ts#L94-L248)
 
 ## Dependency Analysis
-Enhanced dependency relationships now include comprehensive vector memory integration, flexible embedding provider architecture, and automatic memory extraction:
+Enhanced dependency relationships now include comprehensive vector memory integration, intelligent segmentation, and automatic memory extraction:
 
 - CanonStore depends on StoryBible for initial extraction and on the pipeline for integration.
 - VectorStore depends on LLM client for embedding configuration and supports serialization for persistence with enhanced provider flexibility.
 - MemoryRetriever depends on VectorStore for semantic search and on LLM client for contextual query generation.
-- MemoryExtractor depends on LLM client for memory extraction and on StoryBible for context, with automatic integration into generation pipeline.
+- MemoryExtractor depends on LLM client for memory extraction and on StoryBible for context, with automatic integration into generation pipeline and intelligent segmentation capabilities.
 - StateUpdaterPipeline depends on all core components: Chapter, StoryBible, StoryStructuredState, CanonStore, VectorStore, MemoryExtractor, and ConstraintGraph.
 - ConstraintGraph integrates with StateUpdaterPipeline for automatic updates and with StateUpdater for manual state changes.
 - Agents depend on LLMClient for completions; CanonValidator, StateUpdater, and MemoryExtractor additionally depend on their respective data structures.
 - SceneWriter depends on StoryBible language setting for cultural adaptation.
 - SceneAssembler depends on language parameter for multilingual connector selection.
-- Enhanced Pipeline composes agents and manages optional validation, memory extraction, and state updates with improved orchestration and automatic memory extraction.
+- Enhanced Pipeline composes agents and manages optional validation, intelligent memory extraction, and state updates with improved orchestration and automatic memory extraction.
 - CLI depends on the engine exports to orchestrate generation, persistence, vector store management, and enhanced state management with embedding provider configuration.
 - LLMClient manages multi-model configuration with embedding provider flexibility and task-specific model routing.
 
@@ -623,9 +658,9 @@ CMD --> LC
 - [canonStore.ts:24-58](file://packages/engine/src/memory/canonStore.ts#L24-L58)
 - [structuredState.ts:33-85](file://packages/engine/src/story/structuredState.ts#L33-L85)
 - [stateUpdater.ts:90-248](file://packages/engine/src/memory/stateUpdater.ts#L90-L248)
-- [vectorStore.ts:1-237](file://packages/engine/src/memory/vectorStore.ts#L1-L237)
+- [vectorStore.ts:1-271](file://packages/engine/src/memory/vectorStore.ts#L1-L271)
 - [memoryRetriever.ts:1-174](file://packages/engine/src/memory/memoryRetriever.ts#L1-L174)
-- [memoryExtractor.ts:1-99](file://packages/engine/src/agents/memoryExtractor.ts#L1-L99)
+- [memoryExtractor.ts:1-216](file://packages/engine/src/agents/memoryExtractor.ts#L1-L216)
 - [constraintGraph.ts:29-471](file://packages/engine/src/constraints/constraintGraph.ts#L29-L471)
 - [generateChapter.ts:20-71](file://packages/engine/src/pipeline/generateChapter.ts#L20-L71)
 - [writer.ts:55-94](file://packages/engine/src/agents/writer.ts#L55-L94)
@@ -642,7 +677,7 @@ CMD --> LC
 - [client.ts:1-211](file://packages/engine/src/llm/client.ts#L1-L211)
 
 ## Performance Considerations
-Enhanced performance considerations for the expanded vector memory system with flexible embedding providers and automatic memory extraction:
+Enhanced performance considerations for the expanded vector memory system with intelligent segmentation and automatic memory extraction:
 
 - **Advanced HNSW Index Performance**: HNSW algorithm provides O(log N) search complexity with configurable efConstruction and efSearch parameters for balancing recall and speed with improved performance tuning.
 - **Enhanced Embedding Generation Costs**: OpenAI embeddings have token limits and costs; consider batching and caching strategies for repeated embeddings with better cost optimization.
@@ -657,14 +692,15 @@ Enhanced performance considerations for the expanded vector memory system with f
 - **Immutable updates**: CanonStore, VectorStore, and StateUpdaterPipeline operations return new objects; ensure minimal copying and avoid unnecessary re-renders in UI contexts with better memory management.
 - **Provider Switching Overhead**: Embedding provider switching introduces overhead; cache embedding configurations and minimize provider switching frequency with better provider caching strategies.
 - **Embedding API Reliability**: Different providers have varying reliability; implement circuit breaker patterns and graceful degradation with better error handling for provider failures.
-- **Automatic Memory Extraction Efficiency**: MemoryExtractor operates asynchronously and can be batched for better performance; consider parallel extraction for multiple chapters.
-- **Structured Memory Categorization**: Automatic categorization reduces manual processing but adds computational overhead; optimize categorization algorithms for better performance.
+- **Intelligent Memory Extraction Efficiency**: MemoryExtractor operates with streaming segmentation and deduplication for better performance; consider parallel extraction for multiple chapters.
+- **Enhanced Segment Processing**: Intelligent segmentation reduces memory usage by processing content in chunks rather than loading entire chapters into memory.
+- **Jaccard Similarity Optimization**: Deduplication algorithm optimized for memory efficiency with early termination on high similarity matches.
 
 ## Troubleshooting Guide
-Enhanced troubleshooting guidance for the expanded vector memory system with flexible embedding providers and automatic memory extraction:
+Enhanced troubleshooting guidance for the expanded vector memory system with intelligent segmentation and automatic memory extraction:
 
 - **VectorStore Initialization Failures**: Ensure HNSW library is properly installed with native bindings; check node version compatibility with better installation verification.
-- **Enhanced Memory Extraction Failures**: If MemoryExtractor returns empty results, check LLM availability and API keys; verify chapter content length limits with better error handling.
+- **Enhanced Memory Extraction Failures**: If MemoryExtractor returns empty results, check LLM availability and API keys; verify chapter content length limits and segmentation parameters with better error handling.
 - **Vector Search Performance Issues**: Monitor HNSW index size and search parameters; consider rebuilding index with different efConstruction values with better performance monitoring.
 - **Enhanced Embedding Generation Errors**: Verify embedding provider configuration and API keys; check rate limits and network connectivity; ensure USE_MOCK_EMBEDDINGS is set appropriately with better API configuration.
 - **Flexible Provider Configuration Issues**: If embedding provider switching fails, check LLM client configuration and model routing; verify embedding model configuration with better provider configuration validation.
@@ -677,8 +713,9 @@ Enhanced troubleshooting guidance for the expanded vector memory system with fle
 - **Enhanced CLI progress**: Ensure state updates, memory persistence, and constraint graph updates occur after each generation; confirm currentChapter increments and totalChapters thresholds with better progress tracking.
 - **Provider Switching Failures**: If embedding provider switching fails, check LLM client configuration and model availability; verify API credentials and network connectivity with better provider switching diagnostics.
 - **Mock Embedding Issues**: If mock embeddings cause semantic issues, verify USE_MOCK_EMBEDDINGS environment variable and ensure deterministic behavior with better mock embedding validation.
-- **Automatic Memory Extraction Problems**: If automatic extraction fails, verify MemoryExtractor configuration and ensure proper integration with generation pipeline with better extraction monitoring.
-- **Structured Memory Categorization Issues**: If memory categorization fails, check MemoryExtractor prompts and ensure proper category assignment with better categorization validation.
+- **Intelligent Segmentation Problems**: If automatic segmentation fails, verify paragraph boundary detection and overlap calculations with better segmentation monitoring.
+- **Jaccard Similarity Issues**: If deduplication removes too many memories, adjust similarity threshold or disable deduplication temporarily with better similarity analysis.
+- **Memory Extraction Performance**: Monitor memory usage during long chapter processing; consider increasing system memory or adjusting segment sizes with better performance monitoring.
 
 **Section sources**
 - [vectorStore.ts:125-177](file://packages/engine/src/memory/vectorStore.ts#L125-L177)
@@ -695,9 +732,9 @@ Enhanced troubleshooting guidance for the expanded vector memory system with fle
 - [sceneWriter.ts:146-198](file://packages/engine/src/agents/sceneWriter.ts#L146-L198)
 
 ## Conclusion
-The enhanced Memory Management System centers on a robust CanonStore that seeds canonical facts from the story bible, an advanced VectorStore with flexible embedding provider architecture for semantic memory search, comprehensive MemoryRetriever for contextual memory access, and the powerful StateUpdaterPipeline that provides complete post-chapter state management with vector memory integration. The system now includes automatic constraint graph updates, recent events tracking, enhanced CLI persistence for vector stores, automated memory extraction capabilities with improved performance and reliability, and comprehensive embedding provider flexibility supporting multiple providers (OpenAI, DeepSeek) with automatic configuration and fallback mechanisms.
+The enhanced Memory Management System centers on a robust CanonStore that seeds canonical facts from the story bible with intelligent long chapter processing, an advanced VectorStore with flexible embedding provider architecture for semantic memory search, comprehensive MemoryRetriever for contextual memory access, and the powerful StateUpdaterPipeline that provides complete post-chapter state management with vector memory integration. The system now includes automatic constraint graph updates, recent events tracking, enhanced CLI persistence for vector stores, automated memory extraction capabilities with intelligent segmentation and deduplication for improved performance and reliability, and comprehensive embedding provider flexibility supporting multiple providers (OpenAI, DeepSeek) with automatic configuration and fallback mechanisms.
 
-**Updated** The system now features comprehensive automatic memory extraction from generated chapters with structured categorization (events, characters, world, plot), enhanced vector store integration with improved embedding provider flexibility, and seamless integration with the generation pipeline. MemoryExtractor operates automatically during chapter generation, extracting relevant narrative elements and storing them in the vector store with proper categorization. The enhanced StateUpdaterPipeline integrates memory extraction into the state management process, ensuring that new memories are properly categorized and accessible for future generations. This enhancement enables the system to maintain comprehensive narrative coherence across iterations while providing efficient semantic search capabilities for context-aware writing and validation.
+**Updated** The system now features comprehensive intelligent memory extraction from generated chapters with sophisticated segmentation (4,000+ character threshold with 200-character overlap), automatic paragraph boundary detection, Jaccard similarity-based deduplication (0.8 threshold), and enhanced vector store integration with improved embedding provider flexibility. MemoryExtractor operates automatically during chapter generation, extracting relevant narrative elements with intelligent segmentation and storing them in the vector store with proper categorization. The enhanced StateUpdaterPipeline integrates memory extraction into the state management process, ensuring that new memories are properly categorized and accessible for future generations. This enhancement enables the system to maintain comprehensive narrative coherence across iterations while providing efficient semantic search capabilities for context-aware writing and validation, with optimized memory usage through intelligent segmentation and deduplication strategies.
 
 ## Appendices
 
@@ -706,7 +743,7 @@ The enhanced Memory Management System centers on a robust CanonStore that seeds 
 - Completeness prompt for detecting natural stopping points.
 - Summarizer prompt for concise chapter summaries.
 - StateUpdaterPipeline extraction prompt for comprehensive narrative change detection.
-- MemoryExtractor prompt for automated narrative memory identification and categorization.
+- MemoryExtractor prompt for automated narrative memory identification and categorization with intelligent segmentation.
 - Constraint graph validation prompt for logical consistency enforcement.
 - SceneWriter prompt for language-aware scene generation with cultural adaptation.
 - SceneAssembler prompt for multilingual scene assembly with cultural narrative flow adaptation.

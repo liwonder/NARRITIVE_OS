@@ -30,9 +30,13 @@ export class VectorStore {
 
   async initialize(maxElements: number = 10000): Promise<void> {
     // Delay initialization until we know the embedding dimension
-    this.isInitialized = false;
-    this.nextId = 0;
-    this.memories.clear();
+    // Only reset if not already loaded with data (preserve loaded memories)
+    if (this.memories.size === 0) {
+      this.isInitialized = false;
+      this.nextId = 0;
+      this.memories.clear();
+    }
+    // If memories exist (loaded from storage), keep them and maintain initialized state
   }
 
   private ensureInitialized(embedding: number[]): void {

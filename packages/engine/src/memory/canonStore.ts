@@ -155,41 +155,68 @@ export async function extractCanonFromChapter(
     return extractCanonFromSegment(store, chapter, bible, content);
   }
 
-  // For long content, segment and extract from each part
+  // For long content, process segments one by one (streaming) to save memory
   console.log(`  Canon extraction: Chapter ${chapter.number} is long (${content.length} chars), segmenting...`);
-  const segments = segmentContentForCanon(content);
   let updatedStore = store;
+  const totalSegments = calculateCanonSegmentCount(content);
 
-  for (let i = 0; i < segments.length; i++) {
-    console.log(`  Extracting canon from segment ${i + 1}/${segments.length}...`);
-    updatedStore = await extractCanonFromSegment(updatedStore, chapter, bible, segments[i], i + 1, segments.length);
+  let start = 0;
+  let segmentIndex = 0;
+  while (start < content.length) {
+    segmentIndex++;
+    const segment = getNextCanonSegment(content, start);
+    console.log(`  Extracting canon from segment ${segmentIndex}/${totalSegments}...`);
+    updatedStore = await extractCanonFromSegment(updatedStore, chapter, bible, segment, segmentIndex, totalSegments);
+    
+    // Move start position, accounting for overlap
+    // Ensure we make at least (SEGMENT_SIZE - OVERLAP) progress to avoid infinite loop
+    const minAdvance = CANON_SEGMENT_SIZE - CANON_SEGMENT_OVERLAP;
+    start = start + Math.max(segment.length - CANON_SEGMENT_OVERLAP, minAdvance);
+    
+    // Hint to GC that segment can be freed
+    if (segmentIndex % 2 === 0) {
+      global.gc && global.gc();
+    }
   }
 
   console.log(`  Canon extraction complete: ${updatedStore.facts.length - store.facts.length} new facts`);
   return updatedStore;
 }
 
-function segmentContentForCanon(content: string): string[] {
-  const segments: string[] = [];
-  let start = 0;
+function calculateCanonSegmentCount(content: string): number {
+  const effectiveSize = CANON_SEGMENT_SIZE - CANON_SEGMENT_OVERLAP;
+  return Math.ceil(content.length / effectiveSize);
+}
 
-  while (start < content.length) {
-    const end = Math.min(start + CANON_SEGMENT_SIZE, content.length);
-    // Try to break at a paragraph boundary
-    let breakPoint = end;
-    if (end < content.length) {
-      const searchRange = content.substring(Math.max(start + CANON_SEGMENT_SIZE - 200, start), end + 200);
-      const paragraphBreak = searchRange.lastIndexOf('\n\n');
-      if (paragraphBreak > 0) {
-        breakPoint = Math.max(start + CANON_SEGMENT_SIZE - 200, start) + paragraphBreak + 2;
+function getNextCanonSegment(content: string, start: number): string {
+  const end = Math.min(start + CANON_SEGMENT_SIZE, content.length);
+  
+  // Try to break at a paragraph boundary
+  let breakPoint = end;
+  if (end < content.length) {
+    const searchStart = Math.max(end - 200, start);
+    const searchRange = content.substring(searchStart, end + 200);
+    
+    // Try different paragraph separators (\n\n for Western, \n for Chinese, etc.)
+    let paragraphBreak = searchRange.lastIndexOf('\n\n');
+    if (paragraphBreak < 0) {
+      paragraphBreak = searchRange.lastIndexOf('\n');
+    }
+    if (paragraphBreak < 0) {
+      paragraphBreak = searchRange.lastIndexOf('。');
+    }
+    
+    if (paragraphBreak > 0) {
+      const candidateBreak = searchStart + paragraphBreak + 1;
+      // Ensure we make reasonable progress (at least 50% of SEGMENT_SIZE)
+      const minProgress = Math.floor(CANON_SEGMENT_SIZE * 0.5);
+      if (candidateBreak - start >= minProgress) {
+        breakPoint = candidateBreak;
       }
     }
-
-    segments.push(content.substring(start, breakPoint));
-    start = breakPoint - CANON_SEGMENT_OVERLAP;
   }
 
-  return segments;
+  return content.substring(start, breakPoint);
 }
 
 async function extractCanonFromSegment(
