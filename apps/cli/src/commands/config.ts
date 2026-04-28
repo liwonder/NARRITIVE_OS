@@ -6,7 +6,8 @@ const CONFIG_DIR = join(homedir(), '.narrative-os');
 const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
 const MODELS_CACHE_FILE = join(CONFIG_DIR, 'models-cache.json');
 
-const MODELS_REMOTE_URL = 'https://raw.githubusercontent.com/liwonder/NARRITIVE_OS/master/models.json';
+// Remote model registry via public GitHub Gist – update the gist to change models without a CLI release
+const MODELS_REMOTE_URL = 'https://gist.githubusercontent.com/liwonder/9d412f9ed159e911af6e46858f37d414/raw/models.json';
 const MODELS_CACHE_TTL = 24 * 60 * 60 * 1000;
 
 type TaskType = 'simple' | 'reasoning' | 'embedding';
@@ -185,10 +186,6 @@ function mergeRemoteModels(remote: RemoteModelsConfig) {
   }
 }
 
-/**
- * Initialize providers: cache-first, fetch only when cache expired (>24h).
- * Called once at CLI startup.
- */
 export async function initProviders() {
   const cached = loadCachedModels();
   if (cached) {
