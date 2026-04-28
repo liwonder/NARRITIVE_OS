@@ -1,0 +1,22 @@
+{
+  "version": "1.0",
+  "updatedAt": "2026-03-25",
+  "providers": {
+    "openai": {
+      "models": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "text-embedding-3-small"]
+    },
+    "deepseek": {
+      "models": ["deepseek-v4-flash", "deepseek-v4-pro"],
+      "deprecated": ["deepseek-chat", "deepseek-reasoner"],
+      "baseURL": "https://api.deepseek.com"
+    },
+    "alibaba": {
+      "models": ["qwen-max", "qwen-plus", "qwen-turbo", "text-embedding-v3"],
+      "baseURL": "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    },
+    "ark": {
+      "models": ["doubao-pro-128k", "doubao-lite-128k", "doubao-embedding"],
+      "baseURL": "https://ark.cn-beijing.volces.com/api/v3"
+    }
+  }
+}
