@@ -21,19 +21,24 @@
 - [packages/engine/src/memory/canonStore.ts](file://packages/engine/src/memory/canonStore.ts)
 - [packages/engine/src/pipeline/generateChapter.ts](file://packages/engine/src/pipeline/generateChapter.ts)
 - [packages/engine/src/test/simple.test.ts](file://packages/engine/src/test/simple.test.ts)
+- [packages/engine/src/test/segmentation.test.ts](file://packages/engine/src/test/segmentation.test.ts)
+- [packages/engine/src/test/worldStateUpdater.test.ts](file://packages/engine/src/test/worldStateUpdater.test.ts)
 - [packages/engine/src/story/bible.ts](file://packages/engine/src/story/bible.ts)
 - [packages/engine/src/constraints/validator.ts](file://packages/engine/src/constraints/validator.ts)
+- [packages/engine/src/agents/memoryExtractor.ts](file://packages/engine/src/agents/memoryExtractor.ts)
+- [packages/engine/src/agents/worldStateUpdater.ts](file://packages/engine/src/agents/worldStateUpdater.ts)
+- [packages/engine/src/world/worldStateEngine.ts](file://packages/engine/src/world/worldStateEngine.ts)
+- [test-full-workflow.ts](file://test-full-workflow.ts)
+- [test-full-workflow.js](file://test-full-workflow.js)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Enhanced testing infrastructure with improved path handling for local CLI executable
-- Added automatic multi-model configuration loading for LLM providers
-- Improved cross-platform compatibility for configuration and testing
-- Updated version management documentation for new version increments
-- Added comprehensive multi-model configuration support in CLI
-- **New**: Added comprehensive language detection functionality with Chinese content validation testing
-- **New**: Integrated language detection into story creation and character generation workflows
+- Enhanced testing infrastructure with comprehensive unit tests for segmentation logic covering Chinese text processing
+- Added detailed world state update testing validating the four-step location tracking system, update merging, and continuity validation
+- Expanded integration testing with full workflow tests including Chinese language generation verification
+- Updated testing strategies to include advanced memory extraction and world state validation
+- Enhanced multi-model configuration testing and cross-platform compatibility validation
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -57,7 +62,7 @@
 ## Introduction
 This document provides comprehensive development and contributing guidance for the Narrative Operating System (NOS) monorepo. It covers environment setup with PNPM workspaces and Turborepo orchestration, build and development workflows, testing strategies, CI considerations, contribution standards, debugging and profiling techniques, release processes, and extensibility for agents, memory strategies, and LLM providers. The project now includes comprehensive installation scripts for Windows PowerShell and cross-platform publishing workflows for both Windows and Unix-like systems, along with improved repository organization practices and enhanced multi-model LLM configuration capabilities.
 
-**New**: The system now features comprehensive language detection functionality supporting multiple writing systems including Chinese, Japanese, Korean, Arabic, Russian, Thai, and Hindi, with integrated testing validation for international content generation.
+**New**: The system now features comprehensive testing infrastructure with advanced segmentation logic testing for Chinese text processing, detailed world state update validation, and full workflow integration testing including Chinese language generation verification.
 
 ## Project Structure
 The repository is a TypeScript monorepo organized into:
@@ -65,6 +70,7 @@ The repository is a TypeScript monorepo organized into:
 - packages/engine: The core engine responsible for story modeling, LLM orchestration, agent pipeline, and memory management, with enhanced testing infrastructure.
 - **New**: Comprehensive multi-model LLM configuration system supporting both single and multi-model setups with automatic model selection based on task purposes.
 - **New**: Advanced language detection system supporting multiple writing systems for international content generation.
+- **New**: Enhanced testing infrastructure with comprehensive unit tests for segmentation logic and world state validation.
 
 PNPM workspaces define the package locations, and Turborepo defines shared tasks and caching behavior across the monorepo. The repository follows standardized organization patterns to maintain cleanliness and prevent accidental commits of generated content.
 
@@ -88,6 +94,9 @@ end
 subgraph "Language Detection"
 LANG_DETECTION["Language Detection<br/>- Chinese (Simplified)<br/>- Japanese (Hiragana/Katakana)<br/>- Korean (Hangul)<br/>- Arabic<br/>- Cyrillic<br/>- Thai<br/>- Devanagari"]
 end
+subgraph "Advanced Testing"
+TEST_INFRA["Testing Infrastructure<br/>- Segmentation Logic<br/>- World State Updates<br/>- Full Workflow Integration<br/>- Chinese Language Verification"]
+end
 ROOT_PKG --> CLI_PKG
 ROOT_PKG --> ENG_PKG
 WS --> CLI_PKG
@@ -96,8 +105,10 @@ TURBO --> CLI_PKG
 TURBO --> ENG_PKG
 CLI_PKG --> MULTI_MODEL
 CLI_PKG --> LANG_DETECTION
+CLI_PKG --> TEST_INFRA
 ENG_PKG --> MULTI_MODEL
 ENG_PKG --> LANG_DETECTION
+ENG_PKG --> TEST_INFRA
 ```
 
 **Diagram sources**
@@ -108,6 +119,8 @@ ENG_PKG --> LANG_DETECTION
 - [apps/cli/package.json:1-50](file://apps/cli/package.json#L1-L50)
 - [packages/engine/package.json:1-46](file://packages/engine/package.json#L1-L46)
 - [packages/engine/src/story/bible.ts:8-50](file://packages/engine/src/story/bible.ts#L8-L50)
+- [packages/engine/src/test/segmentation.test.ts:1-166](file://packages/engine/src/test/segmentation.test.ts#L1-L166)
+- [packages/engine/src/test/worldStateUpdater.test.ts:1-240](file://packages/engine/src/test/worldStateUpdater.test.ts#L1-L240)
 
 **Section sources**
 - [package.json:1-17](file://package.json#L1-L17)
@@ -120,6 +133,7 @@ ENG_PKG --> LANG_DETECTION
 - Engine Package: Exports types, LLM client with multi-model support, agents (writer, completeness checker, summarizer, canon validator), pipeline for chapter generation, story bible/state utilities, and memory/canon store.
 - **New**: Enhanced multi-model LLM configuration system supporting reasoning, chat, and fast models with automatic task-based selection.
 - **New**: Comprehensive language detection system supporting multiple writing systems for international content generation.
+- **New**: Advanced testing infrastructure with comprehensive unit tests for segmentation logic and world state validation.
 
 Key exports and entry points:
 - CLI entry: [apps/cli/src/index.ts:1-154](file://apps/cli/src/index.ts#L1-L154)
@@ -129,6 +143,8 @@ Key exports and entry points:
 - Canon store: [packages/engine/src/memory/canonStore.ts:1-134](file://packages/engine/src/memory/canonStore.ts#L1-L134)
 - Generation pipeline: [packages/engine/src/pipeline/generateChapter.ts:1-76](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
 - **New**: Language detection: [packages/engine/src/story/bible.ts:8-50](file://packages/engine/src/story/bible.ts#L8-L50)
+- **New**: Segmentation tests: [packages/engine/src/test/segmentation.test.ts:1-166](file://packages/engine/src/test/segmentation.test.ts#L1-L166)
+- **New**: World state updater tests: [packages/engine/src/test/worldStateUpdater.test.ts:1-240](file://packages/engine/src/test/worldStateUpdater.test.ts#L1-L240)
 
 **Section sources**
 - [apps/cli/src/index.ts:1-154](file://apps/cli/src/index.ts#L1-L154)
@@ -138,11 +154,13 @@ Key exports and entry points:
 - [packages/engine/src/memory/canonStore.ts:1-134](file://packages/engine/src/memory/canonStore.ts#L1-L134)
 - [packages/engine/src/pipeline/generateChapter.ts:1-76](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
 - [packages/engine/src/story/bible.ts:8-50](file://packages/engine/src/story/bible.ts#L8-L50)
+- [packages/engine/src/test/segmentation.test.ts:1-166](file://packages/engine/src/test/segmentation.test.ts#L1-L166)
+- [packages/engine/src/test/worldStateUpdater.test.ts:1-240](file://packages/engine/src/test/worldStateUpdater.test.ts#L1-L240)
 
 ## Architecture Overview
 The CLI drives story lifecycle commands, delegating to the engine for generation and state management. The engine coordinates agents and memory to produce coherent chapters guided by the story bible and canonical facts. The system now includes automated installation and publishing workflows for seamless development and distribution, with enhanced multi-model LLM configuration supporting both single and complex multi-model setups.
 
-**New**: The architecture now includes intelligent language detection that automatically identifies content writing systems and applies appropriate cultural and linguistic context to story generation.
+**New**: The architecture now includes intelligent language detection that automatically identifies content writing systems and applies appropriate cultural and linguistic context to story generation. The testing infrastructure provides comprehensive validation for segmentation logic, world state updates, and full workflow integration.
 
 ```mermaid
 graph TB
@@ -156,6 +174,8 @@ REPO["Repository Organization<br/>.gitignore patterns<br/>Narrative_Operating_Sy
 CONFIG["Configuration System<br/>- Home Directory Config<br/>- Multi-Model JSON<br/>- Environment Variables"]
 LANG_DETECTION["Language Detection<br/>- Auto-detect Writing Systems<br/>- Cultural Context<br/>- Character Generation"]
 CHAR_GEN["Character Generation<br/>- Language-Aware Names<br/>- Cultural Authenticity<br/>- Regional Variants"]
+TEST_INFRA["Testing Infrastructure<br/>- Segmentation Logic<br/>- World State Updates<br/>- Full Workflow Integration<br/>- Chinese Language Verification"]
+FULL_WORKFLOW["Full Workflow Tests<br/>- Init → Generate → Verify<br/>- Chinese Content Validation<br/>- Multi-Model Testing"]
 CLI --> ENGINE
 ENGINE --> LLM
 ENGINE --> STORE
@@ -166,6 +186,7 @@ INSTALL --> ENGINE
 PUBLISH --> INSTALL
 REPO --> GITIGNORE[".gitignore<br/>clean repository management"]
 CONFIG --> LLM
+TEST_INFRA --> FULL_WORKFLOW
 ```
 
 **Diagram sources**
@@ -179,6 +200,9 @@ CONFIG --> LLM
 - [.gitignore:50-50](file://.gitignore#L50-L50)
 - [packages/engine/src/story/bible.ts:8-50](file://packages/engine/src/story/bible.ts#L8-L50)
 - [packages/engine/src/story/bible.ts:153-242](file://packages/engine/src/story/bible.ts#L153-L242)
+- [packages/engine/src/test/segmentation.test.ts:1-166](file://packages/engine/src/test/segmentation.test.ts#L1-L166)
+- [packages/engine/src/test/worldStateUpdater.test.ts:1-240](file://packages/engine/src/test/worldStateUpdater.test.ts#L1-L240)
+- [test-full-workflow.ts:1-181](file://test-full-workflow.ts#L1-L181)
 
 ## Detailed Component Analysis
 
@@ -326,6 +350,103 @@ Engine-->>User : Story Bible with Language-Aware Characters
 **Section sources**
 - [packages/engine/src/story/bible.ts:153-242](file://packages/engine/src/story/bible.ts#L153-L242)
 - [packages/engine/src/story/bible.ts:8-50](file://packages/engine/src/story/bible.ts#L8-L50)
+
+### Advanced Testing Infrastructure
+**New**: The system now includes comprehensive testing infrastructure with specialized unit tests for segmentation logic and world state validation.
+
+```mermaid
+flowchart TD
+TestSuite["Testing Suite"] --> Segmentation["Segmentation Logic Tests<br/>- Chinese Text Processing<br/>- Paragraph Boundary Detection<br/>- Infinite Loop Prevention"]
+TestSuite --> WorldState["World State Update Tests<br/>- Four-Step Location Tracking<br/>- Update Merging<br/>- Continuity Validation"]
+TestSuite --> Integration["Integration Tests<br/>- Full Workflow Testing<br/>- Chinese Language Verification<br/>- Multi-Model Configuration"]
+Segmentation --> MemoryExtractor["Memory Extractor<br/>- Segment Content<br/>- Handle Overlaps<br/>- Boundary Detection"]
+WorldState --> WorldStateUpdater["World State Updater<br/>- Extract Location Changes<br/>- Validate Continuity<br/>- Merge Updates"]
+Integration --> FullWorkflow["Full Workflow Tests<br/>- Init → Generate → Verify<br/>- Chinese Content Validation<br/>- Multi-Model Testing"]
+```
+
+**Diagram sources**
+- [packages/engine/src/test/segmentation.test.ts:1-166](file://packages/engine/src/test/segmentation.test.ts#L1-L166)
+- [packages/engine/src/test/worldStateUpdater.test.ts:1-240](file://packages/engine/src/test/worldStateUpdater.test.ts#L1-L240)
+- [test-full-workflow.ts:1-181](file://test-full-workflow.ts#L1-L181)
+
+**Section sources**
+- [packages/engine/src/test/segmentation.test.ts:1-166](file://packages/engine/src/test/segmentation.test.ts#L1-L166)
+- [packages/engine/src/test/worldStateUpdater.test.ts:1-240](file://packages/engine/src/test/worldStateUpdater.test.ts#L1-L240)
+- [test-full-workflow.ts:1-181](file://test-full-workflow.ts#L1-L181)
+
+### Segmentation Logic Testing
+**New**: Comprehensive unit tests validate the segmentation logic for Chinese text processing and boundary detection.
+
+```mermaid
+sequenceDiagram
+participant Test as "Segmentation Tests"
+participant Segmenter as "TestSegmenter"
+participant Content as "Chinese Text Content"
+Test->>Segmenter : segmentContent(content)
+Segmenter->>Content : Analyze text boundaries
+Content-->>Segmenter : Paragraph breaks, Chinese periods
+Segmenter->>Segmenter : Detect \\n\\n, \\n, 。 boundaries
+Segmenter-->>Test : Segments array
+Test->>Test : Validate segment counts and boundaries
+```
+
+**Diagram sources**
+- [packages/engine/src/test/segmentation.test.ts:32-62](file://packages/engine/src/test/segmentation.test.ts#L32-L62)
+
+**Section sources**
+- [packages/engine/src/test/segmentation.test.ts:1-166](file://packages/engine/src/test/segmentation.test.ts#L1-L166)
+
+### World State Update Testing
+**New**: Detailed unit tests validate the four-step location tracking system, update merging, and continuity validation.
+
+```mermaid
+sequenceDiagram
+participant Test as "WorldStateUpdater Tests"
+participant Updater as "WorldStateUpdater"
+participant Content as "Chapter Content"
+Test->>Updater : extractUpdates({content, bible, currentState})
+Updater->>Content : Split into segments
+Content-->>Updater : Segments with boundaries
+Updater->>Updater : Extract location changes
+Updater->>Updater : Merge updates
+Updater->>Updater : Validate continuity
+Updater-->>Test : Validated world state updates
+```
+
+**Diagram sources**
+- [packages/engine/src/test/worldStateUpdater.test.ts:105-147](file://packages/engine/src/test/worldStateUpdater.test.ts#L105-L147)
+
+**Section sources**
+- [packages/engine/src/test/worldStateUpdater.test.ts:1-240](file://packages/engine/src/test/worldStateUpdater.test.ts#L1-L240)
+
+### Full Workflow Integration Testing
+**New**: End-to-end integration tests validate the complete workflow from initialization to chapter generation with Chinese language verification.
+
+```mermaid
+sequenceDiagram
+participant Test as "Full Workflow Test"
+participant CLI as "nos CLI"
+participant Engine as "Engine"
+participant FS as "File System"
+Test->>CLI : nos init --title "失踪之谜"
+CLI->>Engine : createStoryBible(...)
+Engine-->>CLI : StoryBible
+CLI->>FS : Save story files
+Test->>CLI : nos generate {storyId}
+CLI->>Engine : generateChapter(context)
+Engine->>Engine : Process with segmentation
+Engine->>Engine : Update world state
+Engine-->>CLI : Generated chapter
+CLI->>FS : Save chapters.json
+Test->>FS : Verify Chinese content
+FS-->>Test : Chinese ratio validation
+```
+
+**Diagram sources**
+- [test-full-workflow.ts:82-175](file://test-full-workflow.ts#L82-L175)
+
+**Section sources**
+- [test-full-workflow.ts:1-181](file://test-full-workflow.ts#L1-L181)
 
 ### CLI Commands
 - Initialization: Creates a story bible, adds characters, initializes state, and persists the story.
@@ -634,7 +755,7 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
 - Version bump type validation (patch/minor/major)
 - Automatic dependency version synchronization
 - npm authentication verification
-- Progress tracking and success confirmation
+- progress tracking and success confirmation
 - User confirmation prompts for safety
 
 **Section sources**
@@ -672,6 +793,10 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
   - Efficient regex-based character detection minimizes computational overhead.
   - Automatic language-aware character generation reduces cultural mismatch costs.
   - Multi-language support enables optimized prompt engineering for different writing systems.
+- **New**: Testing Infrastructure Performance:
+  - Comprehensive unit tests validate segmentation logic without requiring external LLM calls.
+  - Integration tests use controlled content to minimize runtime variability.
+  - Chinese language verification tests are optimized for minimal computational overhead.
 
 ## Troubleshooting Guide
 
@@ -695,6 +820,8 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
 - The test loads a local config file from `~/.narrative-os/config.json` to inject provider and model settings prior to importing engine modules.
 - **New**: Enhanced Path Handling: Tests now properly handle both single and multi-model configurations with automatic model selection.
 - **New**: Language Detection Testing: Integration tests validate language detection accuracy with Chinese content and other writing systems.
+- **New**: Segmentation Logic Testing: Unit tests validate Chinese text processing and boundary detection without external dependencies.
+- **New**: World State Update Testing: Comprehensive validation of location tracking system and continuity validation.
 
 ### Error Handling
 - CLI commands exit with non-zero status on failure; inspect logs for detailed errors.
@@ -702,6 +829,7 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
 - **New**: Repository organization scripts help maintain clean repository state and prevent common organization issues.
 - **New**: Multi-Model Configuration Errors: The system provides clear error messages for invalid configuration formats and missing API keys.
 - **New**: Language Detection Errors: System validates language detection accuracy and provides fallback mechanisms for edge cases.
+- **New**: Testing Infrastructure Errors: Comprehensive error reporting for segmentation logic and world state validation failures.
 
 **Section sources**
 - [install.ps1:20-51](file://install.ps1#L20-L51)
@@ -712,6 +840,8 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
 - [apps/cli/src/commands/generate.ts:50-53](file://apps/cli/src/commands/generate.ts#L50-L53)
 - [apps/cli/src/commands/config.ts:60-78](file://apps/cli/src/commands/config.ts#L60-L78)
 - [.gitignore:50-50](file://.gitignore#L50-L50)
+- [packages/engine/src/test/segmentation.test.ts:146-164](file://packages/engine/src/test/segmentation.test.ts#L146-L164)
+- [packages/engine/src/test/worldStateUpdater.test.ts:123-198](file://packages/engine/src/test/worldStateUpdater.test.ts#L123-L198)
 
 ## Contribution Guidelines
 - Development Environment
@@ -721,6 +851,7 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
   - **New**: Follow standardized repository organization practices using .gitignore patterns.
   - **New**: Contribute to multi-model configuration enhancements and testing infrastructure.
   - **New**: Extend language detection capabilities for additional writing systems.
+  - **New**: Add comprehensive unit tests for new features following existing testing patterns.
 - Code Style
   - Follow TypeScript strictness and formatting conventions used in the repository.
 - Commit Messages and PRs
@@ -730,6 +861,7 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
   - **New**: Review .gitignore patterns when adding new build artifacts or temporary files.
   - **New**: Test multi-model configuration scenarios and cross-platform compatibility.
   - **New**: Validate language detection accuracy with international content samples.
+  - **New**: Include comprehensive testing for any new segmentation logic or world state updates.
 - Review Process
   - Request reviews from maintainers; address feedback promptly.
 - **New**: Publishing Contributions
@@ -737,6 +869,7 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
   - Follow semantic versioning guidelines when preparing releases.
   - **New**: Ensure repository organization patterns are maintained during releases.
   - **New**: Test enhanced LLM configuration, multi-model functionality, and language detection.
+  - **New**: Validate comprehensive testing infrastructure with new feature contributions.
 
 ## Release and Version Management
 
@@ -764,6 +897,7 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
 - **Repository Organization**: Release process maintains standardized .gitignore patterns for clean distribution.
 - **New**: Multi-Model Configuration Releases: Enhanced configuration system is included in all releases with backward compatibility.
 - **New**: Language Detection Releases: Internationalization features are included in all releases with comprehensive testing.
+- **New**: Testing Infrastructure Releases: Comprehensive unit tests and integration tests are included in all releases.
 
 **Section sources**
 - [publish.ps1:23-48](file://publish.ps1#L23-L48)
@@ -777,6 +911,7 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
 - Define a new agent module exporting a class or factory with a complete method.
 - Integrate the agent into the pipeline by composing it with existing steps (e.g., validation, summarization).
 - Export the new agent from the engine entry point so the CLI and other consumers can use it.
+- **New**: Include comprehensive unit tests following the existing testing patterns for segmentation logic and world state validation.
 
 **Section sources**
 - [packages/engine/src/pipeline/generateChapter.ts:1-76](file://packages/engine/src/pipeline/generateChapter.ts#L1-L76)
@@ -785,15 +920,18 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
 ### Extending Memory Strategies
 - Extend the CanonStore API to support new categories or retrieval patterns.
 - Add formatting helpers for prompts and integrate them into agent prompts.
+- **New**: Implement comprehensive segmentation logic tests for new memory extraction strategies.
 
 **Section sources**
 - [packages/engine/src/memory/canonStore.ts:101-129](file://packages/engine/src/memory/canonStore.ts#L101-L129)
+- [packages/engine/src/test/segmentation.test.ts:1-166](file://packages/engine/src/test/segmentation.test.ts#L1-L166)
 
 ### Supporting Additional LLM Providers
 - Implement a new provider class conforming to the LLMProvider interface.
 - Extend the provider selection logic to handle the new provider and its configuration.
 - Add environment variables for credentials and base URLs.
 - **New**: Multi-Model Support: New providers can be integrated into the multi-model configuration system with proper task-based selection.
+- **New**: Comprehensive testing: Include unit tests for new provider integration following existing patterns.
 
 **Section sources**
 - [packages/engine/src/llm/client.ts:4-6](file://packages/engine/src/llm/client.ts#L4-L6)
@@ -804,6 +942,7 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
 - Extend the configuration interfaces to support new model types and provider options.
 - Add validation logic for new configuration formats.
 - Update the CLI configuration command to handle new options.
+- **New**: Multi-Model Configuration: Enhanced configuration system supports both single and complex multi-model setups.
 
 **Section sources**
 - [apps/cli/src/commands/config.ts:8-30](file://apps/cli/src/commands/config.ts#L8-L30)
@@ -822,34 +961,55 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
 - [packages/engine/src/story/bible.ts:55-72](file://packages/engine/src/story/bible.ts#L55-L72)
 - [packages/engine/src/story/bible.ts:222-242](file://packages/engine/src/story/bible.ts#L222-L242)
 
+### Adding New Testing Infrastructure
+**New**: Extend the testing infrastructure to validate new features.
+
+- Follow existing patterns from segmentation.test.ts and worldStateUpdater.test.ts
+- Create comprehensive unit tests for new functionality
+- Include integration tests for end-to-end validation
+- Use Chinese content samples for internationalization testing
+
+**Section sources**
+- [packages/engine/src/test/segmentation.test.ts:1-166](file://packages/engine/src/test/segmentation.test.ts#L1-L166)
+- [packages/engine/src/test/worldStateUpdater.test.ts:1-240](file://packages/engine/src/test/worldStateUpdater.test.ts#L1-L240)
+
 ## Testing Strategies
 - Unit Tests for the Engine
   - The engine includes a comprehensive test suite using Vitest with enhanced multi-model configuration support.
   - Tests load configuration from `~/.narrative-os/config.json` to inject provider and model settings prior to importing engine modules.
   - **New**: Enhanced Path Handling: Tests now properly handle both single and multi-model configurations with automatic model selection.
   - **New**: Language Detection Testing: Integration tests validate language detection accuracy with Chinese content and other writing systems.
+  - **New**: Segmentation Logic Testing: Comprehensive unit tests validate Chinese text processing and boundary detection.
+  - **New**: World State Update Testing: Detailed validation of four-step location tracking system and continuity validation.
 - Integration Testing Approaches
   - Use the CLI to drive end-to-end flows: initialize a story, generate chapters iteratively, and verify persisted state and outputs.
   - Mock or stub the LLM client for deterministic tests when appropriate.
   - **New**: Multi-Model Testing: Tests can be configured to use different model types (reasoning, chat, fast) based on task requirements.
   - **New**: International Content Testing: Validate language detection accuracy with multilingual content samples.
+  - **New**: Full Workflow Testing: End-to-end validation from initialization to chapter generation with Chinese language verification.
 - Continuous Integration
   - Configure CI to install PNPM, install dependencies, build, lint, and run tests using Turborepo tasks.
   - Cache node_modules and Turbo cache to speed up jobs.
   - **New**: CI should respect .gitignore patterns to prevent accidental commits of generated content.
   - **New**: CI should test both single and multi-model configuration scenarios.
   - **New**: CI should validate language detection functionality across different writing systems.
+  - **New**: CI should run comprehensive segmentation logic and world state update tests.
+  - **New**: CI should validate full workflow integration with Chinese content generation.
 - **New**: Automated Testing with Enhanced Configuration
   - Installation scripts can be used to quickly set up test environments on different platforms.
   - Publishing scripts ensure consistent testing environments across development and production.
   - Repository organization patterns help maintain clean test environments.
   - **New**: Multi-Model Configuration Testing: CI should validate both legacy single-model and new multi-model configuration formats.
   - **New**: Language Detection Testing: CI should test language detection accuracy with comprehensive content samples.
+  - **New**: Testing Infrastructure Validation: CI should run comprehensive unit tests for segmentation logic and world state updates.
 
 **Section sources**
 - [packages/engine/src/test/simple.test.ts:1-64](file://packages/engine/src/test/simple.test.ts#L1-L64)
+- [packages/engine/src/test/segmentation.test.ts:1-166](file://packages/engine/src/test/segmentation.test.ts#L1-L166)
+- [packages/engine/src/test/worldStateUpdater.test.ts:1-240](file://packages/engine/src/test/worldStateUpdater.test.ts#L1-L240)
 - [packages/engine/src/llm/client.ts:58-111](file://packages/engine/src/llm/client.ts#L58-L111)
 - [packages/engine/src/story/bible.ts:8-50](file://packages/engine/src/story/bible.ts#L8-L50)
+- [test-full-workflow.ts:1-181](file://test-full-workflow.ts#L1-L181)
 
 ## Development Workflow
 - Local Setup
@@ -859,15 +1019,19 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
   - **New**: Follow standardized repository organization practices using .gitignore patterns.
   - **New**: Configure multi-model LLM setup using the enhanced CLI configuration system.
   - **New**: Test language detection functionality with international content samples.
+  - **New**: Run comprehensive unit tests for segmentation logic and world state updates.
 - Running the CLI
   - Build the engine and CLI, then use the CLI binary to manage stories.
   - **New**: Use `nos config` to set up multi-model configuration with interactive prompts.
   - **New**: Test language detection by creating stories with different writing systems.
+  - **New**: Validate segmentation logic with Chinese text content samples.
 - Debugging
   - Enable verbose logging in the LLM client and pipeline steps.
   - Inspect persisted story state and chapter outputs to isolate issues.
   - **New**: Debug multi-model configuration issues using `nos config --show` to verify current setup.
   - **New**: Debug language detection issues by examining detected language codes and character patterns.
+  - **New**: Debug segmentation logic issues using the comprehensive unit tests as reference.
+  - **New**: Debug world state update issues using the detailed validation tests.
 - Profiling
   - Measure generation latency per chapter and track token usage per provider.
   - Adjust model parameters and prompt sizes to optimize throughput.
@@ -875,12 +1039,15 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
   - **New**: Track cost optimization benefits of task-based model selection.
   - **New**: Monitor repository organization impact on development workflow efficiency.
   - **New**: Profile language detection performance with various content types and writing systems.
+  - **New**: Profile segmentation logic performance with different text lengths and boundary patterns.
+  - **New**: Profile world state update performance with varying content complexity.
 - **New**: Cross-Platform Development
   - Use platform-appropriate installation and publishing scripts for consistent development experience.
   - Leverage automated scripts for environment setup and cleanup across different operating systems.
   - **New**: Maintain consistent repository organization patterns across all development environments.
   - **New**: Test multi-model configuration and language detection across different platforms and Node.js versions.
   - **New**: Validate international content generation across different operating systems and locales.
+  - **New**: Test comprehensive segmentation logic and world state update functionality across platforms.
 
 **Section sources**
 - [package.json:5-11](file://package.json#L5-L11)
@@ -888,6 +1055,8 @@ The project supports publishing workflows for both Windows PowerShell and Unix-l
 - [packages/engine/src/llm/client.ts:18-28](file://packages/engine/src/llm/client.ts#L18-L28)
 - [install.ps1:1-130](file://install.ps1#L1-L130)
 - [.gitignore:50-50](file://.gitignore#L50-L50)
+- [packages/engine/src/test/segmentation.test.ts:1-166](file://packages/engine/src/test/segmentation.test.ts#L1-L166)
+- [packages/engine/src/test/worldStateUpdater.test.ts:1-240](file://packages/engine/src/test/worldStateUpdater.test.ts#L1-L240)
 
 ## Conclusion
 This guide outlines how to develop, test, and contribute to the Narrative Operating System monorepo. By leveraging PNPM workspaces and Turborepo, you can efficiently manage a multi-package TypeScript codebase. The engine's modular design enables easy extension with new agents, memory strategies, and LLM providers, while the CLI provides a practical interface for iterative development and experimentation.
@@ -898,6 +1067,8 @@ This guide outlines how to develop, test, and contribute to the Narrative Operat
 
 **New**: The comprehensive language detection system represents a major advancement in international content generation, supporting multiple writing systems including Chinese, Japanese, Korean, Arabic, Russian, Thai, and Hindi. This system automatically detects content writing systems and applies appropriate cultural context to story generation, character creation, and narrative consistency checking.
 
-These improvements significantly reduce the barrier to entry for contributors while maintaining reliable distribution of the Narrative Operating System across diverse development environments. The combination of automated tooling, enhanced configuration capabilities, standardized organization practices, and comprehensive internationalization features creates a robust foundation for ongoing development and contribution to the project.
+**New**: The expanded testing infrastructure provides comprehensive validation for segmentation logic, world state updates, and full workflow integration. The system includes detailed unit tests for Chinese text processing, four-step location tracking validation, and end-to-end integration testing with Chinese language verification.
 
-The current version numbers (CLI: 0.1.8, Engine: 0.1.5) indicate a stable initial release with comprehensive multi-model support and advanced language detection capabilities, making it suitable for production use while maintaining room for future enhancements and optimizations in international content generation and cultural authenticity.
+These improvements significantly reduce the barrier to entry for contributors while maintaining reliable distribution of the Narrative Operating System across diverse development environments. The combination of automated tooling, enhanced configuration capabilities, standardized organization practices, comprehensive internationalization features, and robust testing infrastructure creates a solid foundation for ongoing development and contribution to the project.
+
+The current version numbers (CLI: 0.1.8, Engine: 0.1.5) indicate a stable initial release with comprehensive multi-model support, advanced language detection capabilities, and extensive testing infrastructure, making it suitable for production use while maintaining room for future enhancements and optimizations in international content generation, cultural authenticity, and automated testing validation.

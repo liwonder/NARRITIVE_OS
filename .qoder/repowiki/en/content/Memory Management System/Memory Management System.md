@@ -30,11 +30,12 @@
 - [index.ts](file://packages/engine/src/types/index.ts)
 - [sceneAssembler.ts](file://packages/engine/src/scene/sceneAssembler.ts)
 - [sceneWriter.ts](file://packages/engine/src/agents/sceneWriter.ts)
+- [segmentation.test.ts](file://packages/engine/src/test/segmentation.test.ts)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Enhanced MemoryExtractor with intelligent long chapter segmentation (4,000+ character threshold with 200-character overlap), improved paragraph boundary detection, automatic deduplication using Jaccard similarity (0.8 threshold), and streaming memory extraction for memory efficiency
+- Enhanced MemoryExtractor with intelligent long chapter segmentation (4,000+ character threshold with 200-character overlap), improved paragraph boundary detection for both Western and Chinese text, automatic deduplication using Jaccard similarity (0.8 threshold), and streaming memory extraction with garbage collection hints
 - Enhanced CanonStore with 5,000-character segment handling and 400-character overlap for processing long chapter content
 - Improved memory extraction algorithms with better content segmentation and deduplication strategies
 - Enhanced vector memory management with streaming extraction and automatic memory optimization
@@ -54,7 +55,7 @@
 ## Introduction
 This document describes the Memory Management System with a focus on Canonical Fact Storage, Enhanced Vector Memory System with Intelligent Long Chapter Segmentation, Memory Validation, and Comprehensive State Management. The system now includes sophisticated memory extraction capabilities with intelligent segmentation for long chapters, automatic deduplication using Jaccard similarity, and enhanced canonical fact processing with streaming extraction for improved memory efficiency and performance.
 
-**Updated** Enhanced memory management now features intelligent long chapter segmentation with configurable segment sizes and overlaps, automatic paragraph boundary detection, Jaccard similarity-based deduplication with 0.8 threshold, and comprehensive vector store integration with streaming memory extraction for optimal performance with large content volumes.
+**Updated** Enhanced memory management now features intelligent long chapter segmentation with configurable segment sizes and overlaps, automatic paragraph boundary detection supporting both Western and Chinese text, Jaccard similarity-based deduplication with 0.8 threshold, and comprehensive vector store integration with streaming memory extraction for optimal performance with large content volumes.
 
 ## Project Structure
 The memory system now encompasses a comprehensive vector memory infrastructure with enhanced state management capabilities and intelligent memory extraction:
@@ -150,7 +151,7 @@ EP --> LC
 ## Core Components
 - **VectorStore**: Enhanced HNSW (Hierarchical Navigable Small World) algorithm-based vector memory storage with semantic similarity search, flexible embedding generation supporting multiple providers, auto-resizing capabilities, and full persistence support.
 - **MemoryRetriever**: Advanced contextual memory retrieval system that searches vector stores for relevant past events, character memories, plot threads, and world details with intelligent query generation.
-- **MemoryExtractor**: Sophisticated automated narrative memory extraction agent with intelligent long chapter segmentation (4,000+ character threshold with 200-character overlap), improved paragraph boundary detection, automatic deduplication using Jaccard similarity (0.8 threshold), and streaming memory extraction for memory efficiency.
+- **MemoryExtractor**: Sophisticated automated narrative memory extraction agent with intelligent long chapter segmentation (4,000+ character threshold with 200-character overlap), improved paragraph boundary detection supporting both Western and Chinese text, automatic deduplication using Jaccard similarity (0.8 threshold), and streaming memory extraction for memory efficiency.
 - **CanonStore**: Immutable store of canonical facts with helpers to extract, add, update, filter, and format facts for prompts, including enhanced 5,000-character segment handling and 400-character overlap for processing long chapter content.
 - **StateUpdaterPipeline**: Comprehensive post-chapter state management pipeline that extracts narrative changes, updates constraint graphs, maintains recent events, and integrates vector memory extraction with enhanced performance and automatic memory extraction.
 - **StructuredState**: Rich story state representation with characters, plot threads, unresolved questions, and recent events tracking.
@@ -263,7 +264,7 @@ StateUp-->>Pipe : "StateUpdateResult"
 The MemoryExtractor agent now features sophisticated intelligent segmentation and deduplication capabilities for processing long chapters efficiently:
 
 - **Intelligent Long Chapter Segmentation**: Processes chapters longer than 4,000 characters using 200-character overlap to maintain context while managing memory usage effectively.
-- **Improved Paragraph Boundary Detection**: Smartly detects paragraph breaks within 200 characters of segment boundaries to ensure semantic coherence and natural content division.
+- **Improved Paragraph Boundary Detection**: Smartly detects paragraph breaks within 200 characters of segment boundaries to ensure semantic coherence and natural content division. Supports both Western text (double newline separation) and Chinese text (single character period separation).
 - **Automatic Deduplication with Jaccard Similarity**: Implements Jaccard similarity algorithm with 0.8 threshold to eliminate redundant memories, reducing storage requirements and improving search efficiency.
 - **Streaming Memory Extraction**: Processes content in segments with garbage collection hints to prevent memory buildup during long chapter processing.
 - **Enhanced Segment Context**: Provides segment numbering and overlap information to maintain temporal context across segmented processing.
@@ -290,13 +291,13 @@ J --> K["Memory Extraction Complete"]
 - [memoryExtractor.ts:153-186](file://packages/engine/src/agents/memoryExtractor.ts#L153-L186)
 
 **Section sources**
-- [memoryExtractor.ts:1-216](file://packages/engine/src/agents/memoryExtractor.ts#L1-L216)
+- [memoryExtractor.ts:1-232](file://packages/engine/src/agents/memoryExtractor.ts#L1-L232)
 
 ### Enhanced CanonStore: 5,000-Character Segment Processing
 The CanonStore now provides enhanced processing capabilities for long chapter content with intelligent segmentation:
 
 - **5,000-Character Segment Threshold**: Processes chapters longer than 5,000 characters using 400-character overlap to maintain context while managing memory usage.
-- **Smart Paragraph Boundary Detection**: Detects paragraph breaks within 200-character range to ensure semantic coherence across segment boundaries.
+- **Smart Paragraph Boundary Detection**: Detects paragraph breaks within 200-character range to ensure semantic coherence across segment boundaries, supporting both Western and Chinese text formats.
 - **Enhanced Duplicate Prevention**: Prevents duplicate fact extraction by checking existing canonical facts before adding new ones.
 - **Streaming Fact Processing**: Processes content in segments with garbage collection hints for memory efficiency during long chapter analysis.
 - **Chapter Number Integration**: Automatically includes chapter numbers in fact attributes for temporal tracking and provenance.
@@ -325,7 +326,7 @@ L --> M["Canon Extraction Complete"]
 - [canonStore.ts:206-299](file://packages/engine/src/memory/canonStore.ts#L206-L299)
 
 **Section sources**
-- [canonStore.ts:136-304](file://packages/engine/src/memory/canonStore.ts#L136-L304)
+- [canonStore.ts:136-320](file://packages/engine/src/memory/canonStore.ts#L136-L320)
 
 ### Enhanced VectorStore: Flexible Embedding Provider Architecture
 The VectorStore provides sophisticated vector memory management with enhanced embedding provider flexibility and improved fallback mechanisms:
@@ -381,7 +382,7 @@ LLMClient --> ModelConfig : "returns"
 - [index.ts:92-104](file://packages/engine/src/types/index.ts#L92-L104)
 
 **Section sources**
-- [vectorStore.ts:1-271](file://packages/engine/src/memory/vectorStore.ts#L1-L271)
+- [vectorStore.ts:1-275](file://packages/engine/src/memory/vectorStore.ts#L1-L275)
 
 ### Enhanced StateUpdaterPipeline: Comprehensive Post-Chapter State Management
 The StateUpdaterPipeline represents a significant enhancement to the memory management system, now fully integrated with vector memory capabilities:
@@ -658,9 +659,9 @@ CMD --> LC
 - [canonStore.ts:24-58](file://packages/engine/src/memory/canonStore.ts#L24-L58)
 - [structuredState.ts:33-85](file://packages/engine/src/story/structuredState.ts#L33-L85)
 - [stateUpdater.ts:90-248](file://packages/engine/src/memory/stateUpdater.ts#L90-L248)
-- [vectorStore.ts:1-271](file://packages/engine/src/memory/vectorStore.ts#L1-L271)
+- [vectorStore.ts:1-275](file://packages/engine/src/memory/vectorStore.ts#L1-L275)
 - [memoryRetriever.ts:1-174](file://packages/engine/src/memory/memoryRetriever.ts#L1-L174)
-- [memoryExtractor.ts:1-216](file://packages/engine/src/agents/memoryExtractor.ts#L1-L216)
+- [memoryExtractor.ts:1-232](file://packages/engine/src/agents/memoryExtractor.ts#L1-L232)
 - [constraintGraph.ts:29-471](file://packages/engine/src/constraints/constraintGraph.ts#L29-L471)
 - [generateChapter.ts:20-71](file://packages/engine/src/pipeline/generateChapter.ts#L20-L71)
 - [writer.ts:55-94](file://packages/engine/src/agents/writer.ts#L55-L94)
@@ -734,7 +735,7 @@ Enhanced troubleshooting guidance for the expanded vector memory system with int
 ## Conclusion
 The enhanced Memory Management System centers on a robust CanonStore that seeds canonical facts from the story bible with intelligent long chapter processing, an advanced VectorStore with flexible embedding provider architecture for semantic memory search, comprehensive MemoryRetriever for contextual memory access, and the powerful StateUpdaterPipeline that provides complete post-chapter state management with vector memory integration. The system now includes automatic constraint graph updates, recent events tracking, enhanced CLI persistence for vector stores, automated memory extraction capabilities with intelligent segmentation and deduplication for improved performance and reliability, and comprehensive embedding provider flexibility supporting multiple providers (OpenAI, DeepSeek) with automatic configuration and fallback mechanisms.
 
-**Updated** The system now features comprehensive intelligent memory extraction from generated chapters with sophisticated segmentation (4,000+ character threshold with 200-character overlap), automatic paragraph boundary detection, Jaccard similarity-based deduplication (0.8 threshold), and enhanced vector store integration with improved embedding provider flexibility. MemoryExtractor operates automatically during chapter generation, extracting relevant narrative elements with intelligent segmentation and storing them in the vector store with proper categorization. The enhanced StateUpdaterPipeline integrates memory extraction into the state management process, ensuring that new memories are properly categorized and accessible for future generations. This enhancement enables the system to maintain comprehensive narrative coherence across iterations while providing efficient semantic search capabilities for context-aware writing and validation, with optimized memory usage through intelligent segmentation and deduplication strategies.
+**Updated** The system now features comprehensive intelligent memory extraction from generated chapters with sophisticated segmentation (4,000+ character threshold with 200-character overlap), automatic paragraph boundary detection supporting both Western and Chinese text formats, Jaccard similarity-based deduplication (0.8 threshold), and enhanced vector store integration with improved embedding provider flexibility. MemoryExtractor operates automatically during chapter generation, extracting relevant narrative elements with intelligent segmentation and storing them in the vector store with proper categorization. The enhanced StateUpdaterPipeline integrates memory extraction into the state management process, ensuring that new memories are properly categorized and accessible for future generations. This enhancement enables the system to maintain comprehensive narrative coherence across iterations while providing efficient semantic search capabilities for context-aware writing and validation, with optimized memory usage through intelligent segmentation and deduplication strategies.
 
 ## Appendices
 

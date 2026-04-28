@@ -4,8 +4,11 @@ import { homedir } from 'os';
 
 const CONFIG_DIR = join(homedir(), '.narrative-os');
 const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
+const MODELS_CACHE_FILE = join(CONFIG_DIR, 'models-cache.json');
 
-// Task-based model configuration
+const MODELS_REMOTE_URL = 'https://raw.githubusercontent.com/liwonder/NARRITIVE_OS/master/models.json';
+const MODELS_CACHE_TTL = 24 * 60 * 60 * 1000;
+
 type TaskType = 'simple' | 'reasoning' | 'embedding';
 
 interface TaskModelConfig {
@@ -20,7 +23,6 @@ interface TaskBasedConfig {
   tasks: Record<TaskType, TaskModelConfig>;
 }
 
-// Legacy configs for backward compatibility
 interface ModelConfig {
   name: string;
   provider: 'openai' | 'deepseek' | 'alibaba' | 'ark';
@@ -43,17 +45,29 @@ interface LegacyConfig {
 
 type Config = TaskBasedConfig | MultiModelConfig | LegacyConfig;
 
-const PROVIDERS = [
+interface RemoteProviderEntry {
+  models: string[];
+  deprecated?: string[];
+  baseURL?: string;
+}
+
+interface RemoteModelsConfig {
+  version: string;
+  updatedAt: string;
+  providers: Record<string, RemoteProviderEntry>;
+}
+
+const BUILTIN_PROVIDERS = [
   { 
     name: 'OpenAI', 
     value: 'openai', 
     models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'text-embedding-3-small'],
-    baseURL: undefined
+    baseURL: undefined as string | undefined
   },
   { 
     name: 'DeepSeek', 
     value: 'deepseek', 
-    models: ['deepseek-chat', 'deepseek-reasoner'],
+    models: ['deepseek-v4-flash', 'deepseek-v4-pro', 'deepseek-chat', 'deepseek-reasoner'],
     baseURL: 'https://api.deepseek.com'
   },
   { 
@@ -69,6 +83,10 @@ const PROVIDERS = [
     baseURL: 'https://ark.cn-beijing.volces.com/api/v3'
   },
 ];
+
+type ProviderEntry = typeof BUILTIN_PROVIDERS[number];
+
+let PROVIDERS: ProviderEntry[] = BUILTIN_PROVIDERS.map(p => ({ ...p, models: [...p.models] }));
 
 const TASK_DESCRIPTIONS: Record<TaskType, { title: string; description: string; examples: string }> = {
   simple: {
@@ -114,6 +132,82 @@ function maskApiKey(key: string): string {
   if (!key || key.length < 8) return '❌ Not set';
   return '✅ ' + '*'.repeat(Math.min(key.length - 4, 12)) + key.slice(-4);
 }
+
+// ── Remote Model Registry ──────────────────────────────────────────
+
+async function fetchRemoteModels(): Promise<RemoteModelsConfig | null> {
+  try {
+    const response = await fetch(MODELS_REMOTE_URL, { 
+      signal: AbortSignal.timeout(5000) 
+    });
+    if (!response.ok) return null;
+    return await response.json() as RemoteModelsConfig;
+  } catch {
+    return null;
+  }
+}
+
+function loadCachedModels(): RemoteModelsConfig | null {
+  if (!existsSync(MODELS_CACHE_FILE)) return null;
+  try {
+    const cache = JSON.parse(readFileSync(MODELS_CACHE_FILE, 'utf-8'));
+    const age = Date.now() - (cache._cachedAt || 0);
+    if (age < MODELS_CACHE_TTL) {
+      delete cache._cachedAt;
+      return cache as RemoteModelsConfig;
+    }
+  } catch {}
+  return null;
+}
+
+function saveCachedModels(models: RemoteModelsConfig) {
+  if (!existsSync(CONFIG_DIR)) mkdirSync(CONFIG_DIR, { recursive: true });
+  writeFileSync(MODELS_CACHE_FILE, JSON.stringify({
+    ...models,
+    _cachedAt: Date.now()
+  }, null, 2));
+}
+
+function mergeRemoteModels(remote: RemoteModelsConfig) {
+  for (const provider of PROVIDERS) {
+    const remoteProvider = remote.providers[provider.value];
+    if (remoteProvider && remoteProvider.models.length > 0) {
+      const merged = [...remoteProvider.models];
+      for (const m of provider.models) {
+        if (!merged.includes(m)) merged.push(m);
+      }
+      provider.models = merged;
+      
+      if (remoteProvider.baseURL) {
+        provider.baseURL = remoteProvider.baseURL;
+      }
+    }
+  }
+}
+
+/**
+ * Initialize providers: cache-first, fetch only when cache expired (>24h).
+ * Called once at CLI startup.
+ */
+export async function initProviders() {
+  const cached = loadCachedModels();
+  if (cached) {
+    mergeRemoteModels(cached);
+    return;
+  }
+  
+  const remote = await fetchRemoteModels();
+  if (remote) {
+    mergeRemoteModels(remote);
+    saveCachedModels(remote);
+    console.log(`🔄 Models updated (${remote.updatedAt})`);
+    return;
+  }
+  
+  // Remote fetch failed – use built-in
+}
+
+// ── Config Display & Setup ─────────────────────────────────────────
 
 function displayCurrentConfig(config: Config | null) {
   console.log('\n📋 Current Configuration');
@@ -171,7 +265,6 @@ async function configureTask(
   console.log(`Examples: ${info.examples}`);
   console.log(`${'='.repeat(50)}\n`);
   
-  // Show current if exists
   if (existingConfig) {
     console.log(`Current: ${existingConfig.provider} / ${existingConfig.model}`);
     const { confirm } = await import('@inquirer/prompts');
@@ -190,7 +283,6 @@ async function configureTask(
   
   const providerInfo = PROVIDERS.find(p => p.value === provider)!;
   
-  // Filter models based on task type
   let availableModels = providerInfo.models;
   if (task === 'embedding') {
     availableModels = providerInfo.models.filter(m => 
@@ -202,7 +294,6 @@ async function configureTask(
     );
   }
   
-  // If no suitable models, show all
   if (availableModels.length === 0) {
     availableModels = providerInfo.models;
   }
@@ -226,20 +317,13 @@ async function configureTask(
   };
 }
 
-/**
- * Apply configuration to the engine by setting environment variables
- * This is called at CLI startup to make config available to the engine
- */
 export function applyConfig() {
   const config = loadConfig();
   if (!config) return;
   
   if (isTaskBasedConfig(config)) {
-    // New v2 format: set LLM_MODELS_CONFIG with task-based config
-    // Convert to engine-compatible format
     const models: any[] = [];
     
-    // Simple task -> chat model
     if (config.tasks.simple) {
       models.push({
         name: 'chat',
@@ -259,7 +343,6 @@ export function applyConfig() {
       });
     }
     
-    // Reasoning task -> reasoning model
     if (config.tasks.reasoning) {
       models.push({
         name: 'reasoning',
@@ -271,7 +354,6 @@ export function applyConfig() {
       });
     }
     
-    // Embedding task -> embedding model
     if (config.tasks.embedding) {
       models.push({
         name: 'embedding',
@@ -283,14 +365,8 @@ export function applyConfig() {
       });
     }
     
-    const engineConfig = {
-      models,
-      defaultModel: 'chat'
-    };
+    process.env.LLM_MODELS_CONFIG = JSON.stringify({ models, defaultModel: 'chat' });
     
-    process.env.LLM_MODELS_CONFIG = JSON.stringify(engineConfig);
-    
-    // Also set legacy env vars for backward compatibility
     if (config.tasks.reasoning) {
       process.env.LLM_PROVIDER = config.tasks.reasoning.provider;
       process.env.LLM_MODEL = config.tasks.reasoning.model;
@@ -301,13 +377,11 @@ export function applyConfig() {
       }
     }
   } else if (isMultiModelConfig(config)) {
-    // Legacy multi-model format
     process.env.LLM_MODELS_CONFIG = JSON.stringify({
       models: config.models,
       defaultModel: config.defaultModel
     });
   } else {
-    // Legacy single-model format
     process.env.LLM_PROVIDER = config.provider;
     process.env.LLM_MODEL = config.model;
     if (config.provider === 'openai') {
@@ -320,17 +394,12 @@ export function applyConfig() {
 
 export async function configCommand(showOnly = false) {
   const existing = loadConfig();
-  
-  // Always show current config first
   const hasConfig = displayCurrentConfig(existing);
   
-  if (showOnly) {
-    return;
-  }
+  if (showOnly) return;
   
   const { confirm } = await import('@inquirer/prompts');
   
-  // Ask if user wants to reconfigure
   if (hasConfig) {
     const reconfigure = await confirm({
       message: 'Do you want to reconfigure?',
@@ -346,28 +415,20 @@ export async function configCommand(showOnly = false) {
   console.log('You will configure models for three task types.');
   console.log('Each task type can use a different provider and model.\n');
   
-  // Get existing task configs if available
   const existingTasks = existing && isTaskBasedConfig(existing) ? existing.tasks : undefined;
   
-  // Configure each task
   const tasks: Record<TaskType, TaskModelConfig> = {
     simple: await configureTask('simple', existingTasks?.simple),
     reasoning: await configureTask('reasoning', existingTasks?.reasoning),
     embedding: await configureTask('embedding', existingTasks?.embedding),
   };
   
-  const config: TaskBasedConfig = {
-    version: 2,
-    tasks,
-  };
-  
-  saveConfig(config);
+  saveConfig({ version: 2, tasks });
   
   console.log('\n' + '='.repeat(50));
   console.log('✅ Configuration saved successfully!');
   console.log('='.repeat(50) + '\n');
   
-  // Display summary
   for (const [task, taskConfig] of Object.entries(tasks)) {
     const info = TASK_DESCRIPTIONS[task as TaskType];
     console.log(`${info.title}: ${taskConfig.provider} / ${taskConfig.model}`);

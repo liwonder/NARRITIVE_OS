@@ -19,7 +19,11 @@
 
 ## Update Summary
 **Changes Made**
-- Enhanced WorldStateEngine with automatic object creation capabilities in `moveObject` and `discoverObject` methods
+- WorldStateUpdater now implements a four-step location tracking system with segmented content processing
+- Enhanced prompt engineering with explicit location tracking instructions for improved accuracy
+- Improved move validation and automatic implied location detection
+- Sophisticated continuity validation with automatic location inference
+- Enhanced automatic object creation capabilities in `moveObject` and `discoverObject` methods
 - Improved validation for non-existent objects with better error handling and graceful fallbacks
 - Added support for world state initialization from story bible with automatic character creation
 - Updated integration documentation to reflect automatic world state initialization
@@ -40,7 +44,7 @@
 ## Introduction
 The World State Engine is a core subsystem responsible for maintaining and evolving the persistent, logically consistent state of a story's world. It tracks characters, locations, objects, relationships, and timeline events, ensuring narrative coherence across generated chapters and scenes. The engine integrates with autonomous character agents, event resolution mechanics, and the broader narrative generation pipeline to produce coherent, causally consistent stories.
 
-**Updated** Enhanced with automatic object creation capabilities, automatic character initialization from story bible, improved validation for non-existent objects, and comprehensive spatial connectivity mapping, making the engine more robust and user-friendly.
+**Updated** Enhanced with automatic object creation capabilities, automatic character initialization from story bible, improved validation for non-existent objects, sophisticated location tracking with segmented content processing, enhanced prompt engineering with explicit location tracking instructions, improved move validation, automatic implied location detection, and sophisticated continuity validation, making the engine more robust and user-friendly.
 
 ## Project Structure
 The World State Engine spans several modules within the engine package:
@@ -59,7 +63,7 @@ CA["CharacterAgentSystem"]
 ER["EventResolver"]
 end
 subgraph "Integration"
-WSU["WorldStateUpdater"]
+WSU["WorldStateUpdater<br/>Enhanced"]
 GCP["generateChapter"]
 LLM["LLMClient"]
 end
@@ -100,7 +104,7 @@ TYPES --> GCP
 - WorldStateManager (Phase 8): Alternative world state manager using Maps and character agents, focused on initialization, movement, and event tracking.
 - EventResolver: Converts character decisions into world events and resolves them into outcomes with consequences.
 - CharacterAgentSystem: Creates agents from structured state, manages agendas, and generates decisions via LLM or fallback logic.
-- WorldStateUpdater: Extracts world state changes from scene content and applies them to the authoritative engine.
+- WorldStateUpdater: **Enhanced** Extracts world state changes from scene content using a four-step location tracking system with segmented content processing, enhanced prompt engineering with explicit location tracking instructions, improved move validation, automatic implied location detection, and sophisticated continuity validation.
 - Integration pipeline: generateChapter orchestrates story direction, scene planning, character decisions, scene generation, and world state updates.
 
 **Section sources**
@@ -114,13 +118,14 @@ TYPES --> GCP
 ## Architecture Overview
 The World State Engine operates as a persistent, authoritative layer integrated into the narrative generation pipeline. It receives updates from generated scenes, validates logical consistency, and informs subsequent generation steps.
 
-**Updated** The engine now automatically initializes world state from story bible characters and provides enhanced object management capabilities with automatic object creation and improved validation.
+**Updated** The engine now automatically initializes world state from story bible characters and provides enhanced object management capabilities with automatic object creation and improved validation. The WorldStateUpdater now implements a sophisticated four-step location tracking system with segmented content processing and enhanced prompt engineering.
 
 ```mermaid
 sequenceDiagram
 participant GC as "generateChapter"
 participant BIBLE as "StoryBible"
 participant WSE as "WorldStateEngine"
+participant WSU as "WorldStateUpdater"
 GC->>BIBLE : Check if world state empty
 BIBLE-->>GC : Empty state detected
 GC->>WSE : Initialize from story bible
@@ -130,7 +135,11 @@ CA-->>GC : CharacterDecision[]
 GC->>ER : Resolve decisions to events
 ER-->>GC : EventResolution[]
 GC->>WSU : Extract updates from scene content
-WSU->>WSE : Apply updates (moves, deaths, discoveries,<br/>relationships, emotions, events)
+WSU->>WSU : Step 1 : Segment content into chunks
+WSU->>WSU : Step 2 : Build enhanced prompt with location tracking
+WSU->>WSU : Step 3 : Extract updates from each segment
+WSU->>WSU : Step 4 : Validate location continuity
+WSU->>WSE : Apply validated updates (moves, deaths, discoveries,<br/>relationships, emotions, events)
 Note over WSE : Automatic object creation<br/>for non-existent objects
 WSE-->>GC : Updated world state
 GC-->>GC : Assemble chapter with consistent world state
@@ -329,24 +338,46 @@ CharacterAgentSystem --> CharacterAgent : "creates/manipulates"
 **Section sources**
 - [characterAgent.ts:91-304](file://packages/engine/src/world/characterAgent.ts#L91-L304)
 
-### WorldStateUpdater
-Extracts world state changes from scene content and applies them:
-- Uses LLM to parse scene content against current world state
-- Extracts character/object movements, deaths, discoveries, relationship/emotional changes, and new events
-- Applies updates to the authoritative engine with safe error handling
+### WorldStateUpdater (Enhanced)
+**Enhanced** Extracts world state changes from scene content using a sophisticated four-step location tracking system:
+
+#### Step 1: Content Segmentation
+- Splits content into manageable chunks (2500 characters max)
+- Always includes beginning (first 500 chars) and end (last 500 chars) as special segments
+- Processes middle content in overlapping segments for comprehensive coverage
+
+#### Step 2: Enhanced Prompt Engineering
+- **CRITICAL LOCATION TRACKING INSTRUCTIONS**: Explicit guidelines for character movement detection
+- **Implied Movement Detection**: Identifies characters who appear at new locations without explicit movement statements
+- **Time Jump Recognition**: Detects temporal transitions that imply location changes
+- **Beginning and End Position Tracking**: Critical instructions for chapter start and end positions
+
+#### Step 3: Multi-Segment Processing
+- Extracts updates from each segment independently
+- Handles LLM JSON parsing failures gracefully
+- Merges updates from all segments with deduplication
+
+#### Step 4: Sophisticated Continuity Validation
+- **Automatic Implied Location Detection**: Detects character locations from text content using regex patterns
+- **Final Position Validation**: Ensures continuity between chapter start and end positions
+- **Smart Location Inference**: Uses content analysis to infer character positions when not explicitly stated
 
 ```mermaid
 sequenceDiagram
 participant WSU as "WorldStateUpdater"
 participant LLM as "LLMClient"
 participant WSE as "WorldStateEngine"
+WSU->>WSU : Step 1 : segmentContent(content)
 WSU->>WSU : Format current state for prompt
-WSU->>LLM : Request JSON updates from scene content
+WSU->>LLM : Request JSON updates from segment 1
 LLM-->>WSU : JSON updates
-WSU->>WSE : Apply character moves/deaths
-WSU->>WSE : Apply object moves/discoveries
-WSU->>WSE : Apply relationship/emotional changes
-WSU->>WSE : Add new events
+WSU->>LLM : Request JSON updates from segment 2
+LLM-->>WSU : JSON updates
+WSU->>LLM : Request JSON updates from segment n
+LLM-->>WSU : JSON updates
+WSU->>WSU : Step 3 : mergeUpdates(allUpdates)
+WSU->>WSU : Step 4 : validateAndFixLocationContinuity()
+WSU->>WSE : Apply validated updates
 Note over WSE : Automatic object creation<br/>for non-existent objects
 WSE-->>WSU : Updated state
 ```
@@ -365,10 +396,10 @@ The pipeline coordinates world state updates during scene-level generation:
 - **Enhanced** Automatically initializes world state from story bible characters if empty
 - Creates agents per scene and collects decisions
 - Generates scenes with character guidance
-- Updates world state after each scene
+- Updates world state after each scene using the enhanced WorldStateUpdater
 - Assembles chapter with consistent world state
 
-**Updated** The integration now includes automatic world state initialization from story bible with automatic character creation.
+**Updated** The integration now includes automatic world state initialization from story bible with automatic character creation and uses the enhanced WorldStateUpdater with four-step location tracking.
 
 ```mermaid
 sequenceDiagram
@@ -385,7 +416,8 @@ WSE->>WSE : Auto-create characters from bible
 GC->>CA : Get decisions per scene
 CA-->>GC : CharacterDecision[]
 GC->>WSU : updateFromScene(content, bible, chapter, scene)
-WSU->>WSE : Apply extracted updates
+WSU->>WSU : Enhanced four-step processing
+WSU->>WSE : Apply validated updates
 Note over WSE : Automatic object creation<br/>for non-existent objects
 WSE-->>GC : Updated world state
 GC-->>GC : Assemble chapter
@@ -435,20 +467,23 @@ TYPES["Types"] --> GCP
 ## Performance Considerations
 - WorldStateEngine operations are O(1) for most map-based lookups and O(n) for timeline scanning; consider indexing frequently accessed subsets if scale demands.
 - Event resolution loops iterate over pending events; batch processing and early termination can reduce overhead.
-- LLM calls in WorldStateUpdater and CharacterAgentSystem should be rate-limited and cached where appropriate.
-- Serialization/deserialization costs can be minimized by incremental updates and selective state exports.
+- **Enhanced** LLM calls in WorldStateUpdater now process content in segments, potentially increasing processing time but improving accuracy through comprehensive coverage.
+- **Enhanced** Four-step location tracking system adds computational overhead but significantly improves location continuity validation.
 - **Enhanced** Automatic object creation adds minimal overhead but improves robustness by eliminating the need for explicit object existence checks.
 - **Enhanced** Automatic character initialization from story bible eliminates manual setup overhead and ensures consistent world state initialization.
+- Serialization/deserialization costs can be minimized by incremental updates and selective state exports.
 
 ## Troubleshooting Guide
 Common issues and remedies:
 - Character/location not found: Ensure proper initialization and lifecycle management before invoking move/kill operations.
 - Relationship normalization: Keys are normalized; always use the same ordering for character pairs to avoid duplicates.
-- LLM JSON parsing failures: Validate prompt formatting and consider fallback strategies when JSON extraction fails.
+- **Enhanced** LLM JSON parsing failures: The enhanced WorldStateUpdater now handles failures gracefully with better error handling and fallback strategies.
 - Event resolution inconsistencies: Verify that participants exist in the agent map and that event types are categorized correctly.
 - **New** Non-existent object errors: The engine now automatically creates objects when they don't exist, reducing manual object management overhead.
 - **New** Automatic character initialization: Characters are automatically created from story bible during world state initialization, eliminating manual character setup requirements.
 - **New** Spatial connectivity issues: Use `connectLocations` method to establish connections between locations, ensuring proper spatial mapping.
+- **New** Location tracking inconsistencies: The enhanced WorldStateUpdater now uses sophisticated location tracking with implied movement detection and continuity validation.
+- **New** Content segmentation issues: The four-step system processes content in overlapping segments to ensure comprehensive coverage of location changes.
 
 **Section sources**
 - [worldStateEngine.ts:97-119](file://packages/engine/src/world/worldStateEngine.ts#L97-L119)
@@ -456,4 +491,4 @@ Common issues and remedies:
 - [eventResolver.ts:231-272](file://packages/engine/src/world/eventResolver.ts#L231-L272)
 
 ## Conclusion
-The World State Engine provides a robust, authoritative foundation for narrative consistency in AI-generated stories. By integrating autonomous character agents, event resolution, and LLM-driven state updates, it ensures coherent evolution of story worlds across chapters and scenes. **Enhanced** with automatic object creation capabilities, automatic character initialization from story bible, improved validation, and comprehensive spatial connectivity mapping, the engine now offers significantly better user experience while maintaining logical consistency and persistent memory. The addition of automatic world state initialization from story bible makes the system extremely accessible and reduces manual setup requirements to virtually zero.
+The World State Engine provides a robust, authoritative foundation for narrative consistency in AI-generated stories. By integrating autonomous character agents, event resolution, and LLM-driven state updates, it ensures coherent evolution of story worlds across chapters and scenes. **Enhanced** with automatic object creation capabilities, automatic character initialization from story bible, improved validation, sophisticated location tracking with segmented content processing, enhanced prompt engineering with explicit location tracking instructions, improved move validation, automatic implied location detection, and sophisticated continuity validation, the engine now offers significantly better user experience while maintaining logical consistency and persistent memory. The addition of automatic world state initialization from story bible makes the system extremely accessible and reduces manual setup requirements to virtually zero. The enhanced WorldStateUpdater with its four-step location tracking system provides unprecedented accuracy in tracking character movements and maintaining narrative continuity across generated content.
